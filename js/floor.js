@@ -60,26 +60,14 @@ function wallet(c) {
     ? `${so} ${fmt(t.toNext)} more for ${t.next.name}, with limits ×${t.next.limit}.`
     : `${so} The top card: limits ×${t.limit} at every table.`;
   $('tierBar').style.width = t.next ? `${Math.min(100, ((c.wagered - t.at) / (t.next.at - t.at)) * 100)}%` : '100%';
-  $('stake').hidden = !cage.canStake(feltChips());
+  $('stake').hidden = !cage.canStake();
   $('tiers').innerHTML = cage.TIERS.map(x => `<li class="${x.id}${x.id === t.id ? ' now' : ''}"><b>${x.name}</b><span>${x.at ? `from ${fmt(x.at)} bet` : 'to start'}</span><span>limits ×${x.limit}</span></li>`).join('');
   $('stakes').textContent = `You started with ${fmt(cage.START)} chips${c.stakes > 1 ? `, and the cage has staked you ${c.stakes - 1 === 1 ? 'once' : `${c.stakes - 1} times`} since` : ''}. The most you’ve held at once: ${fmt(c.high)}.`;
   stats();
 }
 
-// Chips still out on a table's felt count as yours, so the cage doesn't stake you while they're there.
-function feltChips() {
-  let n = 0;
-  for (const t of TABLES) {
-    try {
-      const s = JSON.parse(localStorage.getItem(`house-money.${t.id}`));
-      if (s && Number.isFinite(s.felt)) n += Math.max(0, s.felt);
-    } catch { /* nothing there */ }
-  }
-  return n;
-}
-
 cage.watch(wallet);
-$('stake').addEventListener('click', () => { if (cage.stake(feltChips())) sound.chips(8); });
+$('stake').addEventListener('click', () => { if (cage.stake()) sound.chips(8); });
 $('cardBtn').addEventListener('click', () => { $('card').scrollIntoView({ behavior: 'smooth', block: 'start' }); $('card').focus({ preventScroll: true }); });
 
 const soundBtn = $('sound');

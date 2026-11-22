@@ -111,17 +111,19 @@ await page.evaluate(() => localStorage.setItem('house-money.cage', JSON.stringif
 await page.goto(base);
 assert.equal(await page.textContent('#tierName'), 'Silver');
 await page.click('#stake');
-assert.equal(await page.textContent('#chips'), '1,000');
+assert.equal(await page.textContent('#chips'), '1,003', 'the stake is another 1,000 on top of the 3');
 assert.equal(await page.isHidden('#stake'), true);
+assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('house-money.cage')).stakes), 2);
 
 // ---------- the cage at the tables ----------
 // Each check sits down in a fresh browser with the chips (and any table's saved state) set up first.
 // ONLY=<table id> runs the ones for that table; ONLY=cage runs them all and skips the rest of the tables.
 const cageWants = (...ids) => !process.env.ONLY || process.env.ONLY === 'cage' || ids.includes(process.env.ONLY);
 const phone = { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true };
-async function sit(path, saved, { ctx = null, size = phone } = {}) {
+async function sit(path, saved, { ctx = null, size = phone, f = null } = {}) {
   const own = !ctx;
   ctx ||= await browser.newContext(size);
+  if (own && f !== null) await ctx.addInitScript(steady, f);
   const p = await ctx.newPage();
   p.on('pageerror', e => problems.push(`${path}: ${e.message}`));
   if (own) {
@@ -149,6 +151,11 @@ const covered = p => p.evaluate(() => {
   return out;
 });
 
+// a draw that comes out the same every time: every getRandomValues answer is `f` of the way up
+const steady = f => { crypto.getRandomValues = a => { a.fill(Math.floor(f * 2 ** 32)); return a; }; };
+const cageOf = p => p.evaluate(() => JSON.parse(localStorage.getItem('house-money.cage')));
+const feltOf = (p, id) => p.evaluate(id => JSON.parse(localStorage.getItem(`house-money.${id}`))?.felt, id);
+
 // Down to 7 chips at every table: the offer is up, with the count, and every control is still there to tap.
 for (const t of TABLES) {
   if (!cageWants(t.id)) continue;
@@ -160,6 +167,40 @@ for (const t of TABLES) {
     assert.deepEqual(await covered(p), [], `${at}: the cage's offer covers the controls`);
     await ctx.close();
   }
+}
+
+// Roulette with 7 chips: 5 on 17 leaves 2 in the rack, and the 5 on the felt is still yours, so no offer until the
+// ball lands somewhere else (a steady draw of 0: the zero).
+if (cageWants('roulette')) {
+  const { p, ctx } = await sit('roulette/?fast&seen', { cage: { chips: 7, wagered: 993, high: 1000, stakes: 1 } }, { f: 0 });
+  await p.click('#rack .c5');
+  await p.click('[data-n="17"]');
+  await until(async () => (await cageOf(p)).chips === 2, 3000, 'roulette: the 5 did not go down on 17');
+  await p.waitForTimeout(200);
+  assert.equal(await offered(p), false, 'roulette: the cage offered a stake with 5 still on 17');
+  await p.click('#spin');
+  await until(() => offered(p), 8000, 'roulette: no stake offered once the last bet lost');
+  assert.equal(await feltOf(p, 'roulette'), 0, 'roulette: chips left on the felt after the spin');
+  assert.equal((await p.textContent('.stake-offer p')).trim().slice(0, 23), 'You’re down to 2 chips.');
+  await p.click('.stake-offer button');
+  const c = await cageOf(p);
+  assert.deepEqual([c.chips, c.stakes], [1002, 2], 'roulette: the stake is another 1,000');
+  await until(async () => !(await offered(p)), 2000, 'roulette: the offer stayed up after the stake');
+  await ctx.close();
+}
+
+// 500 out on the craps layout with 3 in the rack: those chips are still yours, so the cage offers nothing anywhere.
+for (const at of ['blackjack', 'roulette', 'cherry-bell', 'motherlode', '']) {
+  if (!cageWants('craps', at || 'floor')) continue;
+  const { p, ctx } = await sit(`${at ? `${at}/` : ''}?fast&seen`, {
+    cage: { chips: 3, wagered: 2000, high: 1000, stakes: 1 },
+    craps: { bets: { pass: 300, place6: 200 }, point: 6, history: [], felt: 500 },
+  });
+  const where = at || 'the floor';
+  assert.equal(await p.isVisible(at ? '.stake-offer' : '#stake'), false, `${where}: the cage offered a stake with 500 on the craps layout`);
+  await p.evaluate(sel => document.querySelector(sel).click(), at ? '.stake-offer button' : '#stake');
+  assert.deepEqual([(await cageOf(p)).chips, (await cageOf(p)).stakes], [3, 1], `${where}: the cage staked you with 500 on the craps layout`);
+  await ctx.close();
 }
 
 // Works offline once it has been opened. The server goes down as well as the browser: in some Chromium builds the

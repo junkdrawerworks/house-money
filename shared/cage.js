@@ -1,7 +1,8 @@
 // House Money's cage: one stack of play chips for every table on the floor.
 // A table takes chips off the stack when a bet goes down on the felt (take) and pays chips back when it wins or the
 // bet comes back (pay). It's read fresh every time, so a table in another tab never gets overwritten by a stale copy.
-// The chips aren't money and can't be bought: when the stack runs low, the cage stakes another 1,000 (stake).
+// The chips aren't money and can't be bought: when the stack runs low with nothing left out on a table, the cage
+// stakes another 1,000 (stake).
 //
 // Shape in localStorage, under KEY:
 //   { chips, wagered, high, stakes }
@@ -10,9 +11,11 @@
 //   high     the most the stack has ever held
 //   stakes   how many times the cage has staked you
 
+import { TABLES } from './tables.js';
+
 export const KEY = 'house-money.cage';
 export const START = 1000;        // the first stake, and every one after
-export const LOW = 10;            // under this, with nothing on the felt, the cage offers a stake
+export const LOW = 10;            // under this, with nothing out on any table, the cage offers a stake
 
 const whole = v => { const n = Math.floor(Number(v)); return Number.isFinite(n) && n >= 0 ? n : NaN; };
 
@@ -60,17 +63,39 @@ export function pay(n, { unwager = 0 } = {}) {
   return write(c);
 }
 
-// The cage stakes you back up to START, when you're down to less than LOW. Returns the new cage, or null if you
-// aren't low enough for it. onFelt: the chips you still have out on a table, which count as yours.
-export function stake(onFelt = 0) {
+// The chips out on each table's felt: every table saves its own as `felt` under house-money.<id>, and they're still
+// yours until they're settled. own: { id, felt } from the table you're at, whose live count stands in for what it last
+// saved (a bet goes down a moment before it's saved). Returns [{ id, name, felt }] for the tables with chips out.
+export function out(own = null) {
+  const list = [];
+  for (const t of TABLES) {
+    let n = 0;
+    if (own && own.id === t.id) n = whole(own.felt) || 0;
+    else {
+      try {
+        const s = JSON.parse(localStorage.getItem(`house-money.${t.id}`));
+        n = (s && whole(s.felt)) || 0;
+      } catch { /* nothing saved there, or not readable: nothing out */ }
+    }
+    if (n > 0) list.push({ id: t.id, name: t.name, felt: n });
+  }
+  return list;
+}
+
+export const feltAll = (own = null) => out(own).reduce((a, t) => a + t.felt, 0);
+
+// The cage stakes you another START when you're down to less than LOW with nothing out on any table, so the stack
+// plus the felt always comes to START for every stake plus what the tables have won or lost. Returns the new cage, or
+// null when you don't qualify. own: as for out().
+export const canStake = (own = null) => read().chips < LOW && feltAll(own) === 0;
+
+export function stake(own = null) {
+  if (!canStake(own)) return null;
   const c = read();
-  if (c.chips + (whole(onFelt) || 0) >= LOW) return null;
-  c.chips = START;
+  c.chips += START;
   c.stakes += 1;
   return write(c);
 }
-
-export const canStake = (onFelt = 0) => read().chips + (whole(onFelt) || 0) < LOW;
 
 // The player's card: the more you've wagered, the higher the limits at every table.
 export const TIERS = [

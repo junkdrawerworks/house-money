@@ -3,6 +3,8 @@
 // and the cage's offer to stake you when you run dry.
 //
 //   const t = mountTable({ id: 'blackjack', name: 'Blackjack', help: '<p>…</p>', min: 10, max: 500, felt: () => n })
+//   felt: the chips out on this table right now (bets down, or a round dealt and not yet paid): the cage won't stake
+//   you while there are any, here or on any other table
 //   t.say('Dealer has 20.')       a line from the dealer
 //   t.limits()                    { min, max } on your card
 //   t.check()                     shows or hides the stake offer (call after a round settles)
@@ -51,6 +53,8 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
   // The cage's offer is a banner at the top of the dock, above the rack and the buttons rather than on top of them, so
   // every control stays in reach while it's up. A table with no dock says where it goes instead (offerIn: Cherry Bell
   // puts it on the machine's glass, over the pay table).
+  // the chips out on this table now, which stand in for what it last saved when the cage adds up every table's felt
+  const here = () => ({ id, felt: felt() });
   const stakeBox = document.createElement('div');
   stakeBox.className = 'stake-offer';
   stakeBox.hidden = true;
@@ -60,7 +64,7 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
   else if (dock) dock.prepend(stakeBox);
   else (document.querySelector('main') || bar).after(stakeBox);
   stakeBox.querySelector('button').addEventListener('click', () => {
-    if (cage.stake(felt())) { sound.chips(8); line(`The cage sends over ${cage.fmt(cage.START)} in chips. Good luck.`); onStake(); }
+    if (cage.stake(here())) { sound.chips(8); line(`The cage sends over ${cage.fmt(cage.START)} in chips. Good luck.`); onStake(); }
     check();
   });
 
@@ -120,7 +124,7 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
   }
 
   function check() {
-    const offer = cage.canStake(felt());
+    const offer = cage.canStake(here());
     if (offer) {
       const n = cage.read().chips;
       stakeBox.firstChild.textContent = `${n ? `You’re down to ${cage.fmt(n)} chip${n === 1 ? '' : 's'}.` : 'You’re out of chips.'} It’s all house money anyway: the cage will stake you another ${cage.fmt(cage.START)}.`;
