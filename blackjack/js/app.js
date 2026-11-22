@@ -34,7 +34,8 @@ const table = mountTable({
       double after splitting. Split aces get one card each.</li>
       <li><b>Surrender</b> gives up your first two cards for half your bet back.</li>
       <li><b>Insurance</b> is offered when the dealer shows an ace: a side bet of up to half your bet that pays 2 to 1
-      if the dealer has blackjack.</li>
+      if the dealer has blackjack. With a blackjack of your own it’s <b>even money</b>: your bet won once over, whatever
+      the dealer has, instead of 3 to 2 if the dealer doesn’t have one too.</li>
     </ul>
     <h3>The house rules</h3>
     <ul>
@@ -170,7 +171,7 @@ function paint() {
   $('insActions').hidden = p !== 'insurance';
   $('playActions').hidden = p !== 'play';
   $('doneActions').hidden = p !== 'done';
-  $('book').hidden = p !== 'play';
+  $('book').hidden = p !== 'play' && p !== 'insurance';
   const { min, max } = table.limits();
   $('clear').disabled = busy || !s.bet;
   $('rebet').disabled = busy || !!s.bet || !s.last || s.last > c.chips;
@@ -179,7 +180,10 @@ function paint() {
   $('betHint').textContent = s.bet ? (s.bet < min ? `The minimum here is ${min}.` : '') : `Bets ${cage.fmt(min)} to ${cage.fmt(max)}`;
   if (p === 'insurance') {
     const half = Math.floor(s.hands[0].bet / 2);
-    $('ins').textContent = `Insure for ${cage.fmt(half)}`;
+    // with a blackjack, insurance is even money: paid now whatever the dealer has (the same chips either way)
+    const bj = g.isBJ(s.hands[0].cards);
+    $('ins').textContent = bj ? 'Even money' : `Insure for ${cage.fmt(half)}`;
+    $('noIns').textContent = bj ? 'Play it out' : 'No insurance';
     $('ins').disabled = busy || half < 1 || half > c.chips;
     $('noIns').disabled = busy;
   }
@@ -269,8 +273,9 @@ function deal() {
 $('deal').addEventListener('click', deal);
 
 // Whatever comes next after a move: the dealer's turn, the payout, or your next choice.
+const offer = () => (g.isBJ(s.hands[0].cards) ? 'Blackjack against an ace. Even money?' : 'The dealer shows an ace. Insurance?');
 async function after() {
-  if (s.phase === 'insurance') { table.say('The dealer shows an ace. Insurance?'); return; }
+  if (s.phase === 'insurance') { table.say(offer()); return; }
   if (s.phase === 'play') { prompt(); return; }
   if (s.phase === 'dealer') {
     save();
@@ -288,7 +293,7 @@ function prompt() {
   const upWord = up === 1 ? 'an ace' : up === 10 ? 'a ten' : up === 8 ? 'an 8' : `a ${up}`;
   const which = s.hands.length > 1 ? `Hand ${s.active + 1}: ` : '';
   table.say(`${which}${t.soft && t.total < 21 ? 'soft ' : ''}${t.total} against ${upWord}.`);
-  document.querySelectorAll('.play .btn.tip').forEach(b => b.classList.remove('tip'));
+  document.querySelectorAll('.dock .btn.tip').forEach(b => b.classList.remove('tip'));
 }
 
 // The dealer's turn is over (or a blackjack settled the round as it was dealt): the round is settled and kept before
@@ -308,17 +313,21 @@ async function payout() {
   // with more than one hand, what each did: "Hand 1 pushes, hand 2 busts."
   const each = one ? '' : `${s.hands.map((h, i) => `${i ? 'hand' : 'Hand'} ${i + 1} ${VERB[h.result]}`).join(', ')}.`;
   const lostIns = s.insurance > 0 && !o.dealerBJ;
-  if (o.natural && !o.dealerBJ) line = `Blackjack! That pays ${cage.fmt(h0.pay - h0.bet)}${kept ? ', and the half chip’s kept for your next one' : before ? ', with the half chip kept from before' : ''}.`;
+  // a blackjack insured is even money, whatever the dealer had
+  const even = o.natural && s.insurance > 0;
+  if (even) line = `Even money: you win ${cage.fmt(net)}${kept ? ', and the half chip’s kept for your next one' : before ? ', with the half chip kept from before' : ''}.`;
+  else if (o.natural && !o.dealerBJ) line = `Blackjack! That pays ${cage.fmt(h0.pay - h0.bet)}${kept ? ', and the half chip’s kept for your next one' : before ? ', with the half chip kept from before' : ''}.`;
   else if (s.hands[0].surrendered) line = before ? `You surrender: half your bet and the half chip kept from before, ${cage.fmt(o.back)}, come back.`
     : `You surrender: half your bet, ${cage.fmt(o.back)}, comes back${kept ? ', and the half chip’s kept for later' : ''}.`;
   else if (one && h0.result === 'bust') line = `Bust with ${g.total(h0.cards).total}. The house takes it.`;
+  else if (!one && s.hands.every(h => h.result === 'bust')) line = 'All your hands bust. The house takes it.';
   else if (net > 0) line = `${dealerLine} ${each} You win ${cage.fmt(net)}.`;
   else if (net === 0) line = one && !o.insurance ? `${dealerLine} Push: your bet comes back.` : `${dealerLine} ${each} Even.`;
   // some came back and more didn't: say what each did and where it leaves you, so it can't read like a push
   else if (o.back > 0) line = `${dealerLine} ${one ? `Your hand ${VERB[h0.result]}.` : each} ${netLine(o.wagered, o.back)}`;
   else line = `${dealerLine} ${each} The house takes it.`;
-  if (lostIns) line = `No blackjack: the insurance loses. ${line}`;
-  if (o.insurance) line = `Insurance pays ${cage.fmt(o.insurance)}. ${line}`;
+  if (lostIns && !even) line = `No blackjack: the insurance loses. ${line}`;
+  if (o.insurance && !even) line = `Insurance pays ${cage.fmt(o.insurance)}. ${line}`;
   table.say(line.replace(/ {2,}/g, ' ').trim(), net > 0 ? 'win' : net < 0 ? 'lose' : '');
   if (net > 0) { sound.chips(5); sound.win(o.natural ? 3 : net >= o.wagered * 2 ? 2 : 1); float($('hands'), `+${cage.fmt(net)}`); }
   else if (net < 0) sound.lose(); else sound.push();
@@ -367,7 +376,7 @@ $('book').addEventListener('click', () => {
   const b = g.book(s);
   if (!b) return;
   table.say(b.why);
-  document.querySelectorAll('.play .btn').forEach(el => el.classList.toggle('tip', el.id === b.act));
+  document.querySelectorAll('.dock .actions .btn').forEach(el => el.classList.toggle('tip', el.id === b.act));
 });
 
 // The keyboard: H, S, D, P (split), R (surrender), Enter deals or deals again (unless a button has focus: then it's
@@ -390,7 +399,7 @@ addEventListener('resize', () => paintCards());
 (async () => {
   await show();
   if (s.phase === 'play') prompt();
-  else if (s.phase === 'insurance') table.say('The dealer shows an ace. Insurance?');
+  else if (s.phase === 'insurance') table.say(offer());
   // the dealer's turn, or a round settled whose chips never reached the rack (the page closed in between): on to the payout
   else if (s.phase === 'dealer' || (s.phase === 'done' && s.paid === false)) step(after);
   else if (s.phase === 'done') table.say('Same bet again, or a new one?');

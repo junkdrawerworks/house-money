@@ -313,6 +313,7 @@ if (cageWants('blackjack')) {
     ['a bust', [C(10), C(10, 'd'), C(6), C(7), C(10, 'h')], ['#hit'], 'Bust with 26. The house takes it.'],
     ['a split that pushes and busts', [C(8), C(10), C(8, 'd'), C(8, 'h'), C(10, 'h'), C(6), C(10, 's')], ['#split', '#stand', '#hit'], 'Dealer has 18. Hand 1 pushes, hand 2 busts. Down 25.'],
     ['a surrender', [C(10), C(10, 'd'), C(6), C(9)], ['#surrender'], 'You surrender: half your bet, 12, comes back, and the half chip’s kept for later.'],
+    ['two hands that bust', [C(8), C(10), C(8, 'd'), C(7), C(6), C(10, 'h'), C(6, 'd'), C(10, 's')], ['#split', '#hit', '#hit'], 'All your hands bust. The house takes it.'],
   ]) {
     const { p, ctx } = await sit('blackjack/?fast&seen', { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 },
       blackjack: { shoe: deal(cards), phase: 'bet', bet: 0, last: 0, hands: [], active: 0, dealer: [], hole: true, insurance: 0, felt: 0, carry: 0 } });
@@ -352,6 +353,29 @@ if (cageWants('blackjack', 'floor')) {
   await p.reload(); await p.waitForTimeout(400);
   assert.equal(await p.locator('#tierLine .tier-new').count(), 0, 'the floor says the card is new on every visit');
   await ctx.close();
+}
+// Even money: a blackjack against the dealer's ace is offered even money (Play it out, or Even money), the book says
+// never, and taking it says "Even money: you win 20." whether the dealer has blackjack or not. (The chips are what
+// insurance on a blackjack always paid.)
+if (cageWants('blackjack')) {
+  const C = (r, s = 'c') => ({ r, s });
+  for (const [what, hole] of [['the dealer has blackjack', C(13, 'h')], ['the dealer has no blackjack', C(7, 'h')]]) {
+    const shoe = Array(150).fill(C(2)).concat([C(1, 's'), C(1, 'h'), C(13), hole].reverse());
+    const { p, ctx } = await sit('blackjack/?fast&seen', { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 },
+      blackjack: { shoe, phase: 'bet', bet: 20, last: 20, hands: [], active: 0, dealer: [], hole: true, insurance: 0, felt: 20, carry: 0 } });
+    await p.click('#deal');
+    await p.waitForSelector('#insActions:not([hidden])');
+    assert.deepEqual([await p.textContent('#ins'), await p.textContent('#noIns'), (await p.textContent('#say')).trim()], ['Even money', 'Play it out', 'Blackjack against an ace. Even money?'], 'Blackjack: even money isn\'t offered');
+    await p.click('#book');
+    assert.equal((await p.textContent('#say')).trim(), 'The book never takes insurance, and never even money.');
+    assert.equal(await p.getAttribute('#noIns', 'class'), 'btn tip', 'Blackjack: the book doesn\'t light Play it out');
+    await p.click('#ins');
+    await p.waitForSelector('#doneActions:not([hidden])');
+    assert.equal((await p.textContent('#say')).trim(), 'Even money: you win 20.', `Blackjack: even money when ${what}`);
+    // the 20 bet was already off the stack: it comes back with 20 more
+    await until(async () => (await cageOf(p)).chips === 1040, 3000, `Blackjack: even money when ${what} didn't pay 20`);
+    await ctx.close();
+  }
 }
 // Splits: what's on screen is the hand that's saved, card for card, after every move, at the payout and after a reload.
 // Eights split three times into four hands against a 10 and a 7, and aces split against a 6, a king on the first: a 21

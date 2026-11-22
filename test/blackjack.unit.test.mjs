@@ -99,6 +99,15 @@ test('the book', () => {
   assert.equal(at([C(10), C(2)], C(3)), 'hit');
   assert.equal(at([C(9), C(9)], C(7)), 'stand');
   assert.equal(at([C(5), C(5)], C(9)), 'double');
+  // its words for a ten match the dealer's line ("16 against a ten.")
+  const s = rigged([C(10), C(10, 'h'), C(6), C(7)]); g.deal(s);
+  assert.equal(g.book(s).why, 'With hard 16 against a ten, the book says surrender.');
+  // under an ace, before the peek: no insurance, and no even money on a blackjack
+  for (const cards of [[C(10), C(1), C(6), C(7)], [C(1, 'h'), C(1), C(13), C(7)]]) {
+    const t = rigged(cards); g.deal(t);
+    assert.equal(t.phase, 'insurance');
+    assert.deepEqual(g.book(t), { act: 'noIns', why: 'The book never takes insurance, and never even money.' });
+  }
 });
 
 // A round that ends as it's dealt (a natural, or the dealer's blackjack under an ace or a ten, insured or not) is

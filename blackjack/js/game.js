@@ -219,12 +219,14 @@ const WORD = { H: 'hit', S: 'stand', D: 'double', P: 'split', R: 'surrender' };
 
 // What the book says for the hand in play: { act, why }.
 export function book(s) {
+  // under an ace: insurance (and even money, insurance on a blackjack) loses in the long run, so never
+  if (s.phase === 'insurance') return { act: 'noIns', why: 'The book never takes insurance, and never even money.' };
   const ok = can(s);
   const h = hand(s);
   if (!ok.hit) return null;
   const up = value(s.dealer[0]);
   const col = up === 1 ? 9 : up - 2;
-  const upName = up === 1 ? 'an ace' : up === 8 ? 'an 8' : `a ${up}`;
+  const upName = up === 1 ? 'an ace' : up === 10 ? 'a ten' : up === 8 ? 'an 8' : `a ${up}`;
   const { total: t, soft } = total(h.cards);
   let code, what;
   const v = value(h.cards[0]);
