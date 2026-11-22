@@ -69,7 +69,7 @@ body.table main { flex: 1; display: flex; flex-direction: column; position: rela
   box-shadow: 0 4px 14px rgba(0, 0, 0, .45);
 }
 .bar .back { color: var(--muted); text-decoration: none; font-weight: 600; font-size: .95rem; padding: 6px 4px; }
-.bar .back span { font-size: 1.3em; line-height: 0; position: relative; top: .06em; }
+.bar .back .arrow { font-size: 1.3em; line-height: 0; position: relative; top: .06em; }
 .bar .name { margin: 0; font: 400 1.25rem/1 var(--sign); color: var(--gold-hi); letter-spacing: .02em; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 0 12px rgba(245, 220, 147, .35); }
 .bar .purse { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; font-variant-numeric: tabular-nums; background: rgba(0, 0, 0, .35); border: 1px solid rgba(217, 180, 90, .35); border-radius: 99px; padding: 4px 10px 4px 5px; }
 .bar .purse.up { animation: purseUp .7s; }
@@ -81,6 +81,16 @@ body.table main { flex: 1; display: flex; flex-direction: column; position: rela
 @keyframes tierUp { 20%, 45% { box-shadow: 0 0 0 2px var(--tier), 0 0 22px var(--tier); border-color: var(--tier); } }
 .menu-btn { width: 40px; height: 40px; border: 0; background: none; display: grid; place-content: center; gap: 4px; cursor: pointer; }
 .menu-btn span { display: block; width: 20px; height: 2px; background: var(--gold); border-radius: 2px; }
+/* A phone: the way back is just the ‹ (its label still says Back to the floor), and the table's name gets the room, a
+   little smaller on the narrowest screens, so it shows in full beside a big stack. */
+@media (max-width: 400px) {
+  .bar { gap: 6px; }
+  .bar .back { display: grid; place-items: center; min-width: 44px; min-height: 44px; margin: -2px -6px -2px -8px; padding: 0; }
+  .bar .back .arrow { font-size: 1.9rem; top: -.04em; }
+  .bar .back .word { display: none; }
+  .bar .name { font-size: clamp(.9rem, 4.4vw, 1.25rem); }
+  .bar .purse { padding: 4px 8px 4px 4px; gap: 5px; }
+}
 
 .say {
   min-height: 2.9em; margin: 4px auto 6px; max-width: 34em;

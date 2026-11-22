@@ -253,6 +253,22 @@ const outOfReach = p => p.evaluate(() => {
   }
 }
 
+// Every table's name in full in the bar on a narrow phone beside a big stack (345,678 chips at 360 wide), with the way
+// back a 44 px target named for where it goes.
+if (TABLES.some(t => cageWants(t.id))) {
+  const { p, ctx } = await sit('records/', { cage: { chips: 345678, wagered: 3000, high: 345678, stakes: 1 } }, { size: { ...phone, viewport: { width: 360, height: 740 } } });
+  for (const t of TABLES.filter(t => cageWants(t.id))) {
+    await p.goto(`${base}${t.id}/?seen`);
+    await p.evaluate(() => document.fonts.ready);
+    await until(async () => (await p.textContent('#purse')) === '345,678', 3000, `${t.name}: the bar never counted up to 345,678`);
+    const [sw, cw] = await p.$eval('.bar .name', n => [n.scrollWidth, n.clientWidth]);
+    assert.ok(sw <= cw, `${t.name}: the name is cut off in the bar at 360 wide with 345,678 chips (${sw} px in ${cw})`);
+    const back = await p.$eval('.bar .back', a => { const r = a.getBoundingClientRect(); return [a.getAttribute('aria-label'), r.width >= 44 && r.height >= 44]; });
+    assert.deepEqual(back, ['Back to the floor', true], `${t.name}: the way back to the floor`);
+  }
+  await ctx.close();
+}
+
 // Roulette with 7 chips: 5 on 17 leaves 2 in the rack, and the 5 on the felt is still yours, so no offer until the
 // ball lands somewhere else (a steady draw of 0: the zero).
 if (cageWants('roulette')) {
