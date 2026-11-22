@@ -62,7 +62,6 @@
 
 .dock .play .btn { font-size: .92rem; }
 .dock .play .btn.tip { border-color: var(--gold-hi); box-shadow: 0 0 0 2px var(--gold-hi), 0 0 18px rgba(245, 220, 147, .5); }
-.book { border: 0; background: none; color: var(--gold-hi); font-size: .88rem; text-decoration: underline; text-underline-offset: 3px; padding: 2px 8px; cursor: pointer; }
 
 @media (max-width: 380px) {
   .dock .play .btn { font-size: .82rem; padding: 0 4px; }

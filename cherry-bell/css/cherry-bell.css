@@ -1,0 +1,115 @@
+/* Cherry Bell: a chrome-and-cream fruit machine standing against the casino wall, its handle on the right. */
+
+body.cherry-bell {
+  background:
+    radial-gradient(ellipse 90% 60% at 50% 40%, rgba(255, 190, 120, .16), transparent 70%),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, .18) 0 2px, transparent 2px 26px),
+    linear-gradient(#4a1219, #2a0a0f);
+}
+.cherry-bell main { align-items: center; }
+.cherry-bell .say { min-height: 2.2em; margin: 2px auto 4px; }
+.cherry-bell .say.win { color: var(--win); }
+
+.stand { position: relative; display: flex; align-items: flex-start; justify-content: center; width: 100%; max-width: 440px; padding-right: 44px; }
+
+.cab {
+  position: relative; width: 100%; max-width: 360px;
+  padding: 0 12px 14px; border-radius: 26px 26px 14px 14px;
+  background: linear-gradient(90deg, #8e949c, #eef1f4 18%, #c3c8ce 40%, #f7f9fa 60%, #aab0b8 85%, #7d838b);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, .55), inset 0 0 0 2px rgba(255, 255, 255, .5), inset 0 -6px 0 rgba(0, 0, 0, .25);
+}
+
+.topper {
+  position: relative; margin: 0 -12px 10px; padding: 14px 10px 12px; border-radius: 26px 26px 0 0;
+  background: linear-gradient(#b3121f, #7a0a14); text-align: center;
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, .35), inset 0 2px 0 rgba(255, 255, 255, .25);
+}
+.topper .sign { margin: 0; font: 400 2.1rem/1 var(--sign); color: #fff3cf; letter-spacing: .03em; text-shadow: 0 0 10px rgba(255, 220, 150, .8), 0 2px 0 #5a0610; }
+.topper .lamps {
+  position: absolute; inset: 5px 14px auto; height: 6px;
+  background: radial-gradient(circle, #fff6c8 0 2px, #f2b51c 2.5px 3px, transparent 3.5px) 0 0 / 14px 6px repeat-x;
+  filter: drop-shadow(0 0 3px #ffd36b);
+}
+body.spinning .topper .lamps { animation: chase .5s steps(2) infinite; }
+@keyframes chase { 50% { background-position: 7px 0; } }
+
+.glass {
+  border-radius: 10px; padding: 6px 8px 4px;
+  background: linear-gradient(#20120c, #2e1a10); border: 2px solid #6b5a3c;
+  box-shadow: inset 0 0 18px rgba(0, 0, 0, .7);
+}
+.pays { width: 100%; border-collapse: collapse; color: #f8e7b5; font: 700 .78rem/1 var(--sans); font-variant-numeric: tabular-nums; }
+.pays th { font-weight: 600; font-size: .62rem; letter-spacing: .08em; text-transform: uppercase; color: #c8a96b; padding: 0 2px 4px; text-align: right; }
+.pays td { padding: 1px 2px; text-align: right; }
+.pays td:first-child { text-align: left; white-space: nowrap; }
+.pays td:first-child svg { vertical-align: middle; margin-right: 1px; }
+.pays .alt { font-size: .6rem; color: #b49660; font-weight: 600; margin-left: 2px; }
+.pays .anyx { display: inline-block; width: 18px; text-align: center; color: #8d7550; font-size: .66rem; vertical-align: middle; margin-right: 1px; }
+.pays .on { color: #fff; background: rgba(255, 210, 120, .1); }
+.pays tr.lit td { background: #f2b51c; color: #2a1608; animation: lit .4s steps(2) 6; }
+.pays tr.lit td .alt, .pays tr.lit td .anyx { color: #5a3a10; }
+@keyframes lit { 50% { background: transparent; color: #f8e7b5; } }
+.lemons { margin: 3px 0 0; text-align: center; font-size: .66rem; font-style: italic; color: #b49660; }
+
+.window {
+  position: relative; margin: 10px 0 8px; padding: 8px; border-radius: 12px;
+  background: linear-gradient(#3a3f45, #1c1f23); box-shadow: inset 0 3px 8px rgba(0, 0, 0, .8), 0 1px 0 rgba(255, 255, 255, .6);
+}
+.reels { position: relative; border-radius: 6px; overflow: hidden; background: #111; }
+.reels canvas { display: block; }
+.payline { position: absolute; left: 4px; right: 4px; top: 50%; height: 2px; background: rgba(214, 30, 40, .85); box-shadow: 0 0 6px rgba(255, 60, 60, .8); pointer-events: none; }
+.lamp { position: absolute; left: -2px; width: 8px; height: 8px; border-radius: 50%; background: #5a3a30; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .4); }
+.lamp.l1 { top: 50%; transform: translateY(-50%); }
+.lamp.l2 { top: calc(50% - 16px); transform: translateY(-50%); }
+.lamp.l3 { top: calc(50% + 16px); transform: translateY(-50%); }
+.lamp.on { background: #ffd23a; box-shadow: 0 0 8px #ffcc33; }
+
+.meters { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.meter { background: #120a08; border-radius: 6px; padding: 4px 6px; text-align: center; box-shadow: inset 0 2px 4px rgba(0, 0, 0, .9); }
+.meter span { display: block; font: 600 .56rem/1 var(--sans); letter-spacing: .1em; text-transform: uppercase; color: #9a8a70; }
+.meter b { display: block; font: 700 1.25rem/1.15 ui-monospace, 'SF Mono', Menlo, Consolas, monospace; color: #ff3b2f; text-shadow: 0 0 8px rgba(255, 50, 30, .7); font-variant-numeric: tabular-nums; }
+
+.deck { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.coinsize { display: flex; gap: 6px; justify-content: center; align-items: center; font: 600 .74rem/1 var(--sans); color: #3a3f45; }
+.coinsize .chip { --chip: 36px; cursor: pointer; transition: transform .15s; }
+.coinsize .chip.on { transform: translateY(-4px); box-shadow: 0 0 0 3px #b3121f, 0 6px 10px rgba(0, 0, 0, .35); }
+.coinsize .chip:disabled { opacity: .3; cursor: default; }
+.pushes { display: grid; grid-template-columns: 1fr 1fr 1.3fr; gap: 8px; }
+.push {
+  min-height: 50px; border-radius: 10px; border: 0; cursor: pointer; touch-action: manipulation;
+  font: 800 .82rem/1.05 var(--sans); letter-spacing: .06em; text-transform: uppercase; color: #3a2500;
+  background: linear-gradient(#fff3c4, #f2c84a 60%, #c99a1c);
+  box-shadow: 0 4px 0 #8a6408, 0 6px 10px rgba(0, 0, 0, .35), inset 0 1px 0 #fff;
+}
+.push.spin { color: #fff; background: linear-gradient(#ff6b6b, #d01f2c 60%, #9a0e18); box-shadow: 0 4px 0 #6a0610, 0 6px 10px rgba(0, 0, 0, .35), inset 0 1px 0 #ffb3b3; font-size: 1rem; }
+.push:active:not(:disabled) { transform: translateY(3px); box-shadow: 0 1px 0 #8a6408, inset 0 1px 0 #fff; }
+.push:disabled { filter: grayscale(.6) brightness(.85); cursor: default; }
+
+/* the handle: a chrome arm on a pivot at the cabinet's side, with a red ball on top. Pulled down (--pull from 0 to
+   1), the arm swings forward over the pivot: drawn face on, it shortens, passes the pivot and comes out below it. */
+.handle {
+  --pull: 0; --s: calc(1 - var(--pull) * 1.8);
+  position: absolute; right: 0; top: 150px; width: 44px; height: 250px; cursor: grab; touch-action: none;
+  outline-offset: 4px; border-radius: 12px;
+}
+.handle .slotway { position: absolute; left: 4px; top: 112px; width: 22px; height: 28px; border-radius: 11px; background: linear-gradient(90deg, #6b7178, #e8ebee, #8b9198); box-shadow: inset 0 2px 4px rgba(0, 0, 0, .5), 0 2px 4px rgba(0, 0, 0, .4); }
+.handle .arm {
+  position: absolute; left: 11px; top: 16px; width: 8px; height: 110px; border-radius: 4px;
+  background: linear-gradient(90deg, #8b9198, #ffffff 45%, #9aa0a8); transform-origin: 50% 100%;
+  transform: scaleY(var(--s)); box-shadow: 1px 0 2px rgba(0, 0, 0, .4);
+}
+.handle .knob {
+  position: absolute; left: 15px; top: calc(126px - 110px * var(--s)); width: 34px; height: 34px; border-radius: 50%;
+  transform: translate(-50%, -50%) scale(calc(1 + var(--pull) * .25));
+  background: radial-gradient(circle at 35% 30%, #ff9a9a, #d01f2c 45%, #7a0a14);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, .5);
+}
+.handle.back .arm, .handle.back .knob { transition: transform .45s cubic-bezier(.3, 1.6, .5, 1), top .45s cubic-bezier(.3, 1.6, .5, 1); }
+.handle:active { cursor: grabbing; }
+
+/* on a short screen (a laptop), a narrower cabinet so the buttons stay in sight */
+@media (max-height: 820px) and (min-width: 600px) { .cab { max-width: 330px; } .glass { padding: 4px 8px 2px; } .pays td { padding: 0 2px; } }
+@media (max-width: 360px) {
+  .cab { padding: 0 8px 10px; }
+  .topper .sign { font-size: 1.8rem; }
+}

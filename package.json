@@ -1,0 +1,12 @@
+{
+  "name": "house-money",
+  "private": true,
+  "type": "module",
+  "description": "A casino on your phone, played with chips that cost nothing.",
+  "scripts": {
+    "test": "node --test test/*.unit.test.mjs && node test/e2e.mjs",
+    "unit": "node --test test/*.unit.test.mjs",
+    "shots": "node tools/screenshots.mjs",
+    "icons": "node tools/make-icons.mjs"
+  }
+}

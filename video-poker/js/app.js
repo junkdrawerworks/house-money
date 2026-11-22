@@ -1,0 +1,239 @@
+// Video Poker on screen: the coin size and coins, the deal, the holds, the draw and the pay.
+// The rules are in poker.js. The draw comes off the same shuffled deck as the deal, saved with it, so a reload shows
+// the same cards and a hand is never paid twice.
+
+import * as vp from './poker.js';
+import * as cage from '../../shared/cage.js';
+import * as records from '../../shared/records.js';
+import * as sound from '../../shared/sound.js';
+import { cardEl, turn } from '../../shared/cards.js';
+import { rack as makeRack } from '../../shared/chips.js';
+import { mountTable, float, wait } from '../../shared/table.js';
+import { byId } from '../../shared/tables.js';
+
+const KEY = 'house-money.video-poker';
+const T = byId('video-poker');
+const $ = id => document.getElementById(id);
+
+let s = load();
+const onFelt = () => (s.phase === 'draw' ? s.coins * s.coin : 0);
+
+const table = mountTable({
+  id: 'video-poker', name: T.name, min: T.min, max: T.max, felt: onFelt,
+  help: `
+    <p>Five cards, one draw. Keep the cards you like, replace the rest, and the machine pays on what you end up with.
+    Anything from a pair of jacks up pays.</p>
+    <h3>Playing</h3>
+    <ul>
+      <li>Pick a <b>coin</b> size from the rack, and how many coins to play with <b>Bet one</b> (one to five).
+      <b>Bet max</b> plays five coins and deals straight away.</li>
+      <li><b>Deal</b>, then tap the cards you want to keep (or the Hold button under each). Tap again to let one go.</li>
+      <li><b>Draw</b> replaces every card you didn’t hold.</li>
+    </ul>
+    <h3>The pay table</h3>
+    <p>This is a full-pay machine (nine for a full house, six for a flush), the best Jacks or Better there is.
+    Everything pays the same per coin whether you play one coin or five, except the royal flush: 250 a coin up to four
+    coins, and 4,000 for five. So play five when you can.</p>
+    <h3>The strategy card</h3>
+    <p>The link under the buttons lights up the cards the standard strategy card would hold, and says which line of it
+    applies. Played that way, the machine gives back about 99.5% of what goes in over the long run.</p>
+    <p>A new 52-card deck is shuffled for every hand. Keyboard: 1 to 5 hold, Enter deals and draws.</p>`,
+  onStake: () => paint(),
+});
+
+const rack = makeRack($('rack'), { values: [1, 5, 25, 100, 500], key: 'house-money.video-poker.chip', onPick: v => { if (s && s.phase !== 'draw') { s.coin = v; save(); paintMeters(); } } });
+let busy = false;
+
+function load() {
+  try {
+    const x = JSON.parse(localStorage.getItem(KEY));
+    if (x && Array.isArray(x.hand) && typeof x.phase === 'string') return x;
+  } catch { /* first visit */ }
+  return vp.fresh();
+}
+function save() { s.felt = onFelt(); try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* full or off */ } }
+
+// ---------- the screen ----------
+
+function paintPaytable() {
+  const rows = $('payRows');
+  if (!rows.children.length) {
+    for (const p of vp.PAYTABLE) {
+      const tr = document.createElement('tr');
+      tr.dataset.id = p.id;
+      tr.innerHTML = `<td>${p.name}</td>${p.pays.map(n => `<td>${n.toLocaleString('en-US')}</td>`).join('')}`;
+      rows.appendChild(tr);
+    }
+  }
+  for (const tr of rows.children) {
+    [...tr.children].forEach((td, i) => td.classList.toggle('on', i === s.coins));
+    tr.classList.toggle('hit', s.phase === 'done' && s.result?.id === tr.dataset.id);
+  }
+}
+
+function paintMeters() {
+  $('betM').textContent = cage.fmt(s.coins * s.coin);
+  $('winM').textContent = s.phase === 'done' && s.result ? cage.fmt(s.result.pay) : '0';
+  $('coinsM').textContent = s.coins;
+  $('coinM').textContent = cage.fmt(s.coin);
+  paintPaytable();
+}
+
+const slots = [];
+function buildHand() {
+  for (let i = 0; i < 5; i++) {
+    const el = document.createElement('div');
+    el.className = 'slot';
+    el.innerHTML = `<span class="held">Held</span><button type="button" class="cardwrap" aria-label="Card ${i + 1}"></button><button type="button" class="hold">Hold</button>`;
+    el.querySelector('.cardwrap').addEventListener('click', () => toggle(i));
+    el.querySelector('.hold').addEventListener('click', () => toggle(i));
+    $('hand').appendChild(el);
+    slots.push(el);
+  }
+}
+
+function setCard(i, card, { down = false } = {}) {
+  const wrap = slots[i].querySelector('.cardwrap');
+  wrap.innerHTML = '';
+  const el = cardEl(card, { down });
+  wrap.appendChild(el);
+  return el;
+}
+
+function paintHolds() {
+  const lit = s.phase === 'done' && s.result ? vp.makers(s.hand, s.result.id) : [];
+  slots.forEach((el, i) => {
+    el.classList.toggle('on', s.phase === 'draw' && s.held[i]);
+    el.querySelector('.hold').disabled = busy || s.phase !== 'draw';
+    el.querySelector('.hold').setAttribute('aria-pressed', s.phase === 'draw' && s.held[i]);
+    el.querySelector('.cardwrap').disabled = busy || s.phase !== 'draw';
+    const c = el.querySelector('.card');
+    if (c) {
+      c.classList.toggle('lit', lit.includes(i));
+      c.classList.toggle('dim', s.phase === 'done' && !!s.result && !lit.includes(i));
+    }
+  });
+}
+
+function paint() {
+  const c = cage.read();
+  const { max } = table.limits();
+  // coin sizes over the table's top bet are off; so are coins you can't cover
+  rack.limit(Math.min(max, c.chips));
+  if (s.phase !== 'draw' && s.coin !== rack.value) { s.coin = rack.value; save(); }
+  $('rack').hidden = false;
+  const betting = s.phase !== 'draw';
+  $('betOne').disabled = busy || !betting;
+  $('betMax').disabled = busy || !betting || 5 * s.coin > c.chips;
+  $('deal').textContent = s.phase === 'draw' ? 'Draw' : 'Deal';
+  $('deal').disabled = busy || (betting && s.coins * s.coin > c.chips);
+  $('hint').hidden = s.phase !== 'draw';
+  paintMeters();
+  paintHolds();
+  table.check();
+}
+
+function toggle(i) {
+  if (busy || s.phase !== 'draw') return;
+  s.held[i] = !s.held[i];
+  save(); sound.tap();
+  slots.forEach(el => el.classList.remove('tip'));
+  paintHolds();
+}
+
+// ---------- betting ----------
+
+$('betOne').addEventListener('click', () => {
+  if (busy || s.phase === 'draw') return;
+  s.coins = s.coins >= 5 ? 1 : s.coins + 1;
+  save(); sound.chip(); clearShown(); paint();
+});
+$('betMax').addEventListener('click', () => {
+  if (busy || s.phase === 'draw') return;
+  s.coins = 5; save(); sound.chip(); paint();
+  deal();
+});
+$('deal').addEventListener('click', () => (s.phase === 'draw' ? draw() : deal()));
+
+// After a hand, betting again clears the old result off the screen.
+function clearShown() {
+  if (s.phase === 'done') { s.phase = 'bet'; s.result = null; save(); table.say(''); }
+}
+
+async function deal() {
+  if (busy || s.phase === 'draw') return;
+  const bet = s.coins * s.coin;
+  if (bet > table.limits().max * 5) return;
+  if (!cage.take(bet)) { table.say('Not enough chips: bet fewer coins or a smaller coin.'); return; }
+  busy = true;
+  vp.deal(s); save();
+  table.say('');
+  paint();
+  try {
+    const els = s.hand.map((c, i) => setCard(i, c, { down: true }));
+    for (let i = 0; i < 5; i++) { await wait(90); turn(els[i], s.hand[i]); sound.card(); }
+    const best = vp.evaluate(s.hand);
+    table.say(best ? `${best.name}` : 'Hold the cards you want');
+  } finally { busy = false; paint(); }
+}
+
+async function draw() {
+  if (busy || s.phase !== 'draw') return;
+  busy = true;
+  const held = s.held.slice();
+  vp.draw(s);
+  const o = { pay: s.result?.pay || 0, wagered: s.coins * s.coin };
+  s.paid = false; save();           // the hand is kept before the chips move, so a reload can't pay twice
+  slots.forEach(el => el.classList.remove('tip'));
+  paint();
+  try {
+    const els = [];
+    for (let i = 0; i < 5; i++) {
+      if (held[i]) continue;
+      els[i] = setCard(i, s.hand[i], { down: true });
+    }
+    for (let i = 0; i < 5; i++) {
+      if (held[i]) continue;
+      await wait(110); turn(els[i], s.hand[i]); sound.card();
+    }
+    await wait(150);
+    if (o.pay > 0) cage.pay(o.pay);
+    s.paid = true; save();
+    records.note('video-poker', { wagered: o.wagered, back: o.pay, extra: s.result ? { [s.result.id]: 1 } : {} });
+    if (s.result) {
+      table.say(`${s.result.name}! Win ${cage.fmt(o.pay)}`, 'win');
+      const big = vp.PAYTABLE.findIndex(p => p.id === s.result.id);
+      sound.chips(Math.min(10, 3 + (8 - big))); sound.win(big <= 2 ? 3 : big <= 5 ? 2 : 1);
+      float($('hand'), `+${cage.fmt(o.pay)}`);
+    } else { table.say('Game over', 'lose'); sound.lose(); }
+  } finally { busy = false; paint(); }
+}
+
+$('hint').addEventListener('click', () => {
+  if (s.phase !== 'draw' || busy) return;
+  const a = vp.advise(s.hand);
+  slots.forEach((el, i) => el.classList.toggle('tip', a.held[i]));
+  table.say(a.why);
+});
+
+addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey || document.querySelector('dialog[open]')) return;
+  if (/^[1-5]$/.test(e.key)) { toggle(Number(e.key) - 1); e.preventDefault(); }
+  else if (e.key === 'Enter' && !(document.activeElement && document.activeElement.matches('button, a'))) {
+    if (!$('deal').disabled) { $('deal').click(); e.preventDefault(); }
+  }
+});
+
+addEventListener('house-money:cage', () => { if (!busy) paint(); });
+
+// ---------- start: carry on where the last visit left off ----------
+
+buildHand();
+if (s.phase === 'done' && s.result && s.paid === false) { cage.pay(s.result.pay); s.paid = true; save(); }
+if (s.hand.length === 5) s.hand.forEach((c, i) => setCard(i, c));
+else for (let i = 0; i < 5; i++) setCard(i, { r: 1, s: 's' }, { down: true }); // backs until the first deal
+if (s.phase !== 'draw') rack.pick(rack.value);
+paint();
+if (s.phase === 'draw') table.say('Hold the cards you want');
+else if (s.phase === 'done') table.say(s.result ? `${s.result.name}! Win ${cage.fmt(s.result.pay)}` : 'Game over', s.result ? 'win' : 'lose');
+else table.say('Pick a coin and deal');

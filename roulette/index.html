@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Roulette · House Money</title>
+  <meta name="description" content="Roulette at House Money: a single-zero wheel. Spread chips on numbers, splits, corners, streets, dozens or red and black, then watch the ball drop. Play chips only.">
+  <meta property="og:title" content="Roulette · House Money">
+  <meta property="og:description" content="A single-zero wheel and the whole layout, on your phone.">
+  <meta property="og:image" content="https://house-money.junkdrawer.works/og.png">
+  <meta property="og:url" content="https://house-money.junkdrawer.works/roulette/">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#2a1510">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../icon-180.png">
+  <link rel="preload" href="../fonts/figtree.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="../fonts/playfair.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="../shared/casino.css">
+  <link rel="stylesheet" href="css/roulette.css">
+</head>
+<body class="table roulette">
+  <header class="bar"></header>
+  <main>
+    <div class="wheel-box" id="wheelBox" aria-hidden="true">
+      <canvas id="wheel" width="400" height="400"></canvas>
+      <p class="result" id="result"></p>
+    </div>
+    <div class="side">
+      <p class="say" id="say" aria-live="polite"></p>
+      <div class="strip">
+        <button type="button" class="peek" id="peek" aria-label="Show the wheel"><span></span></button>
+        <ol class="history" id="history" aria-label="The last numbers, newest first"></ol>
+        <span class="on" id="onTable"></span>
+      </div>
+      <div class="layout" id="layout" role="group" aria-label="The betting layout. Tap a number to bet it straight up; tap a line between numbers for a split, a corner for four numbers, the left edge for a street. Press and hold a number for every bet on it."></div>
+    </div>
+  </main>
+  <div class="dock">
+    <div id="rack"></div>
+    <div class="actions">
+      <button type="button" class="btn" id="undo">Undo</button>
+      <button type="button" class="btn" id="clear">Clear</button>
+      <button type="button" class="btn" id="again">Rebet</button>
+      <button type="button" class="btn gold" id="spin">Spin</button>
+    </div>
+  </div>
+  <dialog class="sheet picker" id="picker" aria-label="Bets on this number">
+    <div class="sheet-in">
+      <h2 id="pickH"></h2>
+      <p class="limits" id="pickWhat"></p>
+      <div class="pick-list" id="pickList"></div>
+      <div class="sheet-btns"><button type="button" class="btn" id="pickClose">Done</button></div>
+    </div>
+  </dialog>
+  <noscript><p class="say">Roulette needs JavaScript to spin the wheel.</p></noscript>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

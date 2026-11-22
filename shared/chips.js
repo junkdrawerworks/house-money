@@ -3,7 +3,7 @@
 import { fmt } from './cage.js';
 
 export const DENOMS = [1, 5, 25, 100, 500, 1000, 5000];
-export const NAMES = { 1: 'white', 5: 'red', 25: 'green', 100: 'black', 500: 'purple', 1000: 'orange', 5000: 'gray' };
+export const NAMES = { 1: 'white', 5: 'red', 10: 'blue', 25: 'green', 100: 'black', 500: 'purple', 1000: 'orange', 5000: 'gray' };
 
 // Short money: 1,250 → 1.2K, 25,000 → 25K.
 export function short(n) {

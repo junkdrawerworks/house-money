@@ -1,0 +1,152 @@
+/* Roulette: the wheel (sliding down over the layout on a phone, standing beside it on a wide screen), the strip of
+   past numbers, and the layout drawn upright: 0 at the top, 1 to 36 in rows of three, the columns' 2 to 1 at the
+   bottom, and the dozens and even-money bets down the left. */
+
+body.roulette main { max-width: 1120px; gap: 0; padding-top: 4px; }
+.roulette .side { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.roulette .say { min-height: 2.6em; margin: 2px auto 4px; }
+
+/* ---------- the strip of past numbers ---------- */
+
+.strip { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; min-height: 30px; }
+.history { list-style: none; margin: 0; padding: 0; display: flex; gap: 4px; flex: 1; overflow: hidden; min-width: 0; }
+.history li {
+  flex: none; width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center;
+  font: 700 .74rem/1 var(--sans); color: #fff; border: 1px solid rgba(255, 255, 255, .25);
+}
+.history li.red { background: #b8212b; }
+.history li.black { background: #1a1a1d; }
+.history li.green { background: #11804a; }
+.history li:first-child { width: 30px; height: 30px; font-size: .85rem; box-shadow: 0 0 0 2px var(--gold-hi); }
+.history li:nth-child(n + 9) { opacity: .7; }
+.strip .on { flex: none; font-size: .8rem; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.peek {
+  flex: none; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--gold-dk); padding: 0; cursor: pointer;
+  background: conic-gradient(#b8212b 0 10%, #1a1a1d 0 20%, #b8212b 0 30%, #1a1a1d 0 40%, #11804a 0 45%, #b8212b 0 55%, #1a1a1d 0 65%, #b8212b 0 75%, #1a1a1d 0 85%, #b8212b 0 92%, #1a1a1d 0);
+  display: grid; place-items: center;
+}
+.peek span { width: 12px; height: 12px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff3c4, #c9a24c 60%, #6b4a12); }
+
+/* ---------- the layout ---------- */
+
+.layout {
+  --line: rgba(246, 231, 190, .62);
+  position: relative; flex: 1; min-height: max(330px, calc(100dvh - 292px));
+  display: grid; gap: 1.5px;
+  grid-template-columns: .74fr .74fr 1fr 1fr 1fr;
+  grid-template-rows: minmax(0, 1.3fr) repeat(12, minmax(0, 1fr)) minmax(0, 1.05fr);
+  background: var(--line); border: 1.5px solid var(--line); border-radius: 12px 12px 8px 8px;
+  touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  overflow: hidden;
+}
+.layout > button {
+  position: relative; min-height: 0; overflow: hidden; border: 0; margin: 0; padding: 0; background: #12603c; color: var(--ink); cursor: pointer;
+  display: grid; place-items: center; font-family: var(--serif); touch-action: none; -webkit-touch-callout: none;
+}
+.layout .blank { background: #12603c; display: grid; place-items: center; }
+.layout .blank span { font: 600 .55rem/1.3 var(--serif); letter-spacing: .14em; text-transform: uppercase; color: rgba(246, 231, 190, .45); text-align: center; }
+.layout .num b {
+  display: grid; place-items: center; min-width: 2.1em; height: min(1.7em, calc(100% - 4px)); padding: 0 .3em; border-radius: 1em;
+  font: 800 clamp(.9rem, 2.6vh, 1.2rem)/1 var(--serif); pointer-events: none;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .18);
+}
+.layout .num.red b { background: #b8212b; }
+.layout .num.black b { background: #18181b; }
+.layout .zero { grid-column: 3 / 6; grid-row: 1; border-radius: 50% 50% 0 0 / 80% 80% 0 0; background: #12603c; }
+.layout .zero b { background: #11804a; min-width: 2.4em; }
+.layout .out { font: 700 .82rem/1.15 var(--serif); letter-spacing: .04em; }
+.layout .out.v span { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; pointer-events: none; }
+.layout .out.col { font-size: .78rem; }
+.layout .out .dia { width: 16px; height: 26px; clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); pointer-events: none; }
+.layout .out .dia.red { background: #c9252f; }
+.layout .out .dia.black { background: #111; box-shadow: none; }
+.layout .lit { background: #2f8a5c; }
+.layout .lit::after { content: ''; position: absolute; inset: 0; box-shadow: inset 0 0 0 2px var(--gold-hi); pointer-events: none; }
+.layout .won { background: #3d6b2c; animation: wonPulse 1s ease-in-out 3; }
+@keyframes wonPulse { 50% { background: #6f8f2f; } }
+
+/* chips, the dolly and the preview line sit on an overlay the size of the layout */
+.layout .chips { position: absolute; inset: 0; pointer-events: none; --chip-s: 26px; }
+.layout .chips .stack { position: absolute; transform: translate(-50%, calc(-100% + var(--chip-s) / 2)); transition: opacity .5s, transform .5s; }
+.layout .chips .stack.winner .chip:last-child { box-shadow: 0 0 0 2px var(--win), 0 0 10px rgba(255, 226, 122, .8); }
+.layout .chips .stack.swept { opacity: 0; transform: translate(-50%, -260%) scale(.6); }
+.layout .chips .stack.home { opacity: 0; transform: translate(-50%, 400px) scale(.8); transition-duration: .7s; }
+.layout .chips .stack.new { animation: drop .18s ease-out; }
+@keyframes drop { from { transform: translate(-50%, calc(-100% + var(--chip-s) / 2 - 10px)) scale(1.15); opacity: .4; } }
+.dolly {
+  position: absolute; width: 22px; height: 30px; transform: translate(-50%, -78%); pointer-events: none; z-index: 2;
+  background: radial-gradient(ellipse at 40% 30%, #fffef6 0 18%, #dfe9ef 40%, #9fb2bd 75%, #5f7380);
+  border-radius: 50% 50% 46% 46% / 62% 62% 38% 38%;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, .5), inset 0 -3px 0 rgba(0, 0, 0, .2);
+  animation: dolly .35s cubic-bezier(.3, 1.6, .5, 1);
+}
+.dolly::after { content: ''; position: absolute; left: 50%; top: 4px; width: 8px; height: 8px; transform: translateX(-50%); border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff3c4, #c9a24c 60%, #6b4a12); }
+@keyframes dolly { from { transform: translate(-50%, -160%); opacity: 0; } }
+
+/* ---------- the wheel ---------- */
+
+.wheel-box {
+  position: absolute; z-index: 15; left: 50%; top: 0; width: min(100%, 420px);
+  transform: translate(-50%, calc(-100% - 70px)); transition: transform .45s cubic-bezier(.3, .8, .3, 1), visibility 0s .45s;
+  visibility: hidden;
+  padding: 10px 14px 12px; border-radius: 0 0 24px 24px;
+  background: radial-gradient(ellipse at 50% 40%, rgba(10, 61, 38, .97), rgba(8, 36, 23, .98));
+  border: 2px solid var(--gold-dk); border-top: 0;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, .6);
+  display: flex; flex-direction: column; align-items: center;
+}
+.wheel-box.show { transform: translate(-50%, 0); visibility: visible; transition: transform .45s cubic-bezier(.3, .8, .3, 1); }
+.wheel-box canvas { width: min(78vw, 46dvh, 340px); height: min(78vw, 46dvh, 340px); display: block; }
+.wheel-box .result {
+  margin: 8px 0 0; min-height: 1.5em; font: 400 1.6rem/1 var(--sign); letter-spacing: .04em; text-align: center;
+  display: flex; align-items: center; gap: 10px; color: var(--gold-hi);
+}
+.wheel-box .result b { display: inline-grid; place-items: center; min-width: 1.9em; height: 1.9em; border-radius: 50%; font: 800 1.3rem/1 var(--serif); color: #fff; animation: stamp .35s cubic-bezier(.3, 1.6, .5, 1); }
+.wheel-box .result b.red { background: #b8212b; }
+.wheel-box .result b.black { background: #1a1a1d; border: 1px solid rgba(255, 255, 255, .3); }
+.wheel-box .result b.green { background: #11804a; }
+@keyframes stamp { from { transform: scale(1.8); opacity: 0; } }
+
+/* ---------- the picker (press and hold a number) ---------- */
+
+.pick-list { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.pick-list button {
+  display: flex; justify-content: space-between; align-items: center; gap: 6px; text-align: left;
+  min-height: 44px; padding: 6px 10px; border-radius: 10px; cursor: pointer;
+  border: 1px solid rgba(217, 180, 90, .4); background: rgba(0, 0, 0, .25); color: var(--ink); font-size: .88rem;
+}
+.pick-list button small { color: var(--muted); font-size: .76rem; white-space: nowrap; }
+.pick-list button .has { color: var(--win); font-weight: 700; }
+
+/* ---------- a wide screen: the wheel beside the layout ---------- */
+
+@media (min-width: 900px) and (min-height: 600px) {
+  body.roulette main { display: grid; grid-template-columns: minmax(340px, 440px) minmax(420px, 560px); justify-content: center; align-items: start; gap: 28px; padding-top: 14px; }
+  .wheel-box { position: sticky; top: 80px; left: auto; width: auto; transform: none; visibility: visible; transition: none; border: 0; background: none; box-shadow: none; padding: 0; }
+  .wheel-box.show { transform: none; }
+  .wheel-box canvas { width: min(420px, 60vh); height: min(420px, 60vh); }
+  .peek { display: none; }
+  .roulette .side { height: calc(100dvh - 210px); min-height: 560px; }
+  .layout .chips { --chip-s: 28px; }
+}
+
+@media (max-height: 700px) {
+  .roulette .say { min-height: 2.3em; font-size: .9rem; margin-bottom: 2px; }
+  .strip { margin-bottom: 4px; }
+  .history li { width: 22px; height: 22px; font-size: .68rem; }
+  .history li:first-child { width: 26px; height: 26px; }
+}
+
+@media (max-width: 360px) {
+  .layout .out { font-size: .72rem; }
+  .history li:nth-child(n + 8) { display: none; }
+}
+
+/* the paytable in the menu: keep '35 to 1' on one line */
+.roulette .sheet .help td:last-child { white-space: nowrap; padding-left: 12px; }
+
+/* On a touch phone the layout stays 24px clear of each side of the screen, out of Android's back-gesture zone
+   (main's 12px padding plus 12px more). */
+@media (pointer: coarse) and (max-width: 560px) {
+  .layout { margin: 0 12px; }
+}

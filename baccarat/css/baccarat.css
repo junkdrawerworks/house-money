@@ -1,0 +1,108 @@
+/* Baccarat: the shoe's scoreboard at the top, the Player's and Banker's cards side by side, the five bets below. */
+
+.baccarat { --pc: #3467c4; --bc: #c22f36; --tc: #2f9a5b; }
+.baccarat main { gap: 4px; }
+
+/* ---------- the scoreboard ---------- */
+
+.board {
+  --cell: 14px;
+  display: grid; grid-template-columns: auto 1fr; gap: 6px; align-items: start;
+  background: #f6f1e4; border-radius: 10px; padding: 6px; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .15), 0 3px 10px rgba(0, 0, 0, .3);
+  position: relative;
+}
+.bead, .road {
+  display: grid; grid-template-rows: repeat(6, var(--cell)); grid-auto-flow: column; grid-auto-columns: var(--cell);
+  background-image: linear-gradient(rgba(0, 0, 0, .09) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, .09) 1px, transparent 1px);
+  background-size: var(--cell) var(--cell);
+  border: 1px solid rgba(0, 0, 0, .12); overflow: hidden; height: calc(var(--cell) * 6 + 2px);
+}
+.bead { width: calc(var(--cell) * var(--bcols, 8) + 2px); }
+.road { min-width: 0; }
+.bead i {
+  font: 800 calc(var(--cell) * .55)/1 var(--sans); font-style: normal; color: #fff;
+  display: grid; place-items: center; border-radius: 50%; margin: 1px; position: relative;
+}
+.bead i.P { background: var(--pc); } .bead i.B { background: var(--bc); } .bead i.T { background: var(--tc); }
+.road i { position: relative; margin: 2px; border-radius: 50%; border: 2px solid; }
+.road i.P { border-color: var(--pc); } .road i.B { border-color: var(--bc); }
+.road i.tie::after { content: ''; position: absolute; left: -3px; right: -3px; top: 50%; height: 2px; background: var(--tc); transform: rotate(-45deg); }
+.road i .n { position: absolute; inset: 0; display: grid; place-items: center; font: 800 8px/1 var(--sans); color: var(--tc); font-style: normal; }
+.bead i.pp::before, .bead i.bp::after { content: ''; position: absolute; width: 4px; height: 4px; border-radius: 50%; border: 1px solid #fff; }
+.bead i.pp::before { background: var(--pc); left: -1px; bottom: -1px; }
+.bead i.bp::after { background: var(--bc); right: -1px; top: -1px; }
+.bead .new, .road .new { animation: pop .4s cubic-bezier(.3, 1.8, .5, 1); }
+@keyframes pop { from { transform: scale(0); } }
+.tally { position: absolute; right: 8px; bottom: -18px; margin: 0; font-size: .72rem; color: var(--muted); }
+.tally b { font-weight: 800; }
+.tally .p { color: #9bb9f0; } .tally .b { color: #f0a0a4; } .tally .t { color: #8fd8a9; }
+
+.baccarat .say { margin-top: 14px; }
+
+/* ---------- the cards ---------- */
+
+.coup { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.side { --cw: 66px; display: flex; flex-direction: column; align-items: center; gap: 6px; border-radius: 14px; padding: 6px 4px 8px; transition: background .3s, box-shadow .3s; }
+.side h2 { margin: 0; display: flex; align-items: center; gap: 8px; font: 700 .85rem/1 var(--serif); letter-spacing: .18em; text-transform: uppercase; }
+.side.player h2 span { color: #a9c3f2; } .side.banker h2 span { color: #f3a9ad; }
+.pt { min-width: 1.8em; padding: 3px 7px; border-radius: 99px; background: rgba(0, 0, 0, .45); font: 800 1rem/1 var(--sans); text-align: center; visibility: hidden; }
+.pt.on { visibility: visible; }
+.side.won { background: rgba(255, 226, 122, .12); box-shadow: inset 0 0 0 2px var(--win); }
+.side.won .pt { background: var(--win); color: #2a1608; }
+
+.cards { position: relative; display: grid; grid-template-columns: var(--cw) var(--cw); grid-template-rows: calc(var(--cw) * 1.4) var(--cw); column-gap: 6px; row-gap: 8px; justify-content: center; }
+.cards .card { --cw: inherit; touch-action: none; }
+.cards .card.third { grid-column: 1 / -1; justify-self: center; align-self: center; rotate: 90deg; }
+.cards .card.down { cursor: grab; }
+.cards .card.down.live { animation: nudge 1.6s ease-in-out infinite; }
+.cards .card.down.live .back { box-shadow: 0 0 0 2px var(--gold-hi), 0 2px 8px rgba(0, 0, 0, .5); }
+@keyframes nudge { 50% { translate: 0 -3px; } }
+.cards .card.third.down.live { animation: none; }
+
+/* the squeeze: the back is cut away as you peel it, and the peeled part lies folded over */
+.card.peeling .front { transform: none; transition: none; }
+.card.peeling .back { transition: none; }
+.card.instant .front, .card.instant .back { transition: none; }
+.card .flapw { position: absolute; inset: 0; pointer-events: none; filter: drop-shadow(0 2px 3px rgba(0, 0, 0, .45)); z-index: 2; }
+.card .flap { position: absolute; inset: 0; border-radius: calc(var(--cw) * .09); background: linear-gradient(135deg, #fbf7ec, #e2d8c2); }
+
+/* ---------- the bets ---------- */
+
+.layout {
+  display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-top: auto; padding-top: 22px;
+}
+.spot {
+  position: relative; padding: 6px 4px; border-radius: 14px; cursor: pointer; touch-action: manipulation;
+  border: 2px solid var(--felt-line); background: rgba(0, 0, 0, .1); color: var(--ink);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  --chip-s: 34px;
+}
+.spot.small { grid-column: span 2; min-height: 60px; }
+.spot.big { grid-column: span 3; min-height: 92px; }
+.spot .lbl { font: 700 .9rem/1 var(--serif); letter-spacing: .14em; text-transform: uppercase; }
+.spot.big .lbl { font-size: 1.15rem; }
+.spot .odds { font-size: .7rem; color: var(--muted); letter-spacing: .04em; }
+.spot.player { border-color: rgba(120, 160, 235, .75); background: rgba(52, 103, 196, .16); }
+.spot.player .lbl { color: #b8cff6; }
+.spot.banker { border-color: rgba(235, 120, 126, .75); background: rgba(194, 47, 54, .16); }
+.spot.banker .lbl { color: #f6bcc0; }
+.spot.tie .lbl { color: #a7e6bf; }
+.spot .stack { position: absolute; right: 8px; bottom: 16px; }
+.spot.small .stack { --chip-s: 26px; right: 4px; bottom: 14px; }
+.spot.has .lbl, .spot.has .odds { transform: translateX(-12px); }
+.spot.small.has .lbl, .spot.small.has .odds { transform: translateX(-10px); }
+.spot.hit { box-shadow: 0 0 0 3px var(--win), 0 0 22px rgba(255, 226, 122, .45); }
+.spot.miss { opacity: .55; }
+.layout.locked .spot { cursor: default; }
+
+/* Wide screens: the third card lies sideways beside the first two, not under them. */
+@media (min-width: 700px) {
+  .board { --cell: 16px; }
+  .side { --cw: 86px; }
+  .cards { grid-template-columns: var(--cw) var(--cw) calc(var(--cw) * 1.4); grid-template-rows: calc(var(--cw) * 1.4); }
+  .cards .card.third { grid-column: 3; }
+  .spot.big { min-height: 96px; }
+  .layout { padding-top: 14px; }
+}
+@media (max-width: 360px) { .side { --cw: 58px; } .board { --cell: 12px; } }
+

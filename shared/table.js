@@ -26,7 +26,7 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
   sheet.setAttribute('aria-label', `${name}: menu`);
   sheet.innerHTML = `
     <div class="sheet-in">
-      <h2>${name}</h2>
+      <h2 tabindex="-1">${name}</h2>
       <p class="limits" id="limits"></p>
       <div class="help">${help}</div>
       <div class="sheet-btns">
@@ -92,7 +92,8 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
   addEventListener('storage', e => { if (e.key === sound.KEY) soundLabel(); });
   soundBtn.addEventListener('click', () => { sound.setEnabled(!sound.enabled()); sound.tap(); });
 
-  const open = () => { limitsLine(); sheet.showModal(); };
+  // opens at the top, on the table's name, rather than scrolled down to the first button
+  const open = () => { limitsLine(); sheet.showModal(); sheet.scrollTop = 0; sheet.querySelector('h2').focus(); };
   bar.querySelector('.menu-btn').addEventListener('click', open);
   sheet.querySelector('[data-act="close"]').addEventListener('click', () => sheet.close());
   sheet.addEventListener('click', e => { if (e.target === sheet) sheet.close(); });
@@ -119,6 +120,9 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
   }
   check();
   addEventListener('house-money:cage', () => requestAnimationFrame(check));
+
+  // the offline copy, for anyone who comes straight to a table without passing the floor
+  if ('serviceWorker' in navigator && isSecureContext) navigator.serviceWorker.register('../sw.js', { scope: '../' }).catch(() => {});
 
   return { say: line, limits, check, open, sheet };
 }

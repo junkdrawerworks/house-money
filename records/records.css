@@ -1,0 +1,28 @@
+/* Records: the floor's totals in a strip, then a card per table. */
+
+.rec-head { max-width: 900px; margin: 0 auto; padding: calc(16px + env(safe-area-inset-top, 0px)) 16px 4px; text-align: center; position: relative; }
+.rec-head .back { position: absolute; left: 16px; top: calc(20px + env(safe-area-inset-top, 0px)); color: var(--muted); text-decoration: none; font-weight: 600; font-size: .95rem; }
+.rec-head h1 { margin: 34px 0 4px; font: 400 2.4rem/1 var(--sign); color: var(--gold-hi); text-shadow: 0 0 16px rgba(255, 200, 100, .35); }
+.rec-head p { margin: 0; color: var(--muted); font-size: .9rem; }
+@media (min-width: 600px) { .rec-head h1 { margin-top: 10px; } }
+
+.records main { max-width: 900px; }
+.totals { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 18px 0; }
+@media (min-width: 700px) { .totals { grid-template-columns: repeat(3, 1fr); } }
+.totals div { background: rgba(20, 8, 8, .75); border: 1px solid rgba(217, 180, 90, .3); border-radius: 14px; padding: 12px; text-align: center; display: flex; flex-direction: column; gap: 4px; }
+.totals b { font: 800 1.45rem/1 var(--sans); font-variant-numeric: tabular-nums; }
+.totals span { font-size: .8rem; color: var(--muted); }
+b.up { color: var(--win); } b.down { color: var(--lose); }
+
+.rec-list { display: grid; gap: 10px; grid-template-columns: 1fr; }
+@media (min-width: 640px) { .rec-list { grid-template-columns: 1fr 1fr; } }
+.rec { background: rgba(20, 8, 8, .75); border: 1px solid rgba(217, 180, 90, .3); border-left: 6px solid var(--c, var(--felt)); border-radius: 14px; padding: 12px 14px; }
+.rec h2 { margin: 0 0 6px; font: 400 1.25rem/1.1 var(--sign); }
+.rec h2 a { color: var(--gold-hi); text-decoration: none; }
+.rec ul { list-style: none; margin: 0; padding: 0; }
+.rec li { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; border-bottom: 1px solid rgba(217, 180, 90, .12); font-size: .92rem; }
+.rec li span { color: var(--muted); }
+.rec li b { font-variant-numeric: tabular-nums; }
+.rec li small { color: var(--muted); font-weight: 400; margin-left: 4px; }
+.rec .none { margin: 0; color: var(--muted); font-size: .9rem; }
+.note { text-align: center; color: var(--muted); font-size: .85rem; margin: 22px 0 0; }

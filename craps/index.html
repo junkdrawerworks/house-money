@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Craps · House Money</title>
+  <meta name="description" content="Craps at House Money: pass line, come bets, odds behind them, place numbers, the field, the hardways and the one-roll bets, with the dice bouncing off the back wall. Play chips only.">
+  <meta property="og:title" content="Craps · House Money">
+  <meta property="og:description" content="Pass line, come bets, odds, place numbers, the field and the hardways.">
+  <meta property="og:image" content="https://house-money.junkdrawer.works/og.png">
+  <meta property="og:url" content="https://house-money.junkdrawer.works/craps/">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#2a1510">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../icon-180.png">
+  <link rel="preload" href="../fonts/figtree.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="../fonts/playfair.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="../shared/casino.css">
+  <link rel="stylesheet" href="css/craps.css">
+</head>
+<body class="table craps">
+  <header class="bar"></header>
+  <div class="pit" id="pit">
+    <div class="wall" aria-hidden="true"></div>
+    <ol class="history" id="history" aria-label="The last rolls"></ol>
+    <div class="puck off" id="puck" aria-live="polite"><b>Off</b></div>
+    <div class="dice" id="dice" aria-hidden="true"></div>
+    <p class="say" id="say" aria-live="polite"></p>
+  </div>
+  <main>
+    <section class="numbers" aria-label="The numbers: place bets, and come bets that have travelled">
+      <div class="box" data-n="4"><span class="num">4</span><button type="button" class="slot dc" data-spot="dcome4"><i>Don’t</i></button><button type="button" class="slot place" data-spot="place4"><i>Place 9:5</i></button><button type="button" class="slot cm" data-spot="come4"><i>Come</i></button></div>
+      <div class="box" data-n="5"><span class="num">5</span><button type="button" class="slot dc" data-spot="dcome5"><i>Don’t</i></button><button type="button" class="slot place" data-spot="place5"><i>Place 7:5</i></button><button type="button" class="slot cm" data-spot="come5"><i>Come</i></button></div>
+      <div class="box" data-n="6"><span class="num">Six</span><button type="button" class="slot dc" data-spot="dcome6"><i>Don’t</i></button><button type="button" class="slot place" data-spot="place6"><i>Place 7:6</i></button><button type="button" class="slot cm" data-spot="come6"><i>Come</i></button></div>
+      <div class="box" data-n="8"><span class="num">8</span><button type="button" class="slot dc" data-spot="dcome8"><i>Don’t</i></button><button type="button" class="slot place" data-spot="place8"><i>Place 7:6</i></button><button type="button" class="slot cm" data-spot="come8"><i>Come</i></button></div>
+      <div class="box" data-n="9"><span class="num">Nine</span><button type="button" class="slot dc" data-spot="dcome9"><i>Don’t</i></button><button type="button" class="slot place" data-spot="place9"><i>Place 7:5</i></button><button type="button" class="slot cm" data-spot="come9"><i>Come</i></button></div>
+      <div class="box" data-n="10"><span class="num">10</span><button type="button" class="slot dc" data-spot="dcome10"><i>Don’t</i></button><button type="button" class="slot place" data-spot="place10"><i>Place 9:5</i></button><button type="button" class="slot cm" data-spot="come10"><i>Come</i></button></div>
+    </section>
+
+    <div class="comes">
+      <button type="button" class="area dontcome" data-spot="dontCome"><span class="lbl">Don’t come<small>Bar 12</small></span></button>
+      <button type="button" class="area come" data-spot="come"><span class="lbl big">Come</span></button>
+    </div>
+
+    <button type="button" class="area field" data-spot="field">
+      <span class="lbl big">Field</span>
+      <span class="fnums"><span class="ring">2<small>pays double</small></span><span>3</span><span>4</span><span>9</span><span>10</span><span>11</span><span class="ring">12<small>pays triple</small></span></span>
+    </button>
+
+    <section class="center" aria-label="The one-roll bets and the hardways">
+      <button type="button" class="prop wide" data-spot="any7"><span class="lbl">Seven <small>4 to 1</small></span></button>
+      <button type="button" class="prop hw" data-spot="hard6" data-d="3,3"><span class="lbl"><small>9 to 1</small></span></button>
+      <button type="button" class="prop hw" data-spot="hard10" data-d="5,5"><span class="lbl"><small>7 to 1</small></span></button>
+      <button type="button" class="prop hw" data-spot="hard8" data-d="4,4"><span class="lbl"><small>9 to 1</small></span></button>
+      <button type="button" class="prop hw" data-spot="hard4" data-d="2,2"><span class="lbl"><small>7 to 1</small></span></button>
+      <button type="button" class="prop" data-spot="aceDeuce" data-d="1,2"><span class="lbl"><small>15 to 1</small></span></button>
+      <button type="button" class="prop" data-spot="yo" data-d="5,6"><span class="lbl"><small>15 to 1</small></span></button>
+      <button type="button" class="prop" data-spot="aces" data-d="1,1"><span class="lbl"><small>30 to 1</small></span></button>
+      <button type="button" class="prop" data-spot="boxcars" data-d="6,6"><span class="lbl"><small>30 to 1</small></span></button>
+      <button type="button" class="prop wide" data-spot="anyCraps"><span class="lbl">Any craps <small>7 to 1</small></span></button>
+    </section>
+
+    <div class="line dont">
+      <button type="button" class="area dontpass" data-spot="dontPass"><span class="lbl">Don’t pass bar<small>Bar 12</small></span></button>
+      <button type="button" class="area odds" data-spot="dontOdds"><span class="lbl">Lay odds</span></button>
+    </div>
+    <div class="line pass">
+      <button type="button" class="area pass" data-spot="pass"><span class="lbl big">Pass line</span></button>
+      <button type="button" class="area odds" data-spot="passOdds"><span class="lbl">Odds</span></button>
+    </div>
+  </main>
+  <div class="dock">
+    <p class="onfelt" id="onfelt" aria-live="polite"></p>
+    <div id="rack"></div>
+    <div class="actions">
+      <button type="button" class="btn" id="undo">Undo</button>
+      <button type="button" class="btn" id="clear">Take down</button>
+      <button type="button" class="btn gold" id="roll">Roll</button>
+    </div>
+  </div>
+  <noscript><p class="say">Craps needs JavaScript to roll the dice.</p></noscript>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

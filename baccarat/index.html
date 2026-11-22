@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Baccarat · House Money</title>
+  <meta name="description" content="Baccarat at House Money: bet the Player, the Banker or a Tie from an eight-deck shoe, squeeze the cards up a corner at a time, and follow the shoe on the scoreboard. Play chips only.">
+  <meta property="og:title" content="Baccarat · House Money">
+  <meta property="og:description" content="Bet the Player, the Banker or a Tie, and squeeze the cards.">
+  <meta property="og:image" content="https://house-money.junkdrawer.works/og.png">
+  <meta property="og:url" content="https://house-money.junkdrawer.works/baccarat/">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#2a1510">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../icon-180.png">
+  <link rel="preload" href="../fonts/figtree.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="../fonts/playfair.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="../shared/casino.css">
+  <link rel="stylesheet" href="css/baccarat.css">
+</head>
+<body class="table baccarat">
+  <header class="bar"></header>
+  <main>
+    <section class="board" aria-label="The scoreboard for this shoe">
+      <div class="bead" id="bead" role="img"></div>
+      <div class="road" id="road" role="img"></div>
+      <p class="tally" id="tally"></p>
+    </section>
+    <p class="say" id="say" aria-live="polite"></p>
+    <section class="coup" aria-label="The cards">
+      <div class="side player" id="pSide">
+        <h2><span>Player</span> <b class="pt" id="pTot"></b></h2>
+        <div class="cards" id="pCards"></div>
+      </div>
+      <div class="side banker" id="bSide">
+        <h2><span>Banker</span> <b class="pt" id="bTot"></b></h2>
+        <div class="cards" id="bCards"></div>
+      </div>
+    </section>
+    <section class="layout" id="layout" aria-label="The bets">
+      <button type="button" class="spot small pp" data-bet="pp" aria-label="Player pair, pays 11 to 1"><span class="lbl">P pair</span><span class="odds">11 to 1</span></button>
+      <button type="button" class="spot small tie" data-bet="tie" aria-label="Tie, pays 8 to 1"><span class="lbl">Tie</span><span class="odds">8 to 1</span></button>
+      <button type="button" class="spot small bp" data-bet="bp" aria-label="Banker pair, pays 11 to 1"><span class="lbl">B pair</span><span class="odds">11 to 1</span></button>
+      <button type="button" class="spot big player" data-bet="player" aria-label="Player, pays 1 to 1"><span class="lbl">Player</span><span class="odds">1 to 1</span></button>
+      <button type="button" class="spot big banker" data-bet="banker" aria-label="Banker, pays 19 to 20"><span class="lbl">Banker</span><span class="odds">19 to 20</span></button>
+    </section>
+  </main>
+  <div class="dock">
+    <div id="rack"></div>
+    <div class="actions" id="betActions">
+      <button type="button" class="btn" id="clear">Clear</button>
+      <button type="button" class="btn" id="rebet">Rebet</button>
+      <button type="button" class="btn gold" id="deal">Deal</button>
+    </div>
+    <div class="actions" id="revealActions" hidden>
+      <button type="button" class="btn gold" id="reveal">Turn them over</button>
+    </div>
+    <div class="actions" id="doneActions" hidden>
+      <button type="button" class="btn" id="newBet">New bet</button>
+      <button type="button" class="btn gold" id="again">Same bet</button>
+    </div>
+    <button type="button" class="book" id="squeeze" aria-pressed="true">Squeeze the cards: on</button>
+  </div>
+  <noscript><p class="say">Baccarat needs JavaScript to deal the cards.</p></noscript>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

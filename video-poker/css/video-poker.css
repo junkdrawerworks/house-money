@@ -1,0 +1,81 @@
+/* Video Poker: an upright machine on the carpet, its blue screen showing the pay table, the five cards and the meters. */
+
+body.video-poker {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(217, 180, 90, .16) 0 2px, transparent 3px) 0 0 / 28px 28px,
+    radial-gradient(circle at 50% 50%, rgba(0, 0, 0, .25) 0 6px, transparent 7px) 14px 14px / 28px 28px,
+    linear-gradient(45deg, rgba(0, 0, 0, .12) 25%, transparent 25% 75%, rgba(0, 0, 0, .12) 75%) 0 0 / 28px 28px,
+    radial-gradient(ellipse 120% 80% at 50% 30%, #5b1520, #2a080e 85%);
+  background-color: #2a080e;
+}
+.video-poker main { justify-content: center; padding-top: 12px; }
+
+.cabinet {
+  --cw: 62px;
+  width: 100%; max-width: 640px; margin: 0 auto;
+  background: linear-gradient(#3b3f4a, #1d2027 60%, #15171c);
+  border-radius: 22px 22px 14px 14px; padding: 10px 10px 14px;
+  border: 1px solid #575c69;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255, 255, 255, .15);
+}
+.topper {
+  margin: 0 0 10px; text-align: center; padding: 8px 6px; border-radius: 12px 12px 6px 6px;
+  background: linear-gradient(#c3222b, #7d0f17); border: 2px solid #f0c75e;
+  box-shadow: inset 0 0 18px rgba(0, 0, 0, .4), 0 0 18px rgba(240, 199, 94, .25);
+}
+.topper span { font: 400 1.35rem/1 var(--sign); color: #ffe9a8; letter-spacing: .04em; text-shadow: 0 0 10px rgba(255, 220, 120, .7), 0 2px 0 #5a0a10; }
+
+.crt {
+  position: relative; overflow: hidden;
+  border-radius: 14px; padding: 10px 8px 10px;
+  background: radial-gradient(ellipse 110% 90% at 50% 40%, #1631b8 0%, #0b1d86 55%, #050f52 100%);
+  border: 3px solid #0a0c12;
+  box-shadow: inset 0 0 30px rgba(0, 0, 0, .6), inset 0 0 0 1px rgba(120, 160, 255, .25);
+}
+.crt::after {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: repeating-linear-gradient(rgba(0, 0, 0, .12) 0 1px, transparent 1px 3px);
+  mix-blend-mode: multiply;
+}
+
+.paytable { width: 100%; border-collapse: collapse; font: 800 .68rem/1.15 var(--sans); text-transform: uppercase; color: #ffe45c; letter-spacing: .02em; font-variant-numeric: tabular-nums; }
+.paytable td { padding: 1.5px 3px; text-align: right; white-space: nowrap; }
+.paytable td:first-child { text-align: left; }
+.paytable td.on { background: #c3131c; color: #fff4b0; }
+.paytable tr:first-child td.on { border-radius: 4px 4px 0 0; }
+.paytable tr:last-child td.on { border-radius: 0 0 4px 4px; }
+.paytable tr.hit td { animation: payflash .5s steps(2) infinite; }
+@keyframes payflash { 50% { color: #fff; background: rgba(255, 228, 92, .35); } }
+
+.crt .say { min-height: 2.4em; margin: 6px 0 4px; color: #fff; font: 800 .95rem/1.2 var(--sans); text-transform: uppercase; letter-spacing: .06em; text-shadow: 0 0 8px rgba(120, 170, 255, .8); }
+.crt .say.win { color: #ffe45c; text-shadow: 0 0 10px rgba(255, 228, 92, .8); }
+.crt .say.lose { color: #b9c6ff; }
+
+.hand { display: grid; grid-template-columns: repeat(5, var(--cw)); justify-content: center; gap: 6px; }
+.slot { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.slot .held { font: 800 .72rem/1 var(--sans); letter-spacing: .08em; color: #ffe45c; visibility: hidden; text-shadow: 0 0 6px rgba(255, 228, 92, .8); }
+.slot.on .held { visibility: visible; }
+.slot .cardwrap { position: relative; width: var(--cw); height: calc(var(--cw) * 1.4); cursor: pointer; border: 0; padding: 0; background: none; border-radius: calc(var(--cw) * .09); }
+.slot .cardwrap .card { --cw: inherit; position: absolute; inset: 0; }
+.slot .cardwrap:disabled { cursor: default; }
+.slot .card.lit .front { box-shadow: 0 0 0 2px #ffe45c, 0 0 14px rgba(255, 228, 92, .8); }
+.slot .card.dim { filter: brightness(.55) saturate(.6); }
+.slot.tip .cardwrap { box-shadow: 0 0 0 3px #7cf3ff, 0 0 16px rgba(124, 243, 255, .8); }
+.slot .hold {
+  width: 100%; min-height: 34px; border-radius: 6px; cursor: pointer;
+  border: 1px solid #f0c75e; background: linear-gradient(#f9e07e, #d8a935); color: #2a1608;
+  font: 800 .7rem/1 var(--sans); letter-spacing: .06em; text-transform: uppercase;
+  box-shadow: 0 2px 0 #6d4f12; touch-action: manipulation;
+}
+.slot.on .hold { background: linear-gradient(#ff5a5f, #b0121a); color: #fff; border-color: #ff9a9e; }
+.slot .hold:disabled { opacity: .35; cursor: default; }
+
+.meters { display: flex; justify-content: space-between; gap: 8px; margin-top: 10px; padding: 0 2px; font: 800 .74rem/1 var(--sans); text-transform: uppercase; color: #9fb3ff; letter-spacing: .05em; }
+.meters b { color: #ff6a52; font-size: 1rem; margin-left: 4px; font-variant-numeric: tabular-nums; text-shadow: 0 0 6px rgba(255, 90, 60, .6); }
+.meters .coinm b { margin: 0 2px; }
+
+
+@media (min-width: 560px) { .cabinet { --cw: 84px; } .paytable { font-size: .8rem; } }
+@media (min-width: 900px) { .cabinet { --cw: 96px; } .paytable { font-size: .88rem; } .topper span { font-size: 1.7rem; } }
+@media (max-width: 360px) { .cabinet { --cw: 54px; padding: 8px 6px 10px; } .paytable { font-size: .6rem; } }
+@media (max-width: 340px) { .cabinet { --cw: 48px; padding: 8px 5px 10px; } .crt { padding: 8px 5px; } .hand { gap: 4px; } .video-poker main { padding-left: 8px; padding-right: 8px; } }

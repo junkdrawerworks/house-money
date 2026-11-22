@@ -135,9 +135,12 @@ body.table main { flex: 1; display: flex; flex-direction: column; position: rela
 .chip b { position: relative; font: 800 calc(var(--chip) * .3)/1 var(--sans); letter-spacing: -.03em; }
 .chip.c1 { --c: #f2efe8; --e: #3768c9; --t: #22325a; }
 .chip.c5 { --c: #c8262f; --e: #f4efe2; --t: #fff; }
+.chip.c10 { --c: #2a5cb3; --e: #f4efe2; --t: #fff; }
 .chip.c25 { --c: #1d8a4b; --e: #f4efe2; --t: #fff; }
+.chip.c50 { --c: #17807f; --e: #f4efe2; --t: #fff; }
 .chip.c100 { --c: #1c1c20; --e: #e9e1cf; --t: #fff; }
 .chip.c500 { --c: #6a2fa0; --e: #f2d962; --t: #fff; }
+.chip.c250 { --c: #b8366f; --e: #f4efe2; --t: #fff; }
 .chip.c1000 { --c: #e98a24; --e: #fff6e2; --t: #3a1c00; }
 .chip.c5000 { --c: #8a8f99; --e: #26262b; --t: #121216; }
 .chip.mini { --chip: 20px; }
@@ -149,8 +152,8 @@ body.table main { flex: 1; display: flex; flex-direction: column; position: rela
 .rack .chip:disabled { opacity: .3; cursor: default; }
 @media (max-width: 360px) { .rack { gap: 5px; } .rack .chip { --chip: 44px; } }
 
-.stack { position: relative; display: inline-block; width: var(--chip-s, 36px); height: calc(var(--chip-s, 36px) + (var(--n, 1) - 1) * 4px); pointer-events: none; }
-.stack .chip { --chip: var(--chip-s, 36px); position: absolute; left: 0; bottom: calc(var(--i) * 4px); box-shadow: 0 1.5px 0 rgba(0, 0, 0, .45); }
+.stack { position: relative; display: inline-block; width: var(--chip-s, 36px); height: calc(var(--chip-s, 36px) * (1 + (var(--n, 1) - 1) * .13)); pointer-events: none; }
+.stack .chip { --chip: var(--chip-s, 36px); position: absolute; left: 0; bottom: calc(var(--i) * var(--chip-s, 36px) * .13); box-shadow: 0 1.5px 0 rgba(0, 0, 0, .45); }
 .stack .chip b { font-size: calc(var(--chip) * .28); }
 .stack .amt {
   position: absolute; left: 50%; top: 100%; transform: translate(-50%, 3px);
@@ -219,6 +222,7 @@ dialog.sheet {
 @media (min-width: 700px) { dialog.sheet { margin: auto; border-radius: 18px; border: 2px solid var(--gold-dk); } }
 dialog.sheet::backdrop { background: rgba(5, 2, 2, .65); }
 .sheet-in { padding: 20px 20px calc(16px + var(--safe-b)); }
+.sheet h2:focus { outline: none; }
 .sheet h2 { margin: 0 0 4px; font: 400 1.7rem/1.1 var(--sign); color: var(--gold-hi); }
 .sheet .limits { margin: 0 0 12px; color: var(--muted); font-size: .92rem; }
 .sheet .help { font-size: .95rem; }
@@ -267,3 +271,6 @@ dialog.sheet::backdrop { background: rgba(5, 2, 2, .65); }
 
 /* the crossfade between the floor and the tables */
 @media (prefers-reduced-motion: no-preference) { @view-transition { navigation: auto; } ::view-transition-group(root) { animation-duration: .2s; } }
+
+/* a quiet text button under a table's buttons: Ask the book, the strategy card */
+.book { border: 0; background: none; color: var(--gold-hi); font-size: .88rem; text-decoration: underline; text-underline-offset: 3px; padding: 2px 8px; cursor: pointer; }

@@ -18,7 +18,7 @@ const $ = id => document.getElementById(id);
 let s = load();
 const table = mountTable({
   id: 'blackjack', name: T.name, min: T.min, max: T.max,
-  felt: () => s.bet + (s.phase !== 'bet' && s.phase !== 'done' ? s.hands.reduce((a, h) => a + h.bet, 0) : 0),
+  felt: () => onFelt(),
   help: `
     <p>Get closer to 21 than the dealer without going over. Number cards count as their number, jacks, queens and kings
     count 10, and an ace counts 1 or 11, whichever helps.</p>
@@ -57,7 +57,9 @@ function load() {
   } catch { /* first visit */ }
   return g.fresh();
 }
-function save() { try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* full or off */ } }
+function onFelt() { return s.bet + (s.phase !== 'bet' && s.phase !== 'done' ? s.hands.reduce((a, h) => a + h.bet, 0) + s.insurance : 0); }
+// felt: the chips out on the table right now, which the floor counts as yours
+function save() { s.felt = onFelt(); try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* full or off */ } }
 
 // ---------- drawing the table ----------
 
@@ -85,9 +87,8 @@ function syncRow(row, cards, { hole = false, size } = {}) {
 function cardSize() {
   const n = s.hands.length;
   const w = Math.min(innerWidth, 760);
-  if (n <= 1) return w < 370 ? 62 : 70;
-  if (n === 2) return w < 370 ? 50 : 56;
-  return w < 370 ? 38 : 44;
+  const base = w >= 700 && innerHeight >= 700 ? 92 : w < 370 ? 62 : 70;
+  return Math.round(base * (n <= 1 ? 1 : n === 2 ? .8 : .62));
 }
 
 function totText(cards) {
@@ -99,7 +100,7 @@ function totText(cards) {
 
 async function paintCards() {
   const jobs = [];
-  jobs.push(syncRow(dealerRow, s.dealer, { hole: s.hole, size: Math.min(cardSize() + 8, 70) }));
+  jobs.push(syncRow(dealerRow, s.dealer, { hole: s.hole, size: Math.round(cardSize() / (s.hands.length <= 1 ? 1 : s.hands.length === 2 ? .8 : .62)) }));
   const dt = $('dealerTot');
   if (s.dealer.length) {
     const shown = s.hole ? [s.dealer[0]] : s.dealer;
@@ -346,7 +347,6 @@ addEventListener('resize', () => paintCards());
 (async () => {
   // a round that settled but whose chips never reached the rack (the page closed in between) pays now
   if (s.phase === 'done' && s.outcome && s.paid === false) { cage.pay(s.outcome.back); s.paid = true; save(); }
-  dealerRow.style.setProperty('--size', '70px');
   await show();
   if (s.phase === 'play') prompt();
   else if (s.phase === 'insurance') table.say('The dealer shows an ace. Insurance?');

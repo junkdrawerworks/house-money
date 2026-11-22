@@ -17,7 +17,7 @@ export const TABLES = [
     what: 'An old three-reel slot: cherries, lemons, bells, bars and sevens on one pay line. Pull the handle.' },
   { id: 'odds-and-ends', name: 'Odds & Ends', min: 1, max: 100, slot: true,
     what: 'A slot machine stocked from the junk drawer: keys, batteries, rubber bands and the odd lucky penny, on five lines.' },
-  { id: 'motherlode', name: 'Motherlode', min: 1, max: 100, slot: true,
+  { id: 'motherlode', name: 'Motherlode', min: 20, max: 100, slot: true,
     what: 'Five reels and twenty lines down a gold mine. Three lanterns light up free spins, and the wild pickaxes stick.' },
 ];
 

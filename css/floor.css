@@ -1,0 +1,133 @@
+/* The floor: a marquee over the door, your chips and card, and the tables on the carpet. */
+
+body.floor {
+  background-color: #1a0b0f;
+  /* casino carpet: gold medallions and teal sprigs on burgundy */
+  background-image:
+    radial-gradient(circle at 50% 50%, rgba(217, 180, 90, .16) 0 5px, transparent 6px),
+    radial-gradient(circle at 0 0, rgba(46, 128, 120, .16) 0 4px, transparent 5px),
+    radial-gradient(circle at 50% 50%, transparent 0 17px, rgba(217, 180, 90, .09) 18px 19px, transparent 20px),
+    repeating-linear-gradient(45deg, rgba(0, 0, 0, .14) 0 2px, transparent 2px 24px),
+    repeating-linear-gradient(-45deg, rgba(0, 0, 0, .14) 0 2px, transparent 2px 24px),
+    linear-gradient(#2a0f16, #1a0b0f 40%);
+  background-size: 48px 48px, 48px 48px, 48px 48px, auto, auto, auto;
+  background-attachment: scroll;
+}
+
+.door { max-width: 1040px; margin: 0 auto; padding: calc(18px + env(safe-area-inset-top, 0px)) 16px 8px; text-align: center; }
+
+.marquee {
+  position: relative; display: inline-block; padding: 18px 26px 16px; margin: 4px auto 10px;
+  border-radius: 18px; background: linear-gradient(#1e0f0b, #120806);
+  border: 3px solid var(--gold-dk);
+  box-shadow: 0 0 0 6px #1e0f0b, 0 0 0 8px rgba(217, 180, 90, .45), 0 18px 40px rgba(0, 0, 0, .6);
+}
+/* the bulbs around the sign, chasing */
+.marquee::before {
+  content: ''; position: absolute; inset: 5px; border-radius: 14px; pointer-events: none;
+  background:
+    radial-gradient(circle, #fff6cf 0 2.2px, rgba(255, 210, 110, .7) 3px, transparent 5px) 0 0 / 16px 16px repeat-x,
+    radial-gradient(circle, #fff6cf 0 2.2px, rgba(255, 210, 110, .7) 3px, transparent 5px) 0 100% / 16px 16px repeat-x;
+  animation: chase 1.2s steps(2) infinite;
+}
+@keyframes chase { 50% { background-position: 8px 0, 8px 100%; } }
+.sign {
+  margin: 0; font: 400 clamp(2.4rem, 11vw, 4.4rem)/1 var(--sign); letter-spacing: .02em; color: var(--gold-hi);
+  text-shadow: 0 0 6px rgba(255, 220, 140, .8), 0 0 22px rgba(255, 190, 80, .45), 0 3px 0 #6b4a12;
+}
+.sign span { display: block; font-size: .62em; letter-spacing: .32em; margin-top: .12em; padding-left: .32em; color: #ffe9b0; }
+.lede { max-width: 36em; margin: 8px auto 16px; color: var(--muted); text-wrap: balance; }
+
+.wallet {
+  display: grid; gap: 12px; max-width: 520px; margin: 0 auto 14px; padding: 14px;
+  background: rgba(20, 8, 8, .72); border: 1px solid rgba(217, 180, 90, .35); border-radius: 18px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .4);
+}
+.wallet .count { display: flex; align-items: center; justify-content: center; gap: 12px; }
+.wallet .count .chip { --chip: 46px; }
+.wallet .count p { margin: 0; font-size: 1.05rem; color: var(--muted); }
+.wallet .count p b { font: 800 2.2rem/1 var(--sans); color: var(--ink); font-variant-numeric: tabular-nums; margin-right: 4px; }
+
+.card-btn { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; gap: 6px 12px; align-items: center; text-align: left; background: none; border: 0; padding: 0; cursor: pointer; }
+.players-card {
+  grid-row: 1 / span 2; width: 86px; height: 54px; border-radius: 7px; padding: 6px 8px;
+  display: flex; flex-direction: column; justify-content: space-between;
+  background: linear-gradient(135deg, #c22b35, #7a121b); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .25), 0 3px 8px rgba(0, 0, 0, .45);
+  font-family: var(--sans); color: #fff;
+}
+.players-card.silver { background: linear-gradient(135deg, #e7eaee, #8f97a3); color: #1e232b; }
+.players-card.gold { background: linear-gradient(135deg, #f8e3a2, #b88a2c); color: #2c1d05; }
+.players-card.black { background: linear-gradient(135deg, #3a3a40, #0b0b0d); color: #f2dc99; box-shadow: inset 0 0 0 1px rgba(242, 220, 153, .5), 0 3px 8px rgba(0, 0, 0, .45); }
+.pc-name { font-size: .5rem; letter-spacing: .14em; text-transform: uppercase; opacity: .85; }
+.pc-tier { font: 400 1.05rem/1 var(--sign); }
+.tier-line { font-size: .86rem; color: var(--muted); }
+.card-btn .bar { height: 6px; border-radius: 3px; background: rgba(255, 255, 255, .1); overflow: hidden; }
+.card-btn .bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--gold-dk), var(--gold-hi)); border-radius: 3px; }
+
+.aisle { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; max-width: 760px; margin: 0 auto; }
+.hop {
+  font-size: .85rem; font-weight: 600; color: var(--ink); text-decoration: none; white-space: nowrap;
+  padding: 6px 12px; border-radius: 99px; background: rgba(0, 0, 0, .35); border: 1px solid rgba(217, 180, 90, .3);
+}
+.hop.alt { color: var(--gold-hi); }
+.hop:hover { border-color: var(--gold); }
+
+body.floor main { max-width: 1040px; margin: 0 auto; padding: 8px 16px 0; }
+.pit h2 {
+  display: flex; align-items: center; gap: 12px; margin: 26px 0 12px;
+  font: 400 1.5rem/1 var(--sign); color: var(--gold-hi); letter-spacing: .03em;
+}
+.pit h2::after { content: ''; flex: 1; height: 1px; background: linear-gradient(90deg, rgba(217, 180, 90, .5), transparent); }
+.row { display: grid; gap: 14px; grid-template-columns: 1fr; }
+@media (min-width: 640px) { .row { grid-template-columns: 1fr 1fr; } }
+@media (min-width: 980px) { .row { grid-template-columns: repeat(4, 1fr); } }
+
+.tile {
+  --c: var(--felt); --c2: var(--felt-dk);
+  display: flex; flex-direction: column; overflow: hidden; text-decoration: none; color: var(--ink);
+  border-radius: 16px; border: 1px solid rgba(217, 180, 90, .35);
+  background: linear-gradient(#22100c, #170a07);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, .45);
+  transition: transform .15s, border-color .15s;
+  scroll-margin-top: 16px;
+}
+.tile:hover, .tile:focus-visible { transform: translateY(-2px); border-color: var(--gold); }
+.tile .pic {
+  position: relative; aspect-ratio: 3 / 2; overflow: hidden;
+  background: radial-gradient(ellipse at 50% 40%, var(--c), var(--c2));
+  border-bottom: 2px solid var(--gold-dk);
+}
+.tile .pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.t-roulette { --c: #18704a; --c2: #0b3a26; }
+.t-craps { --c: #1a5f8a; --c2: #0c2f47; }
+.t-baccarat { --c: #8a1d2c; --c2: #3e0b14; }
+.t-video-poker { --c: #1b3d9a; --c2: #0a1645; }
+.t-cherry-bell { --c: #b8b8bf; --c2: #4b4b52; }
+.t-odds-and-ends { --c: #c9852a; --c2: #5a3008; }
+.t-motherlode { --c: #6b4a22; --c2: #22150a; }
+.tile .body { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px 14px; flex: 1; }
+.tname { font: 400 1.4rem/1.1 var(--sign); color: var(--gold-hi); }
+.what { font-size: .92rem; color: var(--muted); }
+.stat { font-size: .82rem; color: #a99d84; font-variant-numeric: tabular-nums; }
+.stat.up { color: var(--win); }
+.foot { display: flex; align-items: center; justify-content: space-between; margin-top: auto; padding-top: 6px; }
+.lim { font-size: .8rem; color: #a99d84; }
+.go { font-weight: 700; font-size: .92rem; color: #2a1608; background: linear-gradient(var(--gold-hi), var(--gold)); padding: 6px 14px; border-radius: 99px; }
+
+.cage {
+  margin: 30px auto 0; max-width: 620px; padding: 16px 18px;
+  background: rgba(20, 8, 8, .72); border: 1px solid rgba(217, 180, 90, .3); border-radius: 18px;
+}
+.cage h2 { margin: 0 0 6px; font: 400 1.35rem/1.1 var(--sign); color: var(--gold-hi); }
+.cage p { margin: 0 0 10px; color: var(--muted); font-size: .94rem; }
+.cage .small { font-size: .85rem; margin: 10px 0 0; }
+.tiers { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.tiers li { display: flex; flex-direction: column; gap: 2px; padding: 8px; border-radius: 10px; font-size: .78rem; color: var(--muted); background: rgba(255, 255, 255, .04); border: 1px solid transparent; }
+.tiers li b { font: 400 1rem/1 var(--sign); color: var(--ink); }
+.tiers li.now { border-color: var(--gold); background: rgba(217, 180, 90, .1); }
+.tiers li.red b { color: #ff7d86; } .tiers li.silver b { color: #d9dde3; } .tiers li.gold b { color: var(--gold-hi); } .tiers li.black b { color: #fff; }
+
+.switches { display: flex; justify-content: center; gap: 10px; margin: 26px 0 0; }
+body.floor .jd-foot { padding: 0 16px calc(24px + var(--safe-b)); }
+
+@media (prefers-reduced-motion: reduce) { .marquee::before { animation: none; } }

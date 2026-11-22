@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Odds &amp; Ends · House Money</title>
+  <meta name="description" content="Odds & Ends at House Money: a slot machine stocked from the junk drawer. Keys, batteries, rubber bands, paper clips and a lucky penny that's wild, on five lines. Play chips only.">
+  <meta property="og:title" content="Odds &amp; Ends · House Money">
+  <meta property="og:description" content="A slot machine stocked from the junk drawer, on five lines.">
+  <meta property="og:image" content="https://house-money.junkdrawer.works/og.png">
+  <meta property="og:url" content="https://house-money.junkdrawer.works/odds-and-ends/">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#2a1510">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../icon-180.png">
+  <link rel="preload" href="../fonts/figtree.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="../fonts/limelight.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="../shared/casino.css">
+  <link rel="stylesheet" href="css/odds-and-ends.css">
+</head>
+<body class="table slot odds-and-ends">
+  <header class="bar"></header>
+  <main>
+    <p class="say" id="say" aria-live="polite"></p>
+    <div class="drawer">
+      <div class="front">
+        <h2 class="sign">Odds &amp; Ends</h2>
+        <span class="pull" aria-hidden="true"></span>
+      </div>
+      <div class="inside">
+        <div class="tabs left" id="tabsL" aria-hidden="true"></div>
+        <div class="reels" id="reelBox"><canvas id="reels" role="img" aria-label="The reels"></canvas></div>
+        <div class="tabs right" id="tabsR" aria-hidden="true"></div>
+      </div>
+      <p class="paid" id="paid" aria-live="polite">&nbsp;</p>
+    </div>
+    <ul class="legend" id="legend" aria-label="What three of a kind pays, times the line bet"></ul>
+  </main>
+  <div class="dock">
+    <div class="bets">
+      <div class="stepper" aria-label="Lines">
+        <button type="button" class="btn small" id="linesDown" aria-label="Fewer lines">−</button>
+        <span class="val"><b id="lines">5</b><small>lines</small></span>
+        <button type="button" class="btn small" id="linesUp" aria-label="More lines">+</button>
+      </div>
+      <div id="rack"></div>
+    </div>
+    <div class="actions">
+      <span class="total" id="total"></span>
+      <button type="button" class="btn gold spin" id="spin">Spin</button>
+    </div>
+  </div>
+  <noscript><p class="say">Odds &amp; Ends needs JavaScript to spin the reels.</p></noscript>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

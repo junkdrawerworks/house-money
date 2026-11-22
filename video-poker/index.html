@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Video Poker · House Money</title>
+  <meta name="description" content="Video Poker at House Money: Jacks or Better on a full-pay machine. Hold the cards you want, draw for the rest, and bet five coins for the 4,000-coin royal. Play chips only.">
+  <meta property="og:title" content="Video Poker · House Money">
+  <meta property="og:description" content="Jacks or Better on a full-pay machine.">
+  <meta property="og:image" content="https://house-money.junkdrawer.works/og.png">
+  <meta property="og:url" content="https://house-money.junkdrawer.works/video-poker/">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#2a1510">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../icon-180.png">
+  <link rel="preload" href="../fonts/figtree.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="../fonts/playfair.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="../shared/casino.css">
+  <link rel="stylesheet" href="css/video-poker.css">
+</head>
+<body class="table video-poker">
+  <header class="bar"></header>
+  <main>
+    <div class="cabinet">
+      <p class="topper"><span>Jacks or Better</span></p>
+      <div class="crt">
+        <table class="paytable" id="paytable" aria-label="The pay table, in coins">
+          <tbody id="payRows"></tbody>
+        </table>
+        <p class="say status" id="say" aria-live="polite"></p>
+        <div class="hand" id="hand" role="group" aria-label="Your five cards"></div>
+        <div class="meters">
+          <span>Bet <b id="betM">0</b></span>
+          <span>Win <b id="winM">0</b></span>
+          <span class="coinm"><b id="coinsM">5</b> × <b id="coinM">1</b></span>
+        </div>
+      </div>
+    </div>
+  </main>
+  <div class="dock">
+    <div id="rack"></div>
+    <div class="actions">
+      <button type="button" class="btn" id="betOne">Bet one</button>
+      <button type="button" class="btn" id="betMax">Bet max</button>
+      <button type="button" class="btn gold" id="deal">Deal</button>
+    </div>
+    <button type="button" class="book" id="hint">What would the strategy card hold?</button>
+  </div>
+  <noscript><p class="say">Video Poker needs JavaScript to deal the cards.</p></noscript>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

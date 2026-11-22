@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>House Money</title>
+  <meta name="description" content="A casino on your phone, played with chips that cost nothing: blackjack, roulette, craps, baccarat, video poker and three slot machines. One stack of chips for every table, and the cage stakes you again whenever you run dry.">
+  <meta property="og:title" content="House Money">
+  <meta property="og:description" content="A casino on your phone, played with chips that cost nothing.">
+  <meta property="og:image" content="https://house-money.junkdrawer.works/og.png">
+  <meta property="og:image:alt" content="HOUSE MONEY in gold over a casino floor: a blackjack hand, a roulette wheel, dice on a craps layout and a row of slot reels.">
+  <meta property="og:url" content="https://house-money.junkdrawer.works/">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#140a0c">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="icon-180.png">
+  <link rel="preload" href="fonts/limelight.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/figtree.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="shared/casino.css">
+  <link rel="stylesheet" href="css/floor.css">
+</head>
+<body class="floor">
+  <header class="door">
+    <div class="marquee">
+      <h1 class="sign">House <span>Money</span></h1>
+    </div>
+    <p class="lede">A casino on your phone. Every chip here is on the house: nothing costs money or pays any, and the cage stakes you again whenever you run dry.</p>
+
+    <section class="wallet" aria-label="Your chips">
+      <div class="count">
+        <span class="chip c1000" aria-hidden="true"><b>1K</b></span>
+        <p><b id="chips">1,000</b> <span>chips</span></p>
+      </div>
+      <button type="button" class="card-btn" id="cardBtn" aria-describedby="tierLine">
+        <span class="players-card" id="pcard"><span class="pc-name">Player’s card</span><span class="pc-tier" id="tierName">Red</span></span>
+        <span class="tier-line" id="tierLine"></span>
+        <span class="bar" aria-hidden="true"><i id="tierBar"></i></span>
+      </button>
+      <button type="button" class="btn gold stake" id="stake" hidden>Take another 1,000 from the cage</button>
+    </section>
+
+    <nav class="aisle" aria-label="The tables" id="aisle"></nav>
+  </header>
+
+  <main>
+    <section class="pit" aria-labelledby="tablesH">
+      <h2 id="tablesH">The tables</h2>
+      <div class="row" id="tables"></div>
+    </section>
+    <section class="pit" aria-labelledby="machinesH">
+      <h2 id="machinesH">The machines</h2>
+      <div class="row" id="machines"></div>
+    </section>
+
+    <section class="cage" id="card" tabindex="-1" aria-labelledby="cardH">
+      <h2 id="cardH">The player’s card</h2>
+      <p>Every chip you bet, at any table, counts on your card. The higher the card, the higher the limits everywhere on the floor.</p>
+      <ol class="tiers" id="tiers"></ol>
+      <p class="small" id="stakes"></p>
+    </section>
+
+    <p class="switches">
+      <a class="btn ghost small" href="records/">Records</a>
+      <button type="button" class="btn ghost small" id="sound" aria-pressed="true">Sound: on</button>
+    </p>
+  </main>
+
+  <footer class="jd-foot">
+    <a href="https://junkdrawer.works/">Part of junkdrawer.works</a>
+    <span aria-hidden="true">·</span>
+    <a href="https://junkdrawer.works/privacy.html">Privacy</a>
+  </footer>
+
+  <noscript><p class="lede">House Money needs JavaScript to keep your chips.</p></noscript>
+  <script type="module" src="js/floor.js"></script>
+</body>
+</html>

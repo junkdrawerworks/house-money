@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Motherlode · House Money</title>
+  <meta name="description" content="Motherlode at House Money: five reels and twenty lines down a gold mine. Three lanterns light up free spins, and the wild pickaxes stick. Play chips only.">
+  <meta property="og:title" content="Motherlode · House Money">
+  <meta property="og:description" content="Five reels down a gold mine. Lanterns light free spins, and the pickaxes stick.">
+  <meta property="og:image" content="https://house-money.junkdrawer.works/og.png">
+  <meta property="og:url" content="https://house-money.junkdrawer.works/motherlode/">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#2a1510">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../icon-180.png">
+  <link rel="preload" href="../fonts/figtree.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="../fonts/limelight.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="../shared/casino.css">
+  <link rel="stylesheet" href="css/motherlode.css">
+</head>
+<body class="table slot motherlode">
+  <header class="bar"></header>
+  <main>
+    <p class="say" id="say" aria-live="polite"></p>
+    <div class="shaft">
+      <div class="beam top">
+        <span class="hang l" aria-hidden="true"></span>
+        <h2 class="sign">Motherlode</h2>
+        <span class="hang r" aria-hidden="true"></span>
+      </div>
+      <div class="free" id="free" hidden><span id="freeCount"></span><span id="freeWon"></span></div>
+      <div class="frame">
+        <div class="reels" id="reelBox"><canvas id="reels" role="img" aria-label="The reels"></canvas></div>
+      </div>
+      <p class="paid" id="paid" aria-live="polite">&nbsp;</p>
+      <ul class="legend" id="legend"></ul>
+    </div>
+  </main>
+  <div class="dock">
+    <div class="actions">
+      <div class="stepper" aria-label="Bet">
+        <button type="button" class="btn small" id="betDown" aria-label="Bet less">−</button>
+        <span class="val"><b id="bet">20</b><small>bet</small></span>
+        <button type="button" class="btn small" id="betUp" aria-label="Bet more">+</button>
+      </div>
+      <button type="button" class="btn spin" id="spin" aria-label="Spin"><span>Spin</span></button>
+      <button type="button" class="btn auto" id="auto" aria-pressed="false">Auto</button>
+    </div>
+  </div>
+  <div class="bigwin" id="bigwin" hidden>
+    <canvas id="coins" aria-hidden="true"></canvas>
+    <div class="bw-in"><p class="bw-title" id="bwTitle"></p><p class="bw-amt" id="bwAmt"></p><p class="bw-tap">Tap to carry on</p></div>
+  </div>
+  <noscript><p class="say">Motherlode needs JavaScript to spin the reels.</p></noscript>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
