@@ -260,7 +260,7 @@ addEventListener('keydown', e => {
     if (owed) { lastWin = owed; table.say(`Your last pull paid ${cage.fmt(owed)}.`, 'win'); }
   } else { reels.set([0, 0, 0]); describe([0, 0, 0]); } // three sevens on the line, the way a machine stands on the showroom floor
   // said before the first paint, which says instead why Spin is dimmed when the bet is more than the stack
-  if (!owed) table.say('Pick a coin, then pull the handle.');
+  if (!owed) table.call('Pick a coin, then pull the handle.');
   paint();
   fitReels();
   placeHandle();

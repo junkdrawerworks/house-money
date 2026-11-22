@@ -150,7 +150,7 @@ function show(wins, win) {
   reels.draw();
   describe(s.last.stops, wins);
   // the line under the drawer isn't read out (it's here to look at): the dealer's line says how it came out, once
-  if (!win) { table.say('No luck. Try again.'); return; }
+  if (!win) { table.say('No win.'); return; }
   $('paid').className = 'paid win';
   $('paid').textContent = `Won ${cage.fmt(win)}`;
   const big = win >= bet() * 25 ? 3 : win >= bet() * 5 ? 2 : 1;
@@ -239,6 +239,6 @@ addEventListener('resize', fitLegend);
     reels.set(stops); describe(stops);
   }
   // said before the first paint, which says instead why Spin is dimmed when the bet is more than the stack
-  table.say(owed ? '' : 'Pick your lines and your bet, then spin.');
+  table.call(owed ? '' : 'Pick your lines and your bet, then spin.');
   paint();
 })();

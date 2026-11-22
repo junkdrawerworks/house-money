@@ -403,5 +403,5 @@ if (s.history?.length) {
   const [d1, d2] = s.history[0].d;
   diceBox.append(...[d1, d2].map((v, i) => { const d = dieEl(v); d.style.left = `${pit.clientWidth * .4 + i * 46}px`; d.style.top = '54px'; return d; }));
 }
-table.say(s.point ? `The point is ${s.point}.` : 'Coming out. Bets on the pass line.');
+if (s.point) table.say(`The point is ${s.point}.`); else table.call('Coming out. Bets on the pass line.');
 toPassLine();

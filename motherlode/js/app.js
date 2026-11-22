@@ -364,7 +364,7 @@ $('legend').innerHTML = [
   reels.set(stops);
   describe(M.play(stops, s.last?.sticky || []).grid);
   // said before the first paint, which says instead why Spin is dimmed when the bet is more than the stack
-  if (!s.free && !owed) table.say('Set your bet and spin. Three lanterns light up free spins.');
+  if (!s.free && !owed) table.call('Set your bet and spin. Three lanterns light up free spins.');
   paint();
   if (owed) { $('paid').className = 'paid win'; $('paid').textContent = `Your last spin paid ${cage.fmt(owed)}`; }
   if (s.free) {

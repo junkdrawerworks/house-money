@@ -338,6 +338,28 @@ if (cageWants('roulette')) {
   await ctx.close();
 }
 
+// Running dry: with 4 chips and the cage's offer up, the dealer doesn't call for a bet you can't make; the line says
+// the cage can stake you, and once it has (here, from the floor in another tab), the table's own call comes back.
+if (TABLES.some(t => cageWants(t.id))) {
+  const said = async p => (await p.textContent('#say')).trim();
+  const { p, ctx } = await sit('records/', { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 } });
+  for (const t of TABLES.filter(t => cageWants(t.id))) {
+    await p.evaluate(([c]) => localStorage.setItem('house-money.cage', JSON.stringify(c)), [seedCage({ chips: 1000, wagered: 0, high: 1000, stakes: 1 })]);
+    await p.goto(`${base}${t.id}/?fast&seen`); await p.waitForTimeout(300);
+    const opening = await said(p);
+    await p.evaluate(([c]) => localStorage.setItem('house-money.cage', JSON.stringify(c)), [seedCage({ chips: 4, wagered: 996, high: 1000, stakes: 1 })]);
+    await p.reload(); await p.waitForTimeout(300);
+    // (at Odds & Ends, five lines of 1 come to more than 4 chips, and the line that says what to do about it stands)
+    const dry = t.id === 'odds-and-ends' ? 'A 5 bet is more than your 4 chips. Play fewer lines or a smaller chip.' : 'The cage can stake you.';
+    assert.deepEqual([await offered(p), await said(p)], [true, dry], `${t.name}: with 4 chips the dealer still calls for a bet`);
+    if (t.id === 'odds-and-ends') continue;
+    const floor = await ctx.newPage();
+    await floor.goto(`${base}?seen`); await floor.click('#stake'); await floor.close();
+    await until(async () => (await said(p)) === opening, 3000, `${t.name}: the table's own line ("${opening}") didn't come back after the stake`);
+  }
+  await ctx.close();
+}
+
 // Roulette on a phone: a tap 8 px above or below the middle of 17 is straight up on 17, and a tap within 3 px of the
 // line it shares with 14 is the split.
 if (cageWants('roulette')) {
@@ -1622,7 +1644,7 @@ if (cageWants('odds-and-ends')) {
   const { p: q, ctx: c2 } = await sit('odds-and-ends/?fast&seen', { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 }, 'odds-and-ends': { lines: 1, lineBet: 1 } }, { f: .5 });
   await q.click('#spin');
   await after(q, 'Odds & Ends');
-  assert.equal(await sayOf(q), 'No luck. Try again.', 'Odds & Ends: a losing spin says nothing');
+  assert.equal(await sayOf(q), 'No win.', 'Odds & Ends: a losing spin says nothing');
   await c2.close();
 }
 

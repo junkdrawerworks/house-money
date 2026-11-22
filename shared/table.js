@@ -8,6 +8,8 @@
 //   inPlay: true while a round plays on without needing chips from the rack (Motherlode's free spins)
 //   onCage: the stack changed, in this tab or another one (repaint the rack and the buttons)
 //   t.say('Dealer has 20.')       a line from the dealer
+//   t.call('Place your bet.')     the dealer calling for bets: while the cage's offer is up, "The cage can stake you."
+//                                 stands in for it, and it comes back once you're staked
 //   t.hold('A 25 bet is…')        a line that stands while it's true: said once, and taken back with hold('') unless
 //                                 something else has been said since
 //   t.limits()                    { min, max } on your card
@@ -212,9 +214,18 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
     checking = true;
     queueMicrotask(() => { checking = false; recheck(); });
   }
+  // Running dry, the dealer doesn't ask for a bet you can't make: while the cage's offer is up, the table's call for
+  // bets (or an empty line) gives way to this one, and once you're staked from somewhere else (another tab, the floor)
+  // the call comes back, unless something else has been said since. A round's result and anything else the table has
+  // said stay where they are.
+  const DRY = 'The cage can stake you.';
+  let dry = null, calling = '';   // the line it stands in for, and its kind; the table's last call for bets
+  function call(text) { calling = text; line(text); check(); }
   function recheck() {
     // never mid-round: not while chips are out, here or anywhere, nor while free spins wait to be played
     const offer = !inPlay() && cage.canStake(here());
+    if (offer && (say.textContent === '' || say.textContent === calling) && !/\b(win|lose)\b/.test(say.className)) { dry = [say.textContent, say.className.replace(/^say ?/, '')]; line(DRY); }
+    else if (!offer && dry) { if (say.textContent === DRY) line(...dry); dry = null; }
     const why = offer ? '' : stuck();
     if (note.innerHTML !== why) note.innerHTML = why;
     note.hidden = !why;
@@ -265,7 +276,7 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
   // the offline copy, for anyone who comes straight to a table without passing the floor
   if ('serviceWorker' in navigator && isSecureContext) navigator.serviceWorker.register('../sw.js', { scope: '../' }).catch(() => {});
 
-  return { say: line, hold, limits, check, open, sheet };
+  return { say: line, call, hold, limits, check, open, sheet };
 }
 
 // The tables as links, in words: "Craps", "Roulette and Craps", "Roulette, Craps and Baccarat". up: the way to the

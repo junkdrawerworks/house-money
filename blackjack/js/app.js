@@ -435,5 +435,5 @@ addEventListener('resize', () => paintCards());
   // the dealer's turn, or a round settled whose chips never reached the rack (the page closed in between): on to the payout
   else if (s.phase === 'dealer' || (s.phase === 'done' && s.paid === false)) step(after);
   else if (s.phase === 'done') table.say('Same bet again, or a new one?');
-  else table.say(s.bet ? '' : 'Place your bet.');
+  else table.call(s.bet ? '' : 'Place your bet.');
 })();

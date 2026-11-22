@@ -558,8 +558,8 @@ addEventListener('resize', () => { cancelAnimationFrame(rs); rs = requestAnimati
   if (s.spin && s.spin.shown === true) cellOf(s.spin.n)?.classList.add('won');
   paint();
   const on = sum(s.bets);
-  if (s.spin && s.spin.shown === true) table.say(`Last spin: ${s.spin.n === 0 ? 'zero' : `${s.spin.n} ${R.color(s.spin.n)}`}. Place your bets.`);
-  else table.say(on ? `${cage.fmt(on)} on the table.` : 'Place your bets.');
+  if (s.spin && s.spin.shown === true) table.call(`Last spin: ${s.spin.n === 0 ? 'zero' : `${s.spin.n} ${R.color(s.spin.n)}`}. Place your bets.`);
+  else table.call(on ? `${cage.fmt(on)} on the table.` : 'Place your bets.');
   requestAnimationFrame(() => { wheel.size(); paintChips(); });
   if (document.fonts) document.fonts.ready.then(() => { wheel.face = null; wheel.draw(); paintChips(); });
 })();

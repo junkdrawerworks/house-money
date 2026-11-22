@@ -266,4 +266,4 @@ if (s.phase !== 'draw') rack.pick(rack.value);
 paint();
 if (s.phase === 'draw') table.say('Hold the cards you want');
 else if (s.phase === 'done') table.say(s.result ? `${s.result.name}! Win ${cage.fmt(s.result.pay)}` : 'Game over', s.result ? 'win' : 'lose');
-else table.say('Pick a coin and deal');
+else table.call('Pick a coin and deal');

@@ -500,7 +500,7 @@ addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(paintBoard,
   paint();
   if (s.phase === 'done') { showResult(); table.say('Same bet again, or a new one?'); }
   else if (s.phase === 'reveal') { table.say('Squeeze them, or turn them over.'); if (g.allTurned(s)) proceed(); }
-  else table.say(g.staked(s.bets) ? '' : 'Place your bets.');
+  else table.call(g.staked(s.bets) ? '' : 'Place your bets.');
 })();
 
 // a squeeze that strays near the screen's side isn't Android's Back
