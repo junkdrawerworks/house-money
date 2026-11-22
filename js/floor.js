@@ -5,6 +5,7 @@ import * as cage from '../shared/cage.js';
 import * as records from '../shared/records.js';
 import * as sound from '../shared/sound.js';
 import { TABLES } from '../shared/tables.js';
+import { outLine } from '../shared/table.js';
 
 const $ = id => document.getElementById(id);
 const fmt = cage.fmt;
@@ -61,6 +62,10 @@ function wallet(c) {
     : `${so} The top card: limits ×${t.limit} at every table.`;
   $('tierBar').style.width = t.next ? `${Math.min(100, ((c.wagered - t.at) / (t.next.at - t.at)) * 100)}%` : '100%';
   $('stake').hidden = !cage.canStake();
+  // under 10 with chips still out: no stake yet, and where they are
+  const away = c.chips < cage.LOW ? cage.out() : [];
+  $('outNote').innerHTML = away.length ? outLine(away, '') : '';
+  $('outNote').hidden = !away.length;
   $('tiers').innerHTML = cage.TIERS.map(x => `<li class="${x.id}${x.id === t.id ? ' now' : ''}"><b>${x.name}</b><span>${x.at ? `from ${fmt(x.at)} bet` : 'to start'}</span><span>limits ×${x.limit}</span></li>`).join('');
   $('stakes').textContent = `You started with ${fmt(cage.START)} chips${c.stakes > 1 ? `, and the cage has staked you ${c.stakes - 1 === 1 ? 'once' : `${c.stakes - 1} times`} since` : ''}. The most you’ve held at once: ${fmt(c.high)}.`;
   stats();

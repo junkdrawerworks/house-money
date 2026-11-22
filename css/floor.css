@@ -48,6 +48,9 @@ body.floor {
 .wallet .count p { margin: 0; font-size: 1.05rem; color: var(--muted); }
 .wallet .count p b { font: 800 2.2rem/1 var(--sans); color: var(--ink); font-variant-numeric: tabular-nums; margin-right: 4px; }
 
+.out-note { margin: -4px 0 0; text-align: center; font-size: .9rem; color: var(--muted); text-wrap: balance; }
+.out-note a { color: var(--gold-hi); font-weight: 700; }
+
 .card-btn { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; gap: 6px 12px; align-items: center; text-align: left; background: none; border: 0; padding: 0; cursor: pointer; }
 .players-card {
   grid-row: 1 / span 2; width: 86px; height: 54px; border-radius: 7px; padding: 6px 8px;

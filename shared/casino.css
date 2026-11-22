@@ -252,6 +252,13 @@ dialog.sheet::backdrop { background: rgba(5, 2, 2, .65); }
   .stake-offer p { font-size: .88rem; text-wrap: balance; }
 }
 @keyframes rise { from { transform: translateY(12px); opacity: 0; } }
+/* why there's no offer, when you can't play here: in the same place, quieter */
+.cage-note {
+  width: 100%; max-width: 560px; margin: 0; padding: 8px 12px; text-align: center; font-size: .9rem; line-height: 1.35;
+  color: var(--ink); background: rgba(26, 13, 9, .94); border: 1px solid rgba(217, 180, 90, .4); border-radius: 12px;
+  text-wrap: balance;
+}
+.cage-note a { color: var(--gold-hi); font-weight: 700; }
 
 /* +250 rising off a winning bet */
 .float {

@@ -189,6 +189,23 @@ if (cageWants('roulette')) {
   await ctx.close();
 }
 
+// Motherlode takes 20 a spin. With 15 there's no spin and no stake (15 isn't under 10), so it says why, and where to
+// play instead; the bet can't go up. In the free spins, which need no chips, it says nothing.
+if (cageWants('motherlode')) {
+  const { p, ctx } = await sit('motherlode/?fast&seen', { cage: { chips: 15, wagered: 985, high: 1000, stakes: 1 } });
+  assert.equal(await offered(p), false, 'Motherlode: a stake offered at 15 chips');
+  assert.equal((await p.textContent('.cage-note')).trim(), 'Motherlode takes 20 a spin and you have 15. Cherry Bell and Odds & Ends take a chip at a time.', 'Motherlode: no word on why it won’t spin');
+  assert.deepEqual(await p.evaluate(() => ['spin', 'betUp'].map(id => document.getElementById(id).disabled)), [true, true], 'Motherlode: spin or + still lit at 15 chips');
+  assert.deepEqual(await covered(p), [], 'Motherlode: the note covers the controls');
+  await p.evaluate(() => { localStorage.setItem('house-money.cage', JSON.stringify({ chips: 40, wagered: 985, high: 1000, stakes: 1 })); dispatchEvent(new CustomEvent('house-money:cage')); });
+  await until(() => p.isHidden('.cage-note'), 2000, 'Motherlode: the note stayed with 40 chips');
+  assert.equal(await p.evaluate(() => document.getElementById('betUp').disabled), false, 'Motherlode: + stayed off with 40 chips');
+  await ctx.close();
+  const free = await sit('motherlode/?seen', { cage: { chips: 15, wagered: 985, high: 1000, stakes: 1 }, motherlode: { bet: 20, free: { left: 8, total: 8, sticky: [], won: 0, bet: 20 } } });
+  assert.equal(await free.p.isVisible('.cage-note'), false, 'Motherlode: the note showed in the free spins');
+  await free.ctx.close();
+}
+
 // Chips still in play are out on the felt until they're paid: no offer while a slot's reels turn or a video poker
 // draw is turning over, even when what's left in the rack is under 10. (No ?fast here: the reels take their time.)
 // whether the offer is up, each moment busy (a function run in the page) says the round is still in play
@@ -317,6 +334,9 @@ for (const at of ['blackjack', 'roulette', 'cherry-bell', 'motherlode', '']) {
   });
   const where = at || 'the floor';
   assert.equal(await p.isVisible(at ? '.stake-offer' : '#stake'), false, `${where}: the cage offered a stake with 500 on the craps layout`);
+  // and it says where the chips are
+  assert.match(await p.textContent(at ? '.cage-note' : '#outNote'), /(^|\. )500 still out on Craps\. The cage stakes you when nothing’s left out\.$/, `${where}: doesn't say the chips are on the craps layout`);
+  assert.equal(await p.getAttribute(`${at ? '.cage-note' : '#outNote'} a`, 'href'), at ? '../craps/' : 'craps/');
   await p.evaluate(sel => document.querySelector(sel).click(), at ? '.stake-offer button' : '#stake');
   assert.deepEqual([(await cageOf(p)).chips, (await cageOf(p)).stakes], [3, 1], `${where}: the cage staked you with 500 on the craps layout`);
   await ctx.close();

@@ -22,7 +22,7 @@ const s = keep.state;
 
 const lowNames = ['A', 'K', 'Q', 'J', 'ten'];
 const table = mountTable({
-  id: M.ID, name: T.name, min: 20, max: T.max, felt: keep.felt,
+  id: M.ID, name: T.name, min: 20, max: T.max, felt: keep.felt, inPlay: () => !!s.free,
   help: `
     <p>Five reels, three rows and twenty lines, all of them always in play, down a gold mine. Your bet is spread across
     the twenty lines, so it goes up in twenties, and each line pays a share of it.</p>
@@ -62,7 +62,7 @@ function paint() {
   const inFree = !!s.free;
   $('bet').textContent = cage.fmt(inFree ? s.free.bet : s.bet);
   $('betDown').disabled = spinning || inFree || i <= 0;
-  $('betUp').disabled = spinning || inFree || i >= allowed.length - 1;
+  $('betUp').disabled = spinning || inFree || i >= allowed.length - 1 || allowed[i + 1] > chips;
   $('spin').disabled = spinning || (!inFree && s.bet > chips);
   $('spin').querySelector('span').textContent = inFree ? 'Free' : 'Spin';
   $('auto').setAttribute('aria-pressed', auto);

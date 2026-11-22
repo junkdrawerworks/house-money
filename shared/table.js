@@ -1,20 +1,23 @@
 // The frame every table sits in: the bar across the top (the way back to the floor, the table's name, your stack and
 // the menu), the menu itself (how to play, the limits on your card, sound, records), the line the dealer speaks in,
-// and the cage's offer to stake you when you run dry.
+// and the cage's offer to stake you when you run dry (or, when it can't, a line saying why).
 //
 //   const t = mountTable({ id: 'blackjack', name: 'Blackjack', help: '<p>…</p>', min: 10, max: 500, felt: () => n })
 //   felt: the chips out on this table right now (bets down, or a round dealt and not yet paid): the cage won't stake
 //   you while there are any, here or on any other table
+//   inPlay: true while a round plays on without needing chips from the rack (Motherlode's free spins)
 //   t.say('Dealer has 20.')       a line from the dealer
 //   t.limits()                    { min, max } on your card
 //   t.check()                     shows or hides the stake offer (call after a round settles)
 
 import * as cage from './cage.js';
 import * as sound from './sound.js';
+import { TABLES } from './tables.js';
 
 const SEEN = 'house-money.seen';
 
-export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () => 0, onStake = () => {}, offerIn = null }) {
+export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () => 0, onStake = () => {}, offerIn = null,
+  inPlay = () => false }) {
   const bar = document.querySelector('header.bar') || document.body.insertBefore(document.createElement('header'), document.body.firstChild);
   bar.className = 'bar';
   bar.innerHTML = `
@@ -59,10 +62,15 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
   stakeBox.className = 'stake-offer';
   stakeBox.hidden = true;
   stakeBox.innerHTML = `<p></p><button type="button" class="btn gold">Take ${cage.fmt(cage.START)} from the cage</button>`;
+  // When there's no offer and you can't play here either, a line in the same place says why.
+  const note = document.createElement('p');
+  note.className = 'cage-note';
+  note.hidden = true;
+  note.setAttribute('aria-live', 'polite');
   const dock = document.querySelector('.dock');
-  if (offerIn) offerIn.appendChild(stakeBox);
-  else if (dock) dock.prepend(stakeBox);
-  else (document.querySelector('main') || bar).after(stakeBox);
+  if (offerIn) offerIn.append(stakeBox, note);
+  else if (dock) dock.prepend(stakeBox, note);
+  else (document.querySelector('main') || bar).after(stakeBox, note);
   stakeBox.querySelector('button').addEventListener('click', () => {
     if (cage.stake(here())) { sound.chips(8); line(`The cage sends over ${cage.fmt(cage.START)} in chips. Good luck.`); onStake(); }
     check();
@@ -133,6 +141,9 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
   }
   function recheck() {
     const offer = cage.canStake(here());
+    const why = offer ? '' : stuck();
+    if (note.innerHTML !== why) note.innerHTML = why;
+    note.hidden = !why;
     if (offer) {
       const n = cage.read().chips;
       stakeBox.firstChild.textContent = `${n ? `You’re down to ${cage.fmt(n)} chip${n === 1 ? '' : 's'}.` : 'You’re out of chips.'} It’s all house money anyway: the cage will stake you another ${cage.fmt(cage.START)}.`;
@@ -140,6 +151,31 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
     stakeBox.hidden = !offer;
     document.body.classList.toggle('broke', offer);
   }
+  // Why you can't play here and the cage isn't offering: the chips are out on other tables, or what's in the rack
+  // won't cover this table's smallest bet. '' when you can play, or have a bet down here.
+  function stuck() {
+    if (felt() > 0 || inPlay()) return '';
+    const n = cage.read().chips;
+    const away = cage.out(here());
+    const short = n < min;
+    if (!short && !(n < cage.LOW && away.length)) return '';
+    const me = TABLES.find(t => t.id === id);
+    const parts = [];
+    if (short) parts.push(me?.slot ? `${name} takes ${cage.fmt(min)} a spin and you have ${cage.fmt(n)}.` : `The smallest bet at ${name} is ${cage.fmt(min)}, and you have ${cage.fmt(n)}.`);
+    if (away.length) parts.push(outLine(away, '../'));
+    else {
+      // somewhere you can play with what you have: the same kind of game first
+      const fits = TABLES.filter(t => t.id !== id && t.min <= n);
+      const like = fits.filter(t => !!t.slot === !!me?.slot);
+      const go = (like.length ? like : fits).slice(0, 3);
+      if (go.length) {
+        const one = go.length === 1;
+        parts.push(`${names(go, '../')} ${go.every(t => t.min === 1) ? (one ? 'takes a chip at a time' : 'take a chip at a time') : (one ? 'starts lower' : 'start lower')}.`);
+      }
+    }
+    return parts.join(' ');
+  }
+
   check();
   addEventListener('house-money:cage', check);
 
@@ -148,6 +184,16 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
 
   return { say: line, limits, check, open, sheet };
 }
+
+// The tables as links, in words: "Craps", "Roulette and Craps", "Roulette, Craps and Baccarat". up: the way to the
+// floor's folder from the page ('../' at a table, '' on the floor).
+export const names = (list, up = '../') => {
+  const a = list.map(t => `<a href="${up}${t.id}/">${t.name.replace(/&/g, '&amp;')}</a>`);
+  return a.length > 1 ? `${a.slice(0, -1).join(', ')} and ${a[a.length - 1]}` : a[0] || '';
+};
+// Where the chips are while the cage holds back its stake: "15 still out on Craps." (list: from cage.out())
+export const outLine = (list, up = '../') =>
+  `${cage.fmt(list.reduce((a, t) => a + t.felt, 0))} still out on ${names(list, up)}. The cage stakes you when nothing’s left out.`;
 
 // A brief flash of the amount won over an element: "+250".
 export function float(over, text, kind = 'win') {

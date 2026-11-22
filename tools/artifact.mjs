@@ -29,7 +29,8 @@ const folderLinks = s => s
   .replace(/href="\.\.\/records\/"/g, 'href="../records/index.html"')
   .replace(/href="records\/"/g, 'href="records/index.html"')
   .replace(/href="\.\.\/\$\{tb\.id\}\/"/g, 'href="../${tb.id}/index.html"')
-  .replace(/a\.href = `\$\{t\.id\}\/`;/g, 'a.href = `${t.id}/index.html`;');
+  .replace(/a\.href = `\$\{t\.id\}\/`;/g, 'a.href = `${t.id}/index.html`;')
+  .replace(/href="\$\{up\}\$\{t\.id\}\/"/g, 'href="${up}${t.id}/index.html"');
 
 await rm(out, { recursive: true, force: true });
 const files = await walk(root);
