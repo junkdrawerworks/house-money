@@ -316,3 +316,14 @@ test('cageFrom sets up a cage with the totals asked for', () => {
   const d = L.cageFrom({ chips: 3, wagered: 12000, high: 1100, stakes: 2 });
   assert.deepEqual(L.cageTotals(d), { chips: 3, wagered: 12000, high: 1100, stakes: 2 });
 });
+
+test('the player\'s card announced: kept from 0 to 3, and the higher of two copies, in either order', () => {
+  assert.equal(L.cleanCage(null).told, 0);
+  assert.equal(L.cleanCage({ told: 2 }).told, 2);
+  assert.equal(L.cleanCage({ told: 9 }).told, 3);
+  assert.equal(L.cleanCage({ told: 'silver' }).told, 0);
+  const a = L.cleanCage({ told: 1 }), b = L.cleanCage({ told: 2 });
+  assert.equal(L.mergeCage(a, b).told, 2);
+  assert.equal(L.canon(L.mergeCage(a, b)), L.canon(L.mergeCage(b, a)));
+  assert.equal(L.mergeBody(L.cleanBody({ app: 'house-money', cage: a }), L.cleanBody({ app: 'house-money', cage: b })).cage.told, 2);
+});

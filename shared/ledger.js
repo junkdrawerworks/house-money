@@ -7,7 +7,7 @@
 //
 // The cage, under house-money.cage:
 //   { v: 1, dev: { <device>: { t, p, w, u, h, r, felt: { at, tables: { craps: 200 } } } },
-//     stakes: { '2': { amount: 1000, by: <device>, at }, ... }, forgiven: 0 }
+//     stakes: { '2': { amount: 1000, by: <device>, at }, ... }, forgiven: 0, told: 0 }
 //   t, p   chips ever taken off the stack on that device, and ever paid back into the rack there
 //   w, u   chips ever wagered there, and wagers picked back up before they played
 //   h      the most that device ever saw the stack hold; r: how many times it changed its section
@@ -15,6 +15,8 @@
 //   stakes the cage's stakes after the first, by number: two devices that stake you in the same dry spell, each
 //          without knowing about the other, take the same number, and it counts once
 //   forgiven  what the cage covered when two devices bet the same chips while apart (see mergeCage)
+//   told   the highest player's card a table has announced (0 Red, 1 Silver, 2 Gold, 3 Black), so it's said once,
+//          whichever tab or device gets there; it only goes up, so of two copies the larger is the newer
 //
 // Records, under house-money.records:
 //   { v: 1, dev: { <device>: { since, tables: { blackjack: { rounds, wagered, back, best, bestOn, add, top } } } } }
@@ -95,7 +97,7 @@ export function cleanCage(x) {
     if (!/^\d+$/.test(n) || +n < 2) continue;
     stakes[+n] = { amount: whole(obj(s).amount), by: String(obj(s).by || ''), at: whole(obj(s).at) };
   }
-  return floor({ v: V, dev, stakes, forgiven: whole(x.forgiven) });
+  return floor({ v: V, dev, stakes, forgiven: whole(x.forgiven), told: Math.min(3, whole(x.told)) });
 }
 
 // What the cage holds: { chips, wagered, high, stakes } (stakes counts the first 1,000 too).
@@ -116,7 +118,8 @@ function floor(d) {
 }
 
 // Two copies of the cage, put together: each device's numbers at their larger value (its felt from whichever copy
-// said so later), the stakes of both by number (the larger amount where both have one), and the larger cover. Then,
+// said so later), the stakes of both by number (the larger amount where both have one), the larger cover and the
+// higher card announced. Then,
 // if the stack would be below 0, the cage covers it.
 export function mergeCage(a, b) {
   a = cleanCage(a); b = cleanCage(b);
@@ -139,7 +142,7 @@ export function mergeCage(a, b) {
       : x.amount !== y.amount ? (x.amount > y.amount ? x : y)
         : canon(x) <= canon(y) ? x : y);
   }
-  return floor({ v: V, dev, stakes, forgiven: Math.max(a.forgiven, b.forgiven) });
+  return floor({ v: V, dev, stakes, forgiven: Math.max(a.forgiven, b.forgiven), told: Math.max(a.told, b.told) });
 }
 
 const section = (d, id) => (d.dev[id] ||= zero());

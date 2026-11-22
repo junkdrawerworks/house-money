@@ -166,8 +166,32 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
   let lineTimer = 0;
   function line(text, kind = '') {
     clearTimeout(lineTimer);
+    if (text && cardDue >= 0 && cardRound) text = `${text} ${cardUp()}`.trim();
     say.textContent = text;
     say.className = `say ${kind}`.trim();
+  }
+
+  // Moving up a card: the bet that does it goes down mid-round, so the card is announced after that round's own line,
+  // once, whichever tab or device gets there first (the cage keeps the highest card announced). "Your player's card
+  // goes Silver: bets up to 1,000 here now, and double the limits at every table."
+  let cardSeen = cage.tierIndex(), cardDue = -1, cardRound = false;
+  addEventListener('house-money:round', () => { if (cardDue >= 0) cardRound = true; });
+  function cardMoves(c) {
+    const i = cage.tierIndex(c.wagered);
+    if (i > cardSeen && i > cage.told()) cardDue = i;
+    cardSeen = Math.max(cardSeen, i);
+  }
+  function cardUp() {
+    const i = cardDue;
+    cardDue = -1; cardRound = false;
+    if (!cage.tell(i)) return '';
+    const t = cage.TIERS[i];
+    const times = { 2: 'double', 5: 'five times', 10: 'ten times' }[t.limit] || `${t.limit} times`;
+    sound.win(2);
+    const p = bar.querySelector('.purse');
+    p.style.setProperty('--tier', { silver: '#d9dde3', gold: '#f2c33a', black: '#ffffff' }[t.id] || '#f5dc93');
+    p.classList.remove('tier-up'); void p.offsetWidth; p.classList.add('tier-up');
+    return `Your player’s card goes ${t.name}: bets up to ${cage.fmt(limits().max)} here now, and ${times} the limits at every table.`;
   }
   let held = '';
   function hold(text = '') {
@@ -229,7 +253,7 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
   // table's own onCage waits until it's set up). Chips put down or picked up at another table, in another tab, change
   // what's out on the felt, so those count too.
   let mounted = false;
-  cage.watch(c => { show(c); limitsLine(); check(); if (mounted) onCage(c); if (drive.isOn()) driveBits(); });
+  cage.watch(c => { cardMoves(c); show(c); limitsLine(); check(); if (mounted) onCage(c); if (drive.isOn()) driveBits(); });
   addEventListener('storage', e => { if (e.key?.startsWith('house-money.') && e.key !== cage.KEY) check(); });
   mounted = true;
 

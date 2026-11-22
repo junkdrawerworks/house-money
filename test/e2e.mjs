@@ -323,6 +323,36 @@ if (cageWants('blackjack')) {
     await ctx.close();
   }
 }
+// The player's card going up: 9,990 bet, and one 25 hand of blackjack takes it to Silver. The hand's own line ends by
+// saying so, once; a reload, another table and the next hand don't say it again; the floor says "New: Silver card"
+// on the next visit, and not the one after.
+if (cageWants('blackjack', 'floor')) {
+  const C = (r, s = 'c') => ({ r, s });
+  const shoe = Array(150).fill(C(2)).concat([C(10), C(7, 'h'), C(9, 'd'), C(10, 'h')].reverse());
+  const { p, ctx } = await sit('blackjack/?fast&seen', { cage: { chips: 1000, wagered: 9990, high: 1000, stakes: 1 },
+    blackjack: { shoe, phase: 'bet', bet: 0, last: 0, hands: [], active: 0, dealer: [], hole: true, insurance: 0, felt: 0, carry: 0 } });
+  const card = 'Your player’s card goes Silver: bets up to 1,000 here now, and double the limits at every table.';
+  await p.click('#rack .c25'); await p.click('#spot');
+  assert.doesNotMatch(await p.textContent('#say'), /player’s card/, 'Blackjack: the card was announced as the bet went down, mid-round');
+  await p.click('#deal');
+  await p.waitForSelector('#stand:not([disabled])'); await p.click('#stand');
+  await p.waitForSelector('#doneActions:not([hidden])');
+  assert.equal((await p.textContent('#say')).trim(), `Dealer has 17. You win 25. ${card}`, 'Blackjack: the new card isn\'t announced after the hand');
+  assert.equal(await p.evaluate(() => import('/shared/cage.js').then(m => m.told())), 1);
+  await p.click('#again');
+  await until(async () => {
+    if (await p.isVisible('#stand') && await p.isEnabled('#stand')) await p.click('#stand').catch(() => {});
+    return p.isVisible('#doneActions');
+  }, 5000, 'Blackjack: the next hand never finished');
+  assert.doesNotMatch(await p.textContent('#say'), /player’s card/, 'Blackjack: the new card was announced again on the next hand');
+  await p.reload(); await p.waitForTimeout(400);
+  assert.doesNotMatch(await p.textContent('#say'), /player’s card/, 'Blackjack: the new card was announced again after a reload');
+  await p.goto(`${base}?seen`); await p.waitForTimeout(400);
+  assert.equal(await p.textContent('#tierLine .tier-new'), 'New: Silver card', 'the floor doesn\'t say the card is new');
+  await p.reload(); await p.waitForTimeout(400);
+  assert.equal(await p.locator('#tierLine .tier-new').count(), 0, 'the floor says the card is new on every visit');
+  await ctx.close();
+}
 // Splits: what's on screen is the hand that's saved, card for card, after every move, at the payout and after a reload.
 // Eights split three times into four hands against a 10 and a 7, and aces split against a 6, a king on the first: a 21
 // after a split reads 21, not Blackjack.

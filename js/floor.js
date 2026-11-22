@@ -62,6 +62,17 @@ function stats() {
   }
 }
 
+// A new player's card says so on the floor, once: on the first visit to the floor after the card goes up (this
+// device keeps the highest card it has shown).
+const SHOWN = 'house-money.floor-card';
+let newCard = null;
+{
+  let was = 0;
+  try { was = Number(localStorage.getItem(SHOWN)) || 0; } catch { /* storage off */ }
+  const i = cage.tierIndex();
+  if (i > was) { newCard = cage.TIERS[i]; try { localStorage.setItem(SHOWN, String(i)); } catch { /* storage off */ } }
+}
+
 function wallet(c) {
   $('chips').textContent = fmt(c.chips);
   const t = cage.tier(c.wagered);
@@ -71,6 +82,7 @@ function wallet(c) {
   $('tierLine').textContent = t.next
     ? `${so} ${fmt(t.toNext)} more for ${t.next.name}, with limits ×${t.next.limit}.`
     : `${so} The top card: limits ×${t.limit} at every table.`;
+  if (newCard?.id === t.id) $('tierLine').insertAdjacentHTML('afterbegin', `<b class="tier-new ${t.id}">New: ${t.name} card</b> `);
   $('tierBar').style.width = t.next ? `${Math.min(100, ((c.wagered - t.at) / (t.next.at - t.at)) * 100)}%` : '100%';
   $('stake').hidden = !cage.canStake();
   // chips still out on a table, here or on another device that saves to Google Drive: where they are (and under 10,

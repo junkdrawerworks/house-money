@@ -52,5 +52,7 @@ export function note(id, { wagered = 0, back = 0, extra = {}, max = {} } = {}) {
   const d = doc();
   const r = L.note(d, L.device(), id, { wagered, back, add: extra, top: max }, today());
   save(d);
+  // a round just settled at a table (the table's own line about it comes next)
+  dispatchEvent(new CustomEvent('house-money:round', { detail: { id } }));
   return r;
 }

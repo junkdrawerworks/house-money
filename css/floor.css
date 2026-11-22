@@ -64,6 +64,9 @@ body.floor {
 .pc-name { font-size: .5rem; letter-spacing: .14em; text-transform: uppercase; opacity: .85; }
 .pc-tier { font: 400 1.05rem/1 var(--sign); }
 .tier-line { font-size: .86rem; color: var(--muted); }
+.tier-new { display: inline-block; margin-right: 4px; padding: 2px 7px; border-radius: 99px; font-size: .74rem; font-weight: 800; color: #1e232b; background: #d9dde3; }
+.tier-new.gold { background: var(--gold-hi); color: #2c1d05; }
+.tier-new.black { background: #0b0b0d; color: #f2dc99; box-shadow: inset 0 0 0 1px rgba(242, 220, 153, .5); }
 .card-btn .tier-bar { height: 6px; border-radius: 3px; background: rgba(255, 255, 255, .1); overflow: hidden; }
 .card-btn .tier-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--gold-dk), var(--gold-hi)); border-radius: 3px; }
 

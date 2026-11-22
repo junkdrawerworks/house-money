@@ -113,6 +113,19 @@ export function tier(wagered = read().wagered) {
   return { ...t, next, toNext: next ? next.at - wagered : 0 };
 }
 
+// The player's card a table has last announced, as its place in TIERS (0 is Red). told(i) records that card i has
+// been announced: true if it hadn't been yet (in this tab, another one, or on another device that saves to Drive),
+// and then it won't be again.
+export const told = () => doc().told;
+export function tell(i) {
+  const d = doc();
+  if (!(i > d.told)) return false;
+  d.told = Math.min(TIERS.length - 1, i);
+  save(d);
+  return true;
+}
+export const tierIndex = (wagered = read().wagered) => TIERS.findIndex(t => t.id === tier(wagered).id);
+
 // A table's top bet on your card: its base maximum times your tier's multiplier.
 export const maxBet = base => base * tier().limit;
 
