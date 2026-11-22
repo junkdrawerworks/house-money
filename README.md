@@ -16,7 +16,7 @@
   &nbsp;
   <img src="docs/phone-video-poker.png" alt="Video Poker: a blue Jacks or Better screen with its pay table lit, the Four of a Kind row and the 125 for five coins in red, four kings held and FOUR OF A KIND! WIN 625" width="250">
   &nbsp;
-  <img src="docs/phone-motherlode.png" alt="Motherlode: free spin 6 of 8, five reels of gold-mine symbols with pickaxe wilds framed in gold where they've stuck, and coloured pay lines drawn across a win of 1,395" width="250">
+  <img src="docs/phone-motherlode.png" alt="Motherlode: free spin 5 of 8, five reels of gold-mine symbols with pickaxe wilds framed in gold where they've stuck, and coloured pay lines drawn across a win of 1,395" width="250">
 </p>
 <p align="center">
   <img src="docs/phone-cherry-bell.png" alt="Cherry Bell: a chrome three-reel machine under a red marquee, the pay table on the glass with the bells row lit, three bells on the pay line and 270 paid, with the red-balled handle at the side" width="250">

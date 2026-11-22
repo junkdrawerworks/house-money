@@ -1266,6 +1266,7 @@ if (cageWants('motherlode')) {
   const { p: q, ctx: c2 } = await sit('motherlode/?seen', { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 },
     motherlode: { bet: 20, free: { left: 5, total: 8, sticky: [], won: 0, bet: 20 }, last: { stops: [0, 0, 0, 0, 0], sticky: [], win: 0, wagered: 20, paid: true } } }, { f: .275 });
   await until(async () => /^Free spin 4 of 8: /.test(await sayOf(q)), 8000, 'Motherlode: a free spin with no win says nothing');
+  assert.equal(await q.textContent('#freeCount'), 'Free spin 4 of 8', 'Motherlode: the count above the reels and the line name different spins');
   assert.match(await sayOf(q), /^Free spin 4 of 8: no win\.( A pickaxe sticks\.| \d pickaxes stick\.)?$/);
   await c2.close();
 }

@@ -64,6 +64,9 @@ const lineBet = () => (s.free ? s.free.bet : s.bet) / M.LINE_COUNT;
 const freeNo = () => Math.min(s.free.total, s.free.total - s.free.left + 1);
 // The line says which free spin it is until something else happens (after a reload, it says how many are left).
 let countLine = false;
+// The free spin that played last in this visit: the count above the reels stays on it until the next one starts, so
+// it agrees with the line saying how that spin came out.
+let playing = 0;
 
 function paint() {
   const { max } = table.limits();
@@ -84,7 +87,7 @@ function paint() {
   $('free').hidden = !inFree;
   document.body.classList.toggle('freeplay', inFree);
   if (inFree) {
-    $('freeCount').textContent = `Free spin ${freeNo()} of ${s.free.total}`;
+    $('freeCount').textContent = `Free spin ${playing || freeNo()} of ${s.free.total}`;
     $('freeWon').textContent = `Won ${cage.fmt(s.free.won)}`;
   }
   table.check();
@@ -119,6 +122,7 @@ async function spin() {
   $('reels').setAttribute('aria-label', 'The reels, spinning');
   // which free spin this is, for the line that says how it came out
   const no = free ? [freeNo(), s.free.total] : null;
+  playing = no ? no[0] : 0;
   paint();
 
   const sticky = free ? s.free.sticky : [];
