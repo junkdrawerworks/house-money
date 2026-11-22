@@ -106,3 +106,8 @@ test('Motherlode: sticky pickaxes stay put and stand in', () => {
   for (const [c, rr] of held) assert.equal(r.grid[c][rr], ml.WILD);
   for (const p of held) assert.ok(r.picks.some(q => q[0] === p[0] && q[1] === p[1]));
 });
+
+test('Cherry Bell names a win in the right number: two cherries pay, a cherry pays', () => {
+  assert.deepEqual(cb.TABLE.map((t, i) => `${t.name} ${cb.pays(i)}`).slice(-3), ['Three cherries pay', 'Two cherries pay', 'A cherry pays']);
+  assert.ok(cb.TABLE.every((t, i) => (cb.pays(i) === 'pays') === (t.name === 'A cherry')));
+});

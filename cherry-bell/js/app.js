@@ -139,7 +139,7 @@ function finish(r, win) {
     const row = $('pays').querySelectorAll('tbody tr')[r.row];
     row?.classList.add('lit');
     const t = M.TABLE[r.row];
-    const what = r.row === 0 && s.coins === 3 ? 'Three sevens on three coins: the top prize!' : `${t.name} ${r.row >= 6 ? 'pays' : 'pay'} ${cage.fmt(win)}.`;
+    const what = r.row === 0 && s.coins === 3 ? 'Three sevens on three coins: the top prize!' : `${t.name} ${M.pays(r.row)} ${cage.fmt(win)}.`;
     table.say(what, 'win');
     const big = win >= bet() * 50 ? 3 : win >= bet() * 10 ? 2 : 1;
     sound.win(big); sound.chips(Math.min(12, 3 + big * 3));

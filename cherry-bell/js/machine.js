@@ -41,6 +41,8 @@ export const TABLE = [
   { show: ['cherry', 'cherry', 'any'], pay: 5, name: 'Two cherries' },
   { show: ['cherry', 'any', 'any'], pay: 2, name: 'A cherry' },
 ];
+// "A cherry pays 2." and "Two cherries pay 5.": only a row named for one thing is singular.
+export const pays = row => (TABLE[row].name.startsWith('A ') ? 'pays' : 'pay');
 export const JACKPOT = 1000;   // three sevens on three coins pay 1,000 coins, not 600
 export const COINS = 3;
 
