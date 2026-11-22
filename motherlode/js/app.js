@@ -52,6 +52,8 @@ const table = mountTable({
 
 let reels, spinning = false, auto = false, shown = { wins: [], at: -1, lit: [] }, cycle = 0, fresh = [];
 let hold = [];   // the pickaxes stuck to the glass, drawn over the reels
+// for the tests (?seen): the pickaxes glowing as new, and whether the reels are turning
+if (/[?&]seen\b/.test(location.search)) window.__ml = { get fresh() { return fresh; }, get running() { return !!reels?.running; } };
 
 const lineBet = () => (s.free ? s.free.bet : s.bet) / M.LINE_COUNT;
 // The free spin playing now, or the next one between spins: a spin is painted as it starts, before it's taken off
@@ -115,10 +117,10 @@ async function spin() {
   const r = M.play(pickStops(M.REELS), sticky);
   const win = r.units * (bet / M.LINE_COUNT);
   // what this spin does to the free spins, decided now and saved with it
-  let started = 0, ended = null;
+  let started = 0, ended = null, picked = [];
   if (free) {
     s.free.left -= 1; s.free.won += win;
-    fresh = r.picks.filter(([c, rr]) => !sticky.some(p => p[0] === c && p[1] === rr));
+    picked = r.picks.filter(([c, rr]) => !sticky.some(p => p[0] === c && p[1] === rr));
     s.free.sticky = r.picks;
     if (s.free.left <= 0) { ended = { ...s.free }; s.free = null; }
   } else if (r.free) {
@@ -136,7 +138,8 @@ async function spin() {
   });
   keep.settle();
   spinning = false;
-  if (free) hold = r.picks;
+  // the new pickaxes glow once the reels have landed: while they spin, a glow would give away where they'll stop
+  if (free) { hold = r.picks; fresh = picked; }
   await show(r, win, bet, { started, ended, free });
   paint();
   // free spins play themselves; auto keeps going
@@ -184,12 +187,12 @@ function decorate(ctx, rs) {
     ctx.drawImage(pick, b.x, b.y, b.w, b.h);
     ctx.strokeStyle = '#f2c33a'; ctx.lineWidth = 3; ctx.strokeRect(b.x + 1.5, b.y + 1.5, b.w - 3, b.h - 3);
   }
+  if (rs.running) return;
   for (const [c, r] of fresh) {
     const b = rs.cellRect(c, r);
     ctx.strokeStyle = '#fff2a8'; ctx.lineWidth = 3; ctx.shadowColor = '#ffc840'; ctx.shadowBlur = 12;
     ctx.strokeRect(b.x + 2, b.y + 2, b.w - 4, b.h - 4); ctx.shadowBlur = 0;
   }
-  if (rs.running) return;
   for (const [c, r] of shown.lit) {
     const b = rs.cellRect(c, r);
     ctx.strokeStyle = '#ffd040'; ctx.lineWidth = 4; ctx.shadowColor = '#ffb000'; ctx.shadowBlur = 16;

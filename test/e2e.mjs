@@ -431,6 +431,26 @@ if (cageWants('motherlode')) {
   await ctx.close();
 }
 
+// Motherlode's free spins: the pickaxes about to stick glow once the reels have landed, never while they spin (which
+// would tell you where they'll land). A steady draw of 0.575 lands two new pickaxes; every moment of the spin is
+// watched at its real speed.
+if (cageWants('motherlode')) {
+  const { p, ctx } = await sit('motherlode/?seen', { cage: { chips: 500, wagered: 0, high: 1000, stakes: 1 },
+    motherlode: { bet: 20, free: { left: 2, total: 8, sticky: [], won: 0, bet: 20 }, last: { stops: [0, 0, 0, 0, 0], sticky: [], win: 0, wagered: 20, paid: true } } }, { f: .575 });
+  const seen = [];
+  for (const end = Date.now() + 10000; Date.now() < end;) {
+    const [running, glow] = await p.evaluate(() => [!!window.__ml?.running, window.__ml?.fresh.length ?? -1]);
+    seen.push([running, glow]);
+    if (seen.some(([r]) => r) && !running) break;
+    await p.waitForTimeout(30);
+  }
+  const spinning = seen.filter(([r]) => r);
+  assert.ok(spinning.length > 5, 'Motherlode: the free spin was too quick to watch');
+  assert.deepEqual(spinning.filter(([, g]) => g), [], 'Motherlode: the new pickaxes glowed while the reels were spinning');
+  await until(async () => (await p.evaluate(() => window.__ml.fresh.length)) === 2, 2000, 'Motherlode: the two new pickaxes never glowed once the reels landed');
+  await ctx.close();
+}
+
 // Chips still in play are out on the felt until they're paid: no offer while a slot's reels turn or a video poker
 // draw is turning over, even when what's left in the rack is under 10. (No ?fast here: the reels take their time.)
 // whether the offer is up, each moment busy (a function run in the page) says the round is still in play
