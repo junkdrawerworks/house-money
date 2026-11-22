@@ -1,7 +1,7 @@
 // The pictures:  node tools/screenshots.mjs [table ...]
 //   floor/TABLE.jpg       the picture on each table's tile on the floor
 //   docs/phone-TABLE.png  the README's phone screenshots, 390 x 844 at 2x
-//   og.png                the link preview, 1200 x 630
+// (The link preview, og.png, is tools/og.mjs.)
 // Each table is driven into a good moment by its own entry in SCENES: rigged cards or a fixed result, so the pictures
 // come out the same every run.
 import { createRequire } from 'node:module';

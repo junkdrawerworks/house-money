@@ -1,6 +1,10 @@
 // Uses the app in Chromium through the real page:  node test/e2e.mjs  (needs Playwright)
 // The floor, every table opening clean at phone size, a hand of blackjack played through with the chips counted, the
-// cage's stake, and the offline copy. Each table's own play is driven by its own test/<table>.e2e.mjs where it has one.
+// cage's stake at every table, rounds reloaded mid-play and left unpaid (each paid and recorded once, with the books
+// checked after), two tabs at one table, Records' own words, and the offline copy. Any page error, console error,
+// request that leaves the site, or answer of 400 or more from the site fails it.
+// ONLY=<table id> runs one table's checks (ONLY=cage the cage's at every table; ONLY=records, ONLY=floor); PARTIAL=1
+// skips tables that don't have a page yet.
 import { createRequire } from 'node:module';
 import { execSync } from 'node:child_process';
 import { createServer } from 'node:http';
@@ -54,6 +58,9 @@ page.on('pageerror', e => problems.push(e.message));
 page.on('console', m => { if (m.type() === 'error') problems.push(m.text()); });
 page.on('requestfailed', r => problems.push('failed: ' + r.url()));
 page.on('request', r => { if (!r.url().startsWith(base)) problems.push('left the site: ' + r.url()); });
+// a file the site should have and doesn't (a style sheet, a picture, a script) answers 404
+const answered = (p, at = '') => p.on('response', r => { if (r.url().startsWith(base) && r.status() >= 400) problems.push(`${at}${r.status()} from ${r.url()}`); });
+answered(page);
 
 await page.goto(base);
 await page.evaluate(() => document.fonts.ready);
@@ -126,6 +133,7 @@ async function sit(path, saved, { ctx = null, size = phone, f = null } = {}) {
   if (own && f !== null) await ctx.addInitScript(steady, f);
   const p = await ctx.newPage();
   p.on('pageerror', e => problems.push(`${path}: ${e.message}`));
+  answered(p, `${path}: `);
   if (own || Object.keys(saved).length) {   // a context of the caller's own is set up only when there's something to set
     await p.goto(`${base}records/`);
     await p.evaluate(saved => {
@@ -631,7 +639,8 @@ await until(() => page.evaluate(async () => !!(await (await caches.match('index.
   10000, "the new release's offline copy kept the old index.html");
 release = false;
 
-assert.deepEqual(problems.filter(p => !p.startsWith('failed:')), [], 'problems while using it');
+// (a request to another site failing is left to 'left the site' above: headless Chromium can't reach one anyway)
+assert.deepEqual(problems.filter(p => !p.startsWith('failed:') || p.startsWith(`failed: ${base}`)), [], 'problems while using it');
 await browser.close();
 server.close();
 

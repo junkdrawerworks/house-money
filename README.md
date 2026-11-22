@@ -124,14 +124,15 @@ npx http-server -p 8080 -c-1 .
 
 GitHub Pages serves `main` at [house-money.junkdrawer.works](https://house-money.junkdrawer.works/) (the `CNAME` file).
 
-- `npm test` runs the rules' unit tests (every payout, the blackjack book, the slot machines' pay-back) and then drives the real pages in Chromium (`test/e2e.mjs`, needs Playwright).
+- `npm test` runs the unit tests (every payout, the blackjack book, the slot machines' pay-back, the cage, and what Records counts) and then drives the real pages in Chromium (`test/e2e.mjs`, needs Playwright): every table opening, the cage's stake, rounds reloaded mid-play, two tabs at one table, and the offline copy. `ONLY=blackjack` runs one table's checks and `PARTIAL=1` skips tables with no page yet.
 - `node tools/sw-files.mjs` rewrites the offline copy's file list and fingerprint in `sw.js` after a change; the test fails until it's run.
-- `node tools/screenshots.mjs` makes the floor's pictures, the README's phone screenshots and `og.png`. `node tools/make-icons.mjs` makes the icons.
+- `node tools/screenshots.mjs [table …]` makes the floor's pictures and the README's phone screenshots, `node tools/og.mjs` makes the link preview (`og.png`), and `node tools/make-icons.mjs` makes the icons.
+- `node tools/artifact.mjs` builds the copy that plays in the Artifact viewer, in `dist/artifact/`: links name each folder's `index.html`, and there's no offline copy.
 
 ### Files
 
 - `index.html`, `css/floor.css`, `js/floor.js`: the floor.
-- `shared/`: what every table uses. `cage.js` (the chips and the player's card), `records.js`, `tables.js` (the list of tables and their limits), `table.js` (the bar, the menu and the cage's offer), `chips.js`, `cards.js`, `sound.js`, `casino.css`.
+- `shared/`: what every table uses. `cage.js` (the chips and the player's card), `records.js`, `tables.js` (the list of tables, their limits and what a round is called at each), `table.js` (the bar, the menu and the cage's offer), `seat.js` (one tab at a time at each table), `chips.js`, `cards.js`, `reels.js` (the slot machines' reels, their arithmetic and each machine's saved spin), `edge-guard.js` (keeps a drag near the screen's edge from turning into the phone's Back), `sound.js`, `casino.css`.
 - `blackjack/`, `roulette/`, `craps/`, `baccarat/`, `video-poker/`, `cherry-bell/`, `odds-and-ends/`, `motherlode/`: one folder per table, each with its rules in a file of their own (`js/game.js` and the like) and the page that plays them.
 - `records/`: the records page.
 - `floor/`: the pictures on the floor's tiles, from `tools/screenshots.mjs`.
