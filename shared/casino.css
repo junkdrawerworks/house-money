@@ -310,3 +310,11 @@ dialog.seat-idle::backdrop { background: rgba(5, 2, 2, .78); backdrop-filter: bl
 .seat-idle p:first-child { font-size: 1.1rem; color: var(--gold-hi); }
 .seat-idle p + p { color: var(--muted); font-size: .95rem; }
 .seat-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+
+/* Google Drive saving at a table: the purse is a button that syncs, with a dot (green synced, amber syncing, red tap
+   to sync), and the menu says when it last synced. */
+button.purse { font: inherit; font-weight: 700; color: inherit; cursor: pointer; position: relative; }
+.bar .purse .dot { position: absolute; right: -2px; top: -2px; width: 9px; height: 9px; border-radius: 50%; background: #5fd38a; box-shadow: 0 0 0 2px var(--leather); }
+.bar .purse[data-s="busy"] .dot { background: #f0b443; }
+.bar .purse[data-s="tap"] .dot, .bar .purse[data-s="error"] .dot { background: #e2484f; width: 11px; height: 11px; }
+.sheet .drive-line { margin: 16px 0 0; color: var(--muted); font-size: .88rem; text-align: center; }

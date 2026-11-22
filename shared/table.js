@@ -18,6 +18,7 @@ import * as cage from './cage.js';
 import * as sound from './sound.js';
 import { TABLES } from './tables.js';
 import { sit } from './seat.js';
+import { drive } from './sync.js';
 
 const SEEN = 'house-money.seen';
 
@@ -41,11 +42,13 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
       <h2 tabindex="-1">${name}</h2>
       <p class="limits" id="limits"></p>
       <div class="help">${help}</div>
+      <p class="drive-line" hidden></p>
       <div class="sheet-btns">
         <button type="button" class="btn" data-act="close">Back to the table</button>
         <a class="btn ghost" href="../">The floor</a>
         <a class="btn ghost" href="../records/">Records</a>
         <button type="button" class="btn ghost" data-act="sound" aria-pressed="true">Sound: on</button>
+        <button type="button" class="btn ghost" data-act="sync" hidden>Sync now</button>
       </div>
       <footer class="jd-foot">
         <a href="https://junkdrawer.works/">Part of junkdrawer.works</a>
@@ -117,8 +120,35 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
   addEventListener('storage', e => { if (e.key === sound.KEY) soundLabel(); });
   soundBtn.addEventListener('click', () => { sound.setEnabled(!sound.enabled()); sound.tap(); });
 
+  // Google Drive saving, when it's on: the purse is a button that syncs (a dot on it says how it stands), and the
+  // menu says when it last synced, with Sync now beside Sound. One tap signs back in to Google if it has to.
+  let pill = bar.querySelector('.purse');
+  function driveBits() {
+    const on = drive.isOn();
+    if (on !== (pill.tagName === 'BUTTON')) {
+      const el = document.createElement(on ? 'button' : 'span');
+      if (on) { el.type = 'button'; el.addEventListener('click', () => drive.now()); }
+      el.className = pill.className;
+      el.append(...[...pill.childNodes].filter(n => !n.classList?.contains('dot')));
+      if (on) el.insertAdjacentHTML('beforeend', '<i class="dot" aria-hidden="true"></i>');
+      pill.replaceWith(el);
+      pill = el;
+    }
+    if (on) {
+      pill.dataset.s = drive.status();
+      pill.title = drive.title();
+      pill.setAttribute('aria-label', `${cage.fmt(cage.read().chips)} chips. ${drive.title()}`);
+    }
+    const dl = sheet.querySelector('.drive-line');
+    dl.textContent = on ? drive.menuLine() : '';
+    dl.hidden = !on;
+    sheet.querySelector('[data-act="sync"]').hidden = !on;
+  }
+  drive.watch(driveBits);
+  sheet.querySelector('[data-act="sync"]').addEventListener('click', () => drive.now());
+
   // opens at the top, on the table's name, rather than scrolled down to the first button
-  const open = () => { limitsLine(); sheet.showModal(); sheet.scrollTop = 0; sheet.querySelector('h2').focus(); };
+  const open = () => { limitsLine(); driveBits(); sheet.showModal(); sheet.scrollTop = 0; sheet.querySelector('h2').focus(); };
   bar.querySelector('.menu-btn').addEventListener('click', open);
   // the × that stays at the top while the sheet scrolls, and the button at the bottom
   sheet.querySelectorAll('[data-act="close"]').forEach(b => b.addEventListener('click', () => sheet.close()));
@@ -171,15 +201,18 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
   function stuck() {
     if (felt() > 0 || inPlay()) return '';
     const n = cage.read().chips;
-    const away = cage.out(here());
+    const away = cage.out(here()), there = cage.elsewhere();
     const short = n < min;
-    if (!short && !(n < cage.LOW && away.length)) return '';
+    if (!short && !(n < cage.LOW && (away.length || there.length))) return '';
     const me = TABLES.find(t => t.id === id);
     const parts = [];
     if (short && !n) parts.push('Your rack is empty.');
     else if (short) parts.push(me?.slot ?`${name} takes ${cage.fmt(min)} a spin and you have ${cage.fmt(n)}.` : `The smallest bet at ${name} is ${cage.fmt(min)}, and you have ${cage.fmt(n)}.`);
-    if (away.length) parts.push(outLine(away, '../'));
-    else {
+    if (away.length || there.length) {
+      // here, then on another device that saves to Google Drive
+      const where = [away.length ? outLine(away, '../', { stake: false }) : '', there.length ? elsewhereLine(there, away.length > 0) : ''];
+      parts.push(`${where.filter(Boolean).join(' ')} The cage stakes you when nothing’s left out.`);
+    } else {
       // somewhere you can play with what you have: the same kind of game first
       const fits = TABLES.filter(t => t.id !== id && t.min <= n);
       const like = fits.filter(t => !!t.slot === !!me?.slot);
@@ -196,7 +229,7 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
   // table's own onCage waits until it's set up). Chips put down or picked up at another table, in another tab, change
   // what's out on the felt, so those count too.
   let mounted = false;
-  cage.watch(c => { show(c); limitsLine(); check(); if (mounted) onCage(c); });
+  cage.watch(c => { show(c); limitsLine(); check(); if (mounted) onCage(c); if (drive.isOn()) driveBits(); });
   addEventListener('storage', e => { if (e.key?.startsWith('house-money.') && e.key !== cage.KEY) check(); });
   mounted = true;
 
