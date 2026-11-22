@@ -122,14 +122,16 @@ const cellOf = n => L.querySelector(`[data-n="${n}"]`);
 const outOf = k => L.querySelector(`[data-k="${k}"]`);
 
 // Which bet a point on a number lands on: the middle of a number is straight up, its edges splits, its corners
-// corners, its left edge in the first column a street (or a six line where two rows meet).
+// corners, its left edge in the first column a street (or a six line where two rows meet). The edges are a fixed
+// band of a few px along each line, so on a phone nearly all of a number's pill is straight up; a slide before you
+// let go still finds the splits and corners.
 function hit(el, x, y) {
   if (!el) return null;
   if (el.dataset.k) return el.dataset.k;
   const n = Number(el.dataset.n);
   const r = el.getBoundingClientRect();
   const fx = (x - r.left) / r.width, fy = (y - r.top) / r.height;
-  const ex = Math.min(.27, 17 / r.width), ey = Math.min(.32, 12 / r.height);
+  const ex = Math.min(.27, 17 / r.width), ey = Math.min(.25, 6.5 / r.height);
   if (n === 0) {
     if (fy < 1 - Math.min(.3, 14 / r.height)) return 'n0';
     const px = fx * r.width, third = r.width / 3, near = 15;

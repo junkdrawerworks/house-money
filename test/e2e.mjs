@@ -222,6 +222,26 @@ if (cageWants('roulette')) {
   await ctx.close();
 }
 
+// Roulette on a phone: a tap 8 px above or below the middle of 17 is straight up on 17, and a tap within 3 px of the
+// line it shares with 14 is the split.
+if (cageWants('roulette')) {
+  for (const size of [phone, { ...phone, viewport: { width: 360, height: 740 } }]) {
+    const at = `Roulette at ${size.viewport.width}x${size.viewport.height}`;
+    const { p, ctx } = await sit('roulette/?fast&seen', { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 } }, { size });
+    await p.click('#rack .c1');
+    const tapAt = async (dy, from = 'middle') => {
+      const r = await p.evaluate(() => { const e = document.querySelector('[data-n="17"]'); e.scrollIntoView({ block: 'center' }); const q = e.getBoundingClientRect(); return { x: q.left + q.width / 2, top: q.top, mid: q.top + q.height / 2 }; });
+      await p.mouse.click(r.x, (from === 'middle' ? r.mid : r.top) + dy);
+      await p.waitForTimeout(150);
+      return p.evaluate(() => Object.keys(JSON.parse(localStorage.getItem('house-money.roulette')).bets).sort());
+    };
+    assert.deepEqual(await tapAt(-8), ['n17'], `${at}: a tap 8 px above the middle of 17 isn't straight up`);
+    assert.deepEqual(await tapAt(8), ['n17'], `${at}: a tap 8 px below the middle of 17 isn't straight up`);
+    assert.deepEqual(await tapAt(2, 'top'), ['n17', 's14-17'], `${at}: a tap 2 px under the line between 14 and 17 isn't the split`);
+    await ctx.close();
+  }
+}
+
 // Three tabs in one browser: Blackjack, Roulette and the floor. The last 100 goes down at Blackjack, then loses.
 // The other two follow along: no offer while it's on the felt, and the offer, with the rack dimmed, once it's gone.
 if (cageWants('blackjack', 'roulette', 'floor')) {
