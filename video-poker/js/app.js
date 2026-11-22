@@ -40,6 +40,8 @@ const table = mountTable({
     applies. Played that way, the machine gives back about 99.5% of what goes in over the long run.</p>
     <p>A new 52-card deck is shuffled for every hand. Keyboard: 1 to 5 hold, Enter deals and draws.</p>`,
   onStake: () => paint(),
+  // the stack changed, here or in another tab
+  onCage: () => { if (!busy) paint(); },
 });
 
 const rack = makeRack($('rack'), { values: [1, 5, 25, 100, 500], key: 'house-money.video-poker.chip', onPick: v => { if (s && s.phase !== 'draw') { s.coin = v; save(); paintMeters(); } } });
@@ -225,7 +227,6 @@ addEventListener('keydown', e => {
   }
 });
 
-addEventListener('house-money:cage', () => { if (!busy) paint(); });
 
 // ---------- start: carry on where the last visit left off ----------
 

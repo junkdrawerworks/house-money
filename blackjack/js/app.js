@@ -45,6 +45,8 @@ const table = mountTable({
     <p><b>Ask the book</b> shows what basic strategy says for your hand against the dealer’s card: the play that loses
     least in the long run. Played that way, the house keeps about half a percent.</p>`,
   onStake: () => paint(),
+  // the stack changed, here or in another tab
+  onCage: () => { if (!busy) paint(); },
 });
 
 const rack = makeRack($('rack'), { values: [5, 25, 100, 500, 1000], key: 'house-money.blackjack.chip' });
@@ -343,7 +345,6 @@ addEventListener('keydown', e => {
   }
 });
 
-addEventListener('house-money:cage', () => { if (!busy) paint(); });
 addEventListener('resize', () => paintCards());
 
 // ---------- start: carry on where the last visit left off ----------

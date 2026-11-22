@@ -6,6 +6,7 @@
 //   felt: the chips out on this table right now (bets down, or a round dealt and not yet paid): the cage won't stake
 //   you while there are any, here or on any other table
 //   inPlay: true while a round plays on without needing chips from the rack (Motherlode's free spins)
+//   onCage: the stack changed, in this tab or another one (repaint the rack and the buttons)
 //   t.say('Dealer has 20.')       a line from the dealer
 //   t.limits()                    { min, max } on your card
 //   t.check()                     shows or hides the stake offer (call after a round settles)
@@ -17,7 +18,7 @@ import { TABLES } from './tables.js';
 const SEEN = 'house-money.seen';
 
 export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () => 0, onStake = () => {}, offerIn = null,
-  inPlay = () => false }) {
+  inPlay = () => false, onCage = () => {} }) {
   const bar = document.querySelector('header.bar') || document.body.insertBefore(document.createElement('header'), document.body.firstChild);
   bar.className = 'bar';
   bar.innerHTML = `
@@ -94,7 +95,6 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
     void bar.offsetWidth;
     bar.querySelector('.purse').classList.add(to > from ? 'up' : 'down');
   }
-  cage.watch(c => { show(c); limitsLine(); });
 
   function limits() { return { min, max: cage.maxBet(max) }; }
   function limitsLine() {
@@ -176,8 +176,13 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
     return parts.join(' ');
   }
 
-  check();
-  addEventListener('house-money:cage', check);
+  // The stack, the offer and the table's own buttons follow every change to the chips, whichever tab made it (the
+  // table's own onCage waits until it's set up). Chips put down or picked up at another table, in another tab, change
+  // what's out on the felt, so those count too.
+  let mounted = false;
+  cage.watch(c => { show(c); limitsLine(); check(); if (mounted) onCage(c); });
+  addEventListener('storage', e => { if (e.key?.startsWith('house-money.') && e.key !== cage.KEY) check(); });
+  mounted = true;
 
   // the offline copy, for anyone who comes straight to a table without passing the floor
   if ('serviceWorker' in navigator && isSecureContext) navigator.serviceWorker.register('../sw.js', { scope: '../' }).catch(() => {});

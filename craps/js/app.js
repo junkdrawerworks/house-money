@@ -57,6 +57,8 @@ const table = mountTable({
     that’s allowed to come down. Hold a finger on one bet to take down just that one.</p>
     <p>Line and come bets start at ${T.min}. Played on the line with full odds, the house keeps well under one percent.</p>`,
   onStake: () => paint(),
+  // the stack changed, here or in another tab
+  onCage: () => { if (!busy) paint(); },
 });
 
 const rack = makeRack($('rack'), { values: [1, 5, 25, 100, 500], key: 'house-money.craps.chip' });
@@ -308,7 +310,6 @@ addEventListener('keydown', e => {
   if ((e.key === ' ' || e.key === 'Enter') && !(e.target instanceof HTMLButtonElement)) { roll(); e.preventDefault(); }
   else if (e.key === 'Backspace' || e.key.toLowerCase() === 'z') { $('undo').click(); e.preventDefault(); }
 });
-addEventListener('house-money:cage', () => { if (!busy) paint(); });
 
 // ---------- start: a throw that never finished pays now ----------
 

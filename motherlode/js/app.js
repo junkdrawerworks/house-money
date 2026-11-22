@@ -23,6 +23,7 @@ const s = keep.state;
 const lowNames = ['A', 'K', 'Q', 'J', 'ten'];
 const table = mountTable({
   id: M.ID, name: T.name, min: 20, max: T.max, felt: keep.felt, inPlay: () => !!s.free,
+  onCage: () => { if (!spinning) paint(); },
   help: `
     <p>Five reels, three rows and twenty lines, all of them always in play, down a gold mine. Your bet is spread across
     the twenty lines, so it goes up in twenties, and each line pays a share of it.</p>
@@ -262,7 +263,6 @@ addEventListener('keydown', e => {
   if (e.metaKey || e.ctrlKey || e.altKey || document.querySelector('dialog[open]')) return;
   if (e.key === ' ' && !e.target.closest?.('button, a')) { e.preventDefault(); if (!$('bigwin').hidden) $('bigwin').click(); else spin(); }
 });
-addEventListener('house-money:cage', () => { if (!spinning) paint(); });
 
 // a few lines of the pay table under the reels
 $('legend').innerHTML = [

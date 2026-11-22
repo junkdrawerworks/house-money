@@ -57,6 +57,8 @@ const table = mountTable({
     It starts again with each new shoe. Eight decks, with the cut card 16 from the end.</p>
     <p>The house keeps about 1.06% on Banker, 1.24% on Player and 14.4% on Tie.</p>`,
   onStake: () => paint(),
+  // the stack changed, here or in another tab
+  onCage: () => { if (!busy) paint(); },
 });
 
 const rack = makeRack($('rack'), { values: [5, 25, 100, 500, 1000], key: 'house-money.baccarat.chip' });
@@ -444,7 +446,6 @@ addEventListener('keydown', e => {
   if (b && !b.disabled && !b.closest('[hidden]')) { b.click(); e.preventDefault(); }
 });
 
-addEventListener('house-money:cage', () => { if (!busy) paint(); });
 let rz = 0;
 addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(paintBoard, 150); });
 

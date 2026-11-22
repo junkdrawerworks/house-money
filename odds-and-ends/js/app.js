@@ -23,6 +23,7 @@ const plural = { penny: 'lucky pennies', fob: 'key fobs', tape: 'tape measures',
 
 const table = mountTable({
   id: M.ID, name: T.name, min: T.min, max: T.max, felt: keep.felt,
+  onCage: () => { if (!spinning) paint(); },
   help: `
     <p>A slot machine stocked from the kitchen junk drawer: three reels, three rows and five pay lines. Choose how many
     lines to play and what to bet on each, then spin.</p>
@@ -181,7 +182,6 @@ addEventListener('keydown', e => {
   if (e.metaKey || e.ctrlKey || e.altKey || document.querySelector('dialog[open]')) return;
   if (e.key === ' ' && !e.target.closest?.('button, a')) { e.preventDefault(); spin(); }
 });
-addEventListener('house-money:cage', () => { if (!spinning) paint(); });
 addEventListener('resize', () => requestAnimationFrame(tabs));
 
 // the little pay table under the drawer

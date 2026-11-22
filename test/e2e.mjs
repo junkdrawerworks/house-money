@@ -189,6 +189,40 @@ if (cageWants('roulette')) {
   await ctx.close();
 }
 
+// Three tabs in one browser: Blackjack, Roulette and the floor. The last 100 goes down at Blackjack, then loses.
+// The other two follow along: no offer while it's on the felt, and the offer, with the rack dimmed, once it's gone.
+if (cageWants('blackjack', 'roulette', 'floor')) {
+  const C = (r, s) => ({ r, s });
+  const shoe = Array(150).fill(C(2, 'c')).concat([C(10, 'h'), C(6, 'd'), C(10, 'c'), C(10, 's')]); // dealt from the end: 16 against 20
+  const { p: bj, ctx } = await sit('blackjack/?fast&seen', {
+    cage: { chips: 100, wagered: 900, high: 1000, stakes: 1 },
+    blackjack: { shoe, phase: 'bet', bet: 0, last: 0, hands: [], active: 0, dealer: [], hole: true, insurance: 0, felt: 0 },
+  });
+  const { p: rou } = await sit('roulette/?fast&seen', {}, { ctx });
+  const { p: floor } = await sit('?seen', {}, { ctx });
+  await bj.bringToFront();
+  await bj.click('#rack .c100'); await bj.click('#spot');
+  await until(async () => (await rou.textContent('#purse')) === '0', 3000, 'Roulette in another tab: the stack did not follow');
+  await rou.waitForTimeout(300);
+  assert.equal(await offered(rou), false, 'Roulette in another tab: offered a stake with 100 on the blackjack felt');
+  assert.match(await rou.textContent('.cage-note'), /100 still out on Blackjack/, 'Roulette in another tab: no word on where the chips are');
+  assert.equal(await floor.isVisible('#stake'), false, 'the floor in another tab: offered a stake with 100 on the blackjack felt');
+  assert.match(await floor.textContent('#outNote'), /100 still out on Blackjack/, 'the floor in another tab: no word on where the chips are');
+  await bj.click('#deal');
+  await bj.waitForSelector('#playActions:not([hidden])'); await bj.click('#stand');
+  await bj.waitForSelector('#doneActions:not([hidden])');
+  await until(() => offered(rou), 3000, 'Roulette in another tab: no offer once the last chips were lost at Blackjack');
+  assert.deepEqual(await rou.evaluate(() => [...document.querySelectorAll('#rack .chip')].map(b => b.disabled)), [true, true, true, true, true], 'Roulette in another tab: the rack still lit with no chips');
+  await until(() => floor.isVisible('#stake'), 3000, 'the floor in another tab: no stake once the last chips were lost');
+  assert.equal(await floor.isVisible('#outNote'), false);
+  // taking it in one tab puts it away in the others
+  await rou.click('.stake-offer button');
+  await until(async () => !(await offered(bj)) && !(await floor.isVisible('#stake')), 3000, 'the offer stayed up in the other tabs after the stake');
+  await bj.bringToFront();
+  await until(async () => (await bj.textContent('#purse')) === '1,000', 3000, 'Blackjack in another tab: the stack did not follow the stake');
+  await ctx.close();
+}
+
 // Motherlode takes 20 a spin. With 15 there's no spin and no stake (15 isn't under 10), so it says why, and where to
 // play instead; the bet can't go up. In the free spins, which need no chips, it says nothing.
 if (cageWants('motherlode')) {

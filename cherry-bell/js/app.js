@@ -27,6 +27,7 @@ const rowsHtml = M.TABLE.map((t, i) => {
 
 const table = mountTable({
   id: M.ID, name: T.name, min: T.min, max: T.max, felt: keep.felt, offerIn: document.querySelector('.glass'),
+  onCage: () => { if (!spinning) paint(); },
   help: `
     <p>An old three-reel fruit machine with one pay line, across the middle. Pick a coin size, put in one to three
     coins, and pull the handle (or press Spin). The reels stop left to right.</p>
@@ -208,7 +209,6 @@ addEventListener('keydown', e => {
   else if (['1', '2', '3'].includes(e.key) && !spinning) { s.coins = +e.key; keep.save(); sound.chip(); paint(); }
 });
 
-addEventListener('house-money:cage', () => { if (!spinning) paint(); });
 
 // ---------- start ----------
 

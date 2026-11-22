@@ -79,7 +79,12 @@ const soundBtn = $('sound');
 const soundLabel = () => { soundBtn.textContent = `Sound: ${sound.enabled() ? 'on' : 'off'}`; soundBtn.setAttribute('aria-pressed', sound.enabled()); };
 soundLabel();
 soundBtn.addEventListener('click', () => { sound.setEnabled(!sound.enabled()); soundLabel(); sound.chip(); });
-addEventListener('storage', e => { if (e.key === sound.KEY) soundLabel(); if (e.key === records.KEY) stats(); });
+addEventListener('storage', e => {
+  if (e.key === sound.KEY) soundLabel();
+  if (e.key === records.KEY) stats();
+  // a table's felt changed in another tab: the stake and the line under your chips depend on it
+  if (TABLES.some(t => e.key === `house-money.${t.id}`)) wallet(cage.read());
+});
 
 // A picture that isn't there yet leaves the tile's own colours.
 document.querySelectorAll('.tile img').forEach(img => img.addEventListener('error', () => img.remove()));

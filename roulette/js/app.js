@@ -56,6 +56,8 @@ const table = mountTable({
     that hasn't come up in a while is no more likely next time.</p>
     <p>On a keyboard, Space spins and Backspace undoes.</p>`,
   onStake: () => paint(),
+  // the stack changed, here or in another tab
+  onCage: () => { if (!busy) paint(); },
 });
 
 const rack = makeRack($('rack'), { values: [1, 5, 25, 100, 500], key: 'house-money.roulette.chip' });
@@ -514,7 +516,6 @@ addEventListener('keydown', e => {
   if (e.key === ' ' && !(e.target instanceof HTMLButtonElement && L.contains(e.target))) { e.preventDefault(); if (!$('spin').disabled) spin(); }
   else if (e.key === 'Backspace' || e.key === 'z') { e.preventDefault(); $('undo').click(); }
 });
-addEventListener('house-money:cage', () => { if (!busy) paint(); });
 addEventListener('storage', e => { if (e.key === KEY && !busy) { s = load(); paintHistory(); paint(); } });
 let rs = 0;
 addEventListener('resize', () => { cancelAnimationFrame(rs); rs = requestAnimationFrame(() => { wheel.size(); paintChips(); }); });
