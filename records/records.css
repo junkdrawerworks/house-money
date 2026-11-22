@@ -27,3 +27,5 @@ b.up { color: var(--win); } b.down { color: var(--lose); }
 .rec li small { color: var(--muted); font-weight: 400; margin-left: 4px; }
 .rec .none { margin: 0; color: var(--muted); font-size: .9rem; }
 .note { text-align: center; color: var(--muted); font-size: .85rem; margin: 22px 0 0; }
+.note + .note { margin-top: 6px; }
+.note a { color: var(--gold-hi); font-weight: 700; }

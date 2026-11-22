@@ -5,6 +5,7 @@ import * as cage from '../shared/cage.js';
 import * as records from '../shared/records.js';
 import { TABLES, units } from '../shared/tables.js';
 import { outWords } from '../shared/table.js';
+import { drive } from '../shared/sync.js';
 
 const fmt = cage.fmt;
 const $ = id => document.getElementById(id);
@@ -46,6 +47,16 @@ function draw() {
 }
 
 draw();
+// With Google Drive saving on, Records count every device that saves there, and say where they're kept. Off, at the
+// project's own address, a line points to the floor's card that turns it on (nowhere else can it be turned on).
+function driveLines() {
+  const on = drive.isOn();
+  $('every').hidden = !on;
+  $('kept').textContent = on ? 'Kept in this browser and in a House Money folder in your Google Drive.' : 'Everything here stays in this browser. Nothing is sent anywhere.';
+  $('toDrive').hidden = on || !drive.ready;
+}
+driveLines();
+drive.watch(driveLines);
 addEventListener('storage', draw);
 addEventListener('house-money:cage', draw);
 addEventListener('house-money:records', draw);
