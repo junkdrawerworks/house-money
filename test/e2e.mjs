@@ -81,6 +81,8 @@ for (const t of TABLES) {
   await page.goto(`${base}${t.id}/`);
   await page.waitForSelector('dialog.sheet[open]', { timeout: 5000 }).catch(() => assert.fail(`${t.id}: the menu didn't open on the first visit`));
   assert.equal(await page.textContent('.bar .name'), t.name, `${t.id}: the bar names the table`);
+  // the stack in the bar counts up frame by frame: read out, every frame would be an announcement
+  assert.equal(await page.evaluate(() => !!document.getElementById('purse').closest('[aria-live]')), false, `${t.id}: the chip count in the bar is a live region`);
   // the × at the top stays in sight and in reach with the sheet scrolled to its end, and takes you back to the table
   const x = await page.evaluate(() => {
     const d = document.querySelector('dialog.sheet[open]'), b = d.querySelector('.x');

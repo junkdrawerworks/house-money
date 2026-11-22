@@ -29,7 +29,7 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
   bar.innerHTML = `
     <a class="back" href="../" aria-label="Back to the floor"><span aria-hidden="true">‹</span> Floor</a>
     <h1 class="name">${name}</h1>
-    <span class="purse" aria-live="polite"><span class="chip c100 mini" aria-hidden="true"></span><b id="purse">0</b><span class="vh"> chips</span></span>
+    <span class="purse"><span class="chip c100 mini" aria-hidden="true"></span><b id="purse">0</b><span class="vh"> chips</span></span>
     <button type="button" class="menu-btn" aria-label="Menu" aria-haspopup="dialog"><span></span><span></span><span></span></button>`;
 
   const sheet = document.createElement('dialog');
@@ -83,6 +83,8 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
     check();
   });
 
+  // The stack counts up or down to its new figure. It isn't a live region: a screen reader would read out every step
+  // of the count, over the dealer's line, which already says what was won or lost.
   const purse = bar.querySelector('#purse');
   let shown = null;
   function show(c) {
