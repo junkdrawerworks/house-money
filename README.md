@@ -34,7 +34,7 @@
 - **The menu** at every table (☰) says how to play it and what the limits are on your card, and has the way back to the floor, the records and the sound switch. The first time you sit down at a table it opens by itself.
 - **Records.** Each table keeps your rounds, chips bet, how far up or down you are and your biggest single win, with the day it came, and a few counters of its own (blackjacks, royal flushes, jackpots). **Records** on the floor shows them all, with the most you've ever held.
 - **Sound.** Chips, cards, dice, the roulette ball and the reels, all made on the spot with Web Audio. One switch for the whole floor.
-- No account and no server. Your chips and records stay in your browser. It works offline and installs to a phone's home screen as one app; a long press on the icon goes straight to a table.
+- No account and no server. Your chips and records stay in your browser, unless you save them to your own Google Drive (below). It works offline and installs to a phone's home screen as one app; a long press on the icon goes straight to a table.
 
 ## Blackjack
 
@@ -115,6 +115,18 @@ Jacks or Better on a full-pay machine: nine coins for a full house, six for a fl
 - **Big wins rain coins.** At 15 times the bet it's a Big win, at 40 a Huge win, and at 100 the Motherlode. **Auto** keeps spinning until you tap it again (it says Stop while it runs), the chips run short, or a big win comes in.
 - **The long run.** It pays back about 95.0%, more than a quarter of that from the free spins. About one spin in 2.5 wins.
 
+## Saving to Google Drive
+
+It's optional, and only at [house-money.junkdrawer.works](https://house-money.junkdrawer.works/): the card under the player's card on the floor turns it on, on each phone or computer you play on.
+
+- **What goes in Drive.** One small file in a “House Money” folder in your own Google Drive: the chip stack, the player's card, the cage's stakes, Records, and which tables' how-to-play sheets you've seen. House Money asks only for permission to see the files it makes itself (Google's `drive.file`), so it can't see anything else in your Drive.
+- **What stays on each device.** A hand, spin or roll in play, bets left up on the craps layout, Motherlode's free spins, the shoe, the sound switch, the chip you last picked at each table, and Baccarat's squeeze switch. Each device does say how many chips it has out on its tables, so another device's cage waits for them before staking you (for a day after that device last synced).
+- **How two devices add up.** There's one stack and one starting 1,000. Each device's wins and losses count once, whichever order the devices sync in: a laptop that won 600 on its own and a phone that lost 350 come to 1,250 on both once each has synced. Records and the chips bet on your card always come out exact. The stack does too as long as each device syncs as it opens and as you leave it, which it does by itself whenever it can. A device that plays from an out-of-date stack (offline, or signed out for days) adds its own wins and losses to the shared one when it catches up, which is why the floor's cloud turns red and asks you to tap it before you play. If two devices bet the same chips while apart, the stack stops at 0 rather than going below it, the cage covers the difference and says so once, and its usual offer appears; Records still keep every loss. If two devices both take the cage's 1,000 in the same dry spell, it counts once. (With three or more devices out of touch at once after the cage has covered something, the order they sync in can leave the stack a little higher than one device would have.)
+- **When it syncs.** As a page opens, a few seconds after a round (then at most every 30 seconds while you play), when you leave the page and come back, and every 5 minutes. The floor's cloud, and the purse at each table, show a green dot when synced, amber while syncing and red when a tap is needed: Google signs you out after an hour, and one tap signs you back in and syncs. Play never waits for Drive.
+- **Your Google account.** The page reads your Google account's email address, to show where it's saving and to make sure a device doesn't save into a different account's Drive.
+- **Stopping.** **Stop saving on this device** stops syncing there and keeps the copy in your Drive, for your other devices. To take the permission back altogether, remove junkdrawer.works under Third-party apps & services in your Google Account.
+- **Clearing a browser's data** starts that device fresh, with 1,000 chips and empty Records, until Drive is turned back on there; then everything it had saved comes back, nothing is lost, and its fresh 1,000 isn't added.
+
 ## Running it
 
 It's a static site: plain HTML, CSS and JavaScript, with no build step. Serve the folder and open it:
@@ -133,7 +145,7 @@ GitHub Pages serves `main` at [house-money.junkdrawer.works](https://house-money
 ### Files
 
 - `index.html`, `css/floor.css`, `js/floor.js`: the floor.
-- `shared/`: what every table uses. `cage.js` (the chips and the player's card), `records.js`, `tables.js` (the list of tables, their limits and what a round is called at each), `table.js` (the bar, the menu and the cage's offer), `seat.js` (one tab at a time at each table), `chips.js`, `cards.js`, `reels.js` (the slot machines' reels, their arithmetic and each machine's saved spin), `edge-guard.js` (keeps a drag near the screen's edge from turning into the phone's Back), `sound.js`, `casino.css`.
+- `shared/`: what every table uses. `cage.js` (the chips and the player's card), `records.js`, `ledger.js` (how the cage and Records are kept, one section per device, and put together across devices), `sync.js` (saving to Google Drive), `tables.js` (the list of tables, their limits and what a round is called at each), `table.js` (the bar, the menu and the cage's offer), `seat.js` (one tab at a time at each table), `chips.js`, `cards.js`, `reels.js` (the slot machines' reels, their arithmetic and each machine's saved spin), `edge-guard.js` (keeps a drag near the screen's edge from turning into the phone's Back), `sound.js`, `casino.css`.
 - `blackjack/`, `roulette/`, `craps/`, `baccarat/`, `video-poker/`, `cherry-bell/`, `odds-and-ends/`, `motherlode/`: one folder per table, each with its rules in a file of their own (`js/game.js` and the like) and the page that plays them.
 - `records/`: the records page.
 - `floor/`: the pictures on the floor's tiles, from `tools/screenshots.mjs`.
