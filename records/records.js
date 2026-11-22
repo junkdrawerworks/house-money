@@ -27,7 +27,7 @@ function draw() {
     <div><b>${fmt(c.chips)}</b><span>chips now</span>${away.length ? `<span class="away">plus ${outWords(away, '../')}</span>` : ''}</div>
     <div><b>${fmt(c.high)}</b><span>the most you’ve held</span></div>
     <div><b class="${net > 0 ? 'up' : net < 0 ? 'down' : ''}">${signed(net)}</b><span>up or down, all tables</span></div>
-    <div><b>${fmt(wagered)}</b><span>chips bet over ${fmt(rounds)} ${rounds === 1 ? 'play' : 'plays'}</span></div>
+    ${wagered ? `<div><b>${fmt(wagered)}</b><span>chips bet over ${fmt(rounds)} ${rounds === 1 ? 'play' : 'plays'}</span></div>` : '<div><b>Nothing</b><span>bet yet</span></div>'}
     <div><b>${t.name}</b><span>player’s card</span></div>
     <div><b>${fmt(Math.max(0, c.stakes - 1))}</b><span>${c.stakes - 1 === 1 ? 'stake' : 'stakes'} from the cage</span></div>`;
   $('list').innerHTML = TABLES.map(tb => {

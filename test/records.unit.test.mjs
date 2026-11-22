@@ -76,5 +76,7 @@ test('each table counts its rounds in its own word', () => {
   assert.equal(units(at('craps'), 22), '22 rolls');
   assert.equal(units(at('motherlode'), 1234), '1,234 spins');
   assert.equal(units(at('blackjack'), 2, { word: true }), 'rounds');
-  assert.deepEqual(TABLES.map(t => t.unit), ['round', 'round', 'roll', 'round', 'hand', 'spin', 'spin', 'spin']);
+  assert.equal(units(at('roulette'), 80), '80 spins');
+  assert.equal(units(at('baccarat'), 1), '1 hand');
+  assert.deepEqual(TABLES.map(t => t.unit), ['round', 'spin', 'roll', 'hand', 'hand', 'spin', 'spin', 'spin']);
 });

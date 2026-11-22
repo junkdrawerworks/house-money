@@ -1717,9 +1717,17 @@ if (cageWants('cherry-bell', 'video-poker', 'motherlode', 'baccarat')) {
   }
 }
 
-// Records: each table's rounds in its own word, and the machines' own counters.
+// Records: each table's rounds in its own word, and the machines' own counters. Before anything's been bet, the
+// total says so instead of "0 chips bet over 0 plays".
 if (cageWants('records')) {
+  {
+    const { p, ctx } = await sit('records/', {});
+    assert.equal((await p.textContent('#totals div:nth-child(4)')).trim(), 'Nothingbet yet', 'Records: the total before anything is bet');
+    await ctx.close();
+  }
   const { p, ctx } = await sit('records/', { records: { since: '2026-11-01', tables: {
+    roulette: { rounds: 80, wagered: 400, net: -20, best: 70, bestOn: '2026-11-02' },
+    baccarat: { rounds: 1, wagered: 10, net: 10, best: 10, bestOn: '2026-11-02', banker: 1 },
     'video-poker': { rounds: 1, wagered: 5, net: 3995, best: 3995, bestOn: '2026-11-02', royal: 1 },
     'cherry-bell': { rounds: 12, wagered: 36, net: 964, best: 997, bestOn: '2026-11-03', jackpots: 1, biggest: 1000 },
     'odds-and-ends': { rounds: 9, wagered: 45, net: -20, best: 5, bestOn: '2026-11-03', jackpots: 2 },
@@ -1727,10 +1735,11 @@ if (cageWants('records')) {
   } } });
   const rows = id => p.$$eval(`.rec.t-${id} li`, lis => lis.map(li => [li.querySelector('span').textContent, li.querySelector('b').textContent.trim()]));
   assert.deepEqual((await rows('video-poker'))[0], ['Hands', '1'], 'Records: Video Poker counts hands');
+  assert.deepEqual([(await rows('roulette'))[0], (await rows('baccarat'))[0]], [['Spins', '80'], ['Hands', '1']], 'Records: roulette counts spins and baccarat hands');
   assert.deepEqual((await rows('cherry-bell')).map(r => r[0]), ['Spins', 'Chips bet', 'Up or down', 'Biggest win', 'Jackpots'], 'Records: Cherry Bell');
   assert.deepEqual((await rows('odds-and-ends')).at(-1), ['Jackpots', '2'], 'Records: Odds & Ends jackpots');
   assert.deepEqual((await rows('motherlode')).slice(-2), [['Free-spin features', '1'], ['Most won in free spins', '1,395']], 'Records: Motherlode');
-  assert.match(await p.textContent('#totals'), /526chips bet over 44 plays/, 'Records: the total line');
+  assert.match(await p.textContent('#totals'), /936chips bet over 125 plays/, 'Records: the total line');
   await ctx.close();
 }
 
