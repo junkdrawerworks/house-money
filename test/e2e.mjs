@@ -459,6 +459,30 @@ if (cageWants('baccarat')) {
   await c2.close();
 }
 
+// Baccarat: the cards stay where they were dealt while they're turned, one by one, third cards and all (a total that
+// appears over a hand used to push its cards down under the finger reaching for the next one). Twos all through: 4
+// each, the Player draws a 2 and the Banker draws on 4 against it. At 390x844, and at 375x667, where the third cards
+// lie across the foot of the first two.
+if (cageWants('baccarat')) {
+  for (const viewport of [{ width: 390, height: 844 }, { width: 375, height: 667 }]) {
+    const { p, ctx } = await sit('baccarat/?fast&seen', { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 },
+      baccarat: { shoe: Array(100).fill({ r: 2, s: 'c' }), phase: 'bet', bets: { player: 0, banker: 0, tie: 0, pp: 0, bp: 0 }, last: null, coup: null, stage: 0, turned: [], road: [], carry: 0, felt: 0 } },
+      { size: { ...phone, viewport, reducedMotion: 'reduce' } });
+    const tops = () => p.$$eval('#pCards .card:not(.third), #bCards .card:not(.third)', cs => cs.map(c => Math.round(c.getBoundingClientRect().top)));
+    await p.click('#rack .c25'); await p.click('.spot[data-bet="player"]'); await p.click('#deal');
+    await p.waitForSelector('[data-key="b1"]'); await p.waitForTimeout(500);
+    const dealt = await tops();
+    for (const k of ['b0', 'b1', 'p0', 'p1', 'p2', 'b2']) {
+      await p.waitForSelector(`[data-key="${k}"].live`, { timeout: 5000 });
+      await p.click(`[data-key="${k}"]`); await p.waitForTimeout(150);
+      assert.deepEqual(await tops(), dealt, `Baccarat at ${viewport.width}x${viewport.height}: the cards moved when ${k} was turned`);
+    }
+    await p.waitForSelector('#doneActions:not([hidden])');
+    assert.deepEqual(await tops(), dealt, `Baccarat at ${viewport.width}x${viewport.height}: the cards moved at the payout`);
+    await ctx.close();
+  }
+}
+
 // Three tabs in one browser: Blackjack, Roulette and the floor. The last 100 goes down at Blackjack, then loses.
 // The other two follow along: no offer while it's on the felt, and the offer, with the rack dimmed, once it's gone.
 if (cageWants('blackjack', 'roulette', 'floor')) {

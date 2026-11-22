@@ -45,7 +45,8 @@
 .side { --cw: 66px; display: flex; flex-direction: column; align-items: center; gap: 6px; border-radius: 14px; padding: 6px 4px 8px; transition: background .3s, box-shadow .3s; }
 .side h2 { margin: 0; display: flex; align-items: center; gap: 8px; font: 700 .85rem/1 var(--serif); letter-spacing: .18em; text-transform: uppercase; }
 .side.player h2 span { color: #a9c3f2; } .side.banker h2 span { color: #f3a9ad; }
-.pt { min-width: 1.8em; padding: 3px 7px; border-radius: 99px; background: rgba(0, 0, 0, .45); font: 800 1rem/1 var(--sans); text-align: center; visibility: hidden; }
+/* the total keeps its size while it's hidden and empty, so the cards under it don't drop when the first one turns */
+.pt { display: inline-grid; place-items: center; min-width: 1.8em; height: 1.4em; padding: 0 7px; border-radius: 99px; background: rgba(0, 0, 0, .45); font: 800 1rem/1 var(--sans); text-align: center; visibility: hidden; }
 .pt.on { visibility: visible; }
 .side.won { background: rgba(255, 226, 122, .12); box-shadow: inset 0 0 0 2px var(--win); }
 .side.won .pt { background: var(--win); color: #2a1608; }
