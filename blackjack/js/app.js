@@ -8,7 +8,7 @@ import * as records from '../../shared/records.js';
 import * as sound from '../../shared/sound.js';
 import { cardEl, turn, dealInto } from '../../shared/cards.js';
 import { rack as makeRack, setStack } from '../../shared/chips.js';
-import { mountTable, float, wait } from '../../shared/table.js';
+import { mountTable, float, wait, netLine } from '../../shared/table.js';
 import { byId } from '../../shared/tables.js';
 import * as seat from '../../shared/seat.js';
 
@@ -293,14 +293,22 @@ async function payout() {
   const dealerLine = o.dealerBJ ? 'Dealer has blackjack.' : !g.dealerPlays(s) ? '' : d > 21 ? `Dealer busts with ${d}.` : `Dealer has ${d}.`;
   let line;
   const kept = o.half === 'kept', before = o.half === 'paid';
-  if (o.natural && !o.dealerBJ) line = `Blackjack! That pays ${cage.fmt(o.back - o.wagered)}${kept ? ', and the half chip’s kept for your next one' : before ? ', with the half chip kept from before' : ''}.`;
+  const one = s.hands.length === 1, h0 = s.hands[0];
+  const VERB = { win: 'wins', lose: 'loses', bust: 'busts', push: 'pushes', blackjack: 'wins', surrender: 'surrenders' };
+  // with more than one hand, what each did: "Hand 1 pushes, hand 2 busts."
+  const each = one ? '' : `${s.hands.map((h, i) => `${i ? 'hand' : 'Hand'} ${i + 1} ${VERB[h.result]}`).join(', ')}.`;
+  const lostIns = s.insurance > 0 && !o.dealerBJ;
+  if (o.natural && !o.dealerBJ) line = `Blackjack! That pays ${cage.fmt(h0.pay - h0.bet)}${kept ? ', and the half chip’s kept for your next one' : before ? ', with the half chip kept from before' : ''}.`;
   else if (s.hands[0].surrendered) line = `You surrender: half your bet${before ? ' comes back' : ''}, ${cage.fmt(o.back)}${before ? ' with the half chip kept from before.' : `, comes back${kept ? ', and the half chip’s kept for later' : ''}.`}`;
-  else if (net > 0) line = `${dealerLine} You win ${cage.fmt(net)}.`;
-  else if (net === 0) line = `${dealerLine} Push: your bet comes back.`;
-  else if (o.back > 0) line = `${dealerLine} You get ${cage.fmt(o.back)} back.`;
-  else line = `${dealerLine} The house takes it.`;
+  else if (one && h0.result === 'bust') line = `Bust with ${g.total(h0.cards).total}. The house takes it.`;
+  else if (net > 0) line = `${dealerLine} ${each} You win ${cage.fmt(net)}.`;
+  else if (net === 0) line = one && !o.insurance ? `${dealerLine} Push: your bet comes back.` : `${dealerLine} ${each} Even.`;
+  // some came back and more didn't: say what each did and where it leaves you, so it can't read like a push
+  else if (o.back > 0) line = `${dealerLine} ${one ? `Your hand ${VERB[h0.result]}.` : each} ${netLine(o.wagered, o.back)}`;
+  else line = `${dealerLine} ${each} The house takes it.`;
+  if (lostIns) line = `No blackjack: the insurance loses. ${line}`;
   if (o.insurance) line = `Insurance pays ${cage.fmt(o.insurance)}. ${line}`;
-  table.say(line.trim(), net > 0 ? 'win' : net < 0 ? 'lose' : '');
+  table.say(line.replace(/ {2,}/g, ' ').trim(), net > 0 ? 'win' : net < 0 ? 'lose' : '');
   if (net > 0) { sound.chips(5); sound.win(o.natural ? 3 : net >= o.wagered * 2 ? 2 : 1); float($('hands'), `+${cage.fmt(net)}`); }
   else if (net < 0) sound.lose(); else sound.push();
 }

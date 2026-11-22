@@ -8,7 +8,7 @@ import * as records from '../../shared/records.js';
 import * as sound from '../../shared/sound.js';
 import { cardEl, turn, dealInto } from '../../shared/cards.js';
 import { rack as makeRack, setStack } from '../../shared/chips.js';
-import { mountTable, float, wait } from '../../shared/table.js';
+import { mountTable, float, wait, netLine } from '../../shared/table.js';
 import { byId } from '../../shared/tables.js';
 import * as seat from '../../shared/seat.js';
 import { guardEdges } from '../../shared/edge-guard.js';
@@ -18,6 +18,8 @@ const SQUEEZE = 'house-money.baccarat.squeeze';
 const T = byId('baccarat');
 const $ = id => document.getElementById(id);
 const NAME = { P: 'Player', B: 'Banker', T: 'Tie' };
+const SPOT_NAMES = [['player', 'Player bet'], ['banker', 'Banker bet'], ['tie', 'Tie'], ['pp', 'Player pair'], ['bp', 'Banker pair']];
+let toldCommission = false;   // the commission is explained once a visit, on the first Banker win
 
 let s = load();
 // the bets on the layout, until the coup is settled and paid
@@ -322,10 +324,22 @@ async function payout() {
   const hi = Math.max(c.pt, c.bt), lo = Math.min(c.pt, c.bt);
   let line = c.winner === 'T' ? `Tie at ${c.pt}.` : `${NAME[c.winner]} wins, ${hi} to ${lo}.`;
   if (c.pPair || c.bPair) line += c.pPair && c.bPair ? ' A pair on both sides.' : c.pPair ? ' A Player pair.' : ' A Banker pair.';
-  if (net > 0) line += ` You win ${cage.fmt(net)}.`;
+  // each bet, when some won and others didn't: "The Banker bet wins 24; the Tie loses 25. Down 1."
+  const bets = SPOT_NAMES.filter(([k]) => s.bets[k] > 0);
+  const each = bets.map(([k, name], i) => {
+    const won = o.pay[k] - s.bets[k], the = i ? 'the' : 'The';
+    return won > 0 ? `${the} ${name} wins ${cage.fmt(won)}` : won === 0 ? `${the} ${name} comes back` : `${the} ${name} loses ${cage.fmt(s.bets[k])}`;
+  });
+  const mixed = bets.length > 1 && o.back > 0 && bets.some(([k]) => o.pay[k] < s.bets[k]);
+  if (mixed) line += ` ${each.join('; ')}. ${netLine(o.wagered, o.back)}`;
+  else if (net > 0) line += ` You win ${cage.fmt(net)}.`;
   else if (net === 0 && o.back) line += ' Your bets come back.';
-  else if (o.back) line += ` ${cage.fmt(o.back)} comes back.`;
   else line += ' The house takes it.';
+  // the Banker's commission, the first time a Banker bet wins on this visit
+  if (c.winner === 'B' && s.bets.banker > 0 && !toldCommission) {
+    toldCommission = true;
+    line += ' The Banker pays 19 to 20: even money less the house’s 5%, with any fraction of a chip kept toward your next Banker win.';
+  }
   table.say(line, net > 0 ? 'win' : net < 0 ? 'lose' : '');
   if (net > 0) { sound.chips(5); sound.win(net >= o.wagered * 3 ? 3 : net >= o.wagered ? 2 : 1); float($('layout'), `+${cage.fmt(net)}`); }
   else if (net < 0) sound.lose(); else sound.push();

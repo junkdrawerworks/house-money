@@ -10,6 +10,7 @@
 //   t.say('Dealer has 20.')       a line from the dealer
 //   t.limits()                    { min, max } on your card
 //   t.check()                     shows or hides the stake offer (call after a round settles)
+//   netLine(20, 10, 'on the spin') "Down 10 on the spin." for a result line
 
 import * as cage from './cage.js';
 import * as sound from './sound.js';
@@ -203,6 +204,14 @@ export const names = (list, up = '../') => {
 // Where the chips are while the cage holds back its stake: "15 still out on Craps." (list: from cage.out())
 export const outLine = (list, up = '../') =>
   `${cage.fmt(list.reduce((a, t) => a + t.felt, 0))} still out on ${names(list, up)}. The cage stakes you when nothing’s left out.`;
+
+// What a round came to, for the end of a result line where some bets came back and others didn't, so it can't read
+// like a push: "Down 10 on the spin.", "Up 15.", "Even." (wagered: chips bet; back: chips that came back, stakes
+// included; on: words after the amount)
+export function netLine(wagered, back, on = '') {
+  const n = back - wagered, at = on ? ` ${on}` : '';
+  return n > 0 ? `Up ${cage.fmt(n)}${at}.` : n < 0 ? `Down ${cage.fmt(-n)}${at}.` : `Even${at}.`;
+}
 
 // A brief flash of the amount won over an element: "+250".
 export function float(over, text, kind = 'win') {

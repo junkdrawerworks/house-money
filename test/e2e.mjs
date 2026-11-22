@@ -242,6 +242,52 @@ if (cageWants('roulette')) {
   }
 }
 
+// Result lines that say what happened when some bets came back and more didn't, so they can't read like a push.
+if (cageWants('roulette')) {
+  // 5 on red and 10 on the 3rd dozen, and the ball in the 1: red wins 5, and the spin is down 5
+  const { p, ctx } = await sit('roulette/?fast&seen', { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 } }, { f: 1.5 / 2 ** 32 });
+  await p.click('#rack .c5'); await p.click('[data-k="red"]');
+  await p.click('[data-k="d3"]'); await p.click('[data-k="d3"]');
+  await p.click('#spin');
+  await until(async () => /^1 red\./.test((await p.textContent('#say')).trim()), 8000, 'Roulette: the spin never said where the ball landed');
+  assert.equal((await p.textContent('#say')).trim(), '1 red. Red wins 5. Down 5 on the spin.');
+  await ctx.close();
+}
+if (cageWants('blackjack')) {
+  const C = (r, s = 'c') => ({ r, s });
+  // dealt from the end of the shoe: your first card, the dealer's up card, your second, the hole card, then the rest
+  const deal = cards => Array(150).fill(C(2)).concat([...cards].reverse());
+  for (const [what, cards, moves, said] of [
+    ['a bust', [C(10), C(10, 'd'), C(6), C(7), C(10, 'h')], ['#hit'], 'Bust with 26. The house takes it.'],
+    ['a split that pushes and busts', [C(8), C(10), C(8, 'd'), C(8, 'h'), C(10, 'h'), C(6), C(10, 's')], ['#split', '#stand', '#hit'], 'Dealer has 18. Hand 1 pushes, hand 2 busts. Down 25.'],
+    ['a surrender', [C(10), C(10, 'd'), C(6), C(9)], ['#surrender'], 'You surrender: half your bet, 12, comes back, and the half chip’s kept for later.'],
+  ]) {
+    const { p, ctx } = await sit('blackjack/?fast&seen', { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 },
+      blackjack: { shoe: deal(cards), phase: 'bet', bet: 0, last: 0, hands: [], active: 0, dealer: [], hole: true, insurance: 0, felt: 0, carry: 0 } });
+    await p.click('#rack .c25'); await p.click('#spot'); await p.click('#deal');
+    for (const m of moves) { await p.waitForSelector(`${m}:not([disabled]):not([hidden])`); await p.click(m); }
+    await p.waitForSelector('#doneActions:not([hidden])');
+    assert.equal((await p.textContent('#say')).trim(), said, `Blackjack, ${what}`);
+    await ctx.close();
+  }
+}
+if (cageWants('baccarat')) {
+  // 25 on the Banker and 25 on the Tie, and the Banker's natural 9 against the Player's 3: the Banker bet wins 23,
+  // the Tie loses 25, and the commission is explained the first time
+  const C = (r, s = 'c') => ({ r, s });
+  const shoe = Array(100).fill(C(2)).concat([C(10, 'h'), C(10), C(9), C(3)]);
+  const { p, ctx } = await sit('baccarat/?fast&seen', { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 },
+    baccarat: { shoe, phase: 'bet', bets: { player: 0, banker: 0, tie: 0, pp: 0, bp: 0 }, last: null, coup: null, stage: 0, turned: [], road: [], carry: 0, felt: 0 } });
+  await p.click('#rack .c25'); await p.click('.spot[data-bet="banker"]'); await p.click('.spot[data-bet="tie"]');
+  await p.click('#deal');
+  await until(async () => {
+    if (await p.isVisible('#reveal') && await p.isEnabled('#reveal')) await p.click('#reveal').catch(() => {});
+    return p.isVisible('#doneActions');
+  }, 8000, 'Baccarat: the coup never finished');
+  assert.equal((await p.textContent('#say')).trim(), 'Banker wins, 9 to 3. The Banker bet wins 23; the Tie loses 25. Down 2. The Banker pays 19 to 20: even money less the house’s 5%, with any fraction of a chip kept toward your next Banker win.');
+  await ctx.close();
+}
+
 // Three tabs in one browser: Blackjack, Roulette and the floor. The last 100 goes down at Blackjack, then loses.
 // The other two follow along: no offer while it's on the felt, and the offer, with the rack dimmed, once it's gone.
 if (cageWants('blackjack', 'roulette', 'floor')) {

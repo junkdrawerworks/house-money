@@ -8,7 +8,7 @@ import * as cage from '../../shared/cage.js';
 import * as records from '../../shared/records.js';
 import * as sound from '../../shared/sound.js';
 import { rack as makeRack, stackEl } from '../../shared/chips.js';
-import { mountTable, float, wait, fast } from '../../shared/table.js';
+import { mountTable, float, wait, fast, netLine } from '../../shared/table.js';
 import { byId } from '../../shared/tables.js';
 import * as seat from '../../shared/seat.js';
 import { guardEdges } from '../../shared/edge-guard.js';
@@ -490,7 +490,13 @@ async function reveal() {
   const net = sp.back - sp.wagered;
   const name = n === 0 ? 'Zero' : `${n} ${col}`;
   if (net > 0) { table.say(`${name}. You win ${cage.fmt(net)}.`, 'win'); sound.win(net >= sp.wagered * 5 ? 3 : net >= sp.wagered ? 2 : 1); }
-  else if (sp.back > 0) { table.say(`${name}. You get ${cage.fmt(sp.back)} back.`); sound.push(); }
+  else if (sp.back > 0) {
+    // some won, more lost: what won, and where that leaves the spin
+    const won = res.wins.reduce((a, w) => a + w.pay, 0);
+    const what = res.wins.length === 1 ? cap(R.label(res.wins[0].key)) : res.wins.length === 2 ? `${cap(R.label(res.wins[0].key))} and ${R.label(res.wins[1].key)}` : `${res.wins.length} bets`;
+    table.say(`${name}. ${what} ${res.wins.length === 1 ? 'wins' : 'win'} ${cage.fmt(won)}. ${netLine(sp.wagered, sp.back, 'on the spin')}`, net < 0 ? 'lose' : '');
+    sound.push();
+  }
   else { table.say(`${name}. ${n === 0 ? 'The zero sweeps the table.' : 'The house sweeps the table.'}`, 'lose'); sound.lose(); }
   await wait(1500);
   // the winners go home to the rack
