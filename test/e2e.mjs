@@ -1799,6 +1799,19 @@ if (cageWants('floor', 'records', ...IDS)) {
   await ctx.close();
 }
 
+// No sideways scroll on a laptop or a tablet either: the floor, Records and every table at 1280x800 and 768x1024.
+if (cageWants('floor', 'records', ...IDS)) {
+  for (const viewport of [{ width: 1280, height: 800 }, { width: 768, height: 1024 }]) {
+    const { p, ctx } = await sit('?seen', { cage: { chips: 345678, wagered: 3000, high: 345678, stakes: 1 } }, { size: { viewport } });
+    for (const path of ['', 'records/', ...IDS.map(id => `${id}/`)]) {
+      if (!cageWants(path.replace('/', '') || 'floor')) continue;
+      await p.goto(`${base}${path}?seen`); await p.waitForTimeout(300);
+      assert.equal(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${path || 'the floor'} scrolls sideways at ${viewport.width}x${viewport.height}`);
+    }
+    await ctx.close();
+  }
+}
+
 // The copy for the Artifact viewer (tools/artifact.mjs): built into a folder of its own and served as it is, the floor
 // and every table open with no errors, the floor keeps its look (its body's class) whether or not the viewer wraps the
 // page in a <body>, and no link names a folder ('blackjack/'), which the viewer can't open.
