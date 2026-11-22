@@ -208,6 +208,40 @@ if (cageWants('floor')) {
   }
 }
 
+// The limits a card gives, said the way each table takes bets: Video Poker's are five coins of up to the limit, and
+// Cherry Bell's three coins come to no more than it, so the top of each line is the biggest bet you can actually make.
+if (cageWants('floor', 'video-poker', 'cherry-bell')) {
+  const want = { red: { vp: ['Bets 1 to 500 (five coins of up to 100) on your Red card.', 'Bets 1–500'], cb: ['Bets 1 to 75 on your Red card.', 'Bets 1–75'] },
+    gold: { vp: ['Bets 1 to 2,500 (five coins of up to 500) on your Gold card.', 'Bets 1–2,500'], cb: ['Bets 1 to 300 on your Gold card.', 'Bets 1–300'] } };
+  for (const [card, wagered] of [['red', 0], ['gold', 50000]]) {
+    const { p, ctx } = await sit('?seen', { cage: { chips: 1000, wagered, high: 1000, stakes: 1 } });
+    const lim = id => p.textContent(`#at-${id} [data-lim]`);
+    assert.deepEqual([await lim('video-poker'), await lim('cherry-bell')], [want[card].vp[1], want[card].cb[1]], `the floor: the machines' limits on a ${card} card`);
+    for (const [id, k] of [['video-poker', 'vp'], ['cherry-bell', 'cb']]) {
+      await p.goto(`${base}${id}/?fast&seen`); await p.waitForTimeout(300);
+      await p.click('.menu-btn');
+      assert.equal((await p.textContent('#limits')).trim(), want[card][k][0], `${id}: the limits in the menu on a ${card} card`);
+    }
+    await ctx.close();
+  }
+}
+// A Silver card doubles roulette's limit: 525 on red goes down, and a bet of 1,025 is refused, saying the most is 1,000.
+if (cageWants('roulette')) {
+  const { p, ctx } = await sit('roulette/?fast&seen', { cage: { chips: 2000, wagered: 10015, high: 2000, stakes: 1 } });
+  const onRed = () => p.evaluate(() => JSON.parse(localStorage.getItem('house-money.roulette'))?.bets?.red || 0);
+  await p.click('#rack .c500'); await p.click('[data-k="red"]');
+  await p.click('#rack .c25'); await p.click('[data-k="red"]');
+  assert.equal(await onRed(), 525, 'Roulette: 525 on red refused on a Silver card');
+  await p.click('#undo');
+  await p.click('#rack .c500'); await p.click('[data-k="red"]');
+  assert.equal(await onRed(), 1000, 'Roulette: 1,000 on red refused on a Silver card');
+  await p.click('#rack .c25'); await p.click('[data-k="red"]');
+  assert.equal(await onRed(), 1000, 'Roulette: 1,025 on red taken on a Silver card');
+  assert.equal((await p.textContent('#say')).trim(), 'The most on one bet is 1,000.');
+  assert.equal((await cageOf(p)).chips, 1000);
+  await ctx.close();
+}
+
 // Down to 7 chips at every table: the offer is up, with the count, and every control is still there to tap.
 for (const t of TABLES) {
   if (!cageWants(t.id)) continue;

@@ -14,7 +14,7 @@ import { guardEdges } from '../../shared/edge-guard.js';
 const T = byId(M.ID);
 const $ = id => document.getElementById(id);
 const pct = n => `${n.toFixed(1)}%`;
-const COIN_SIZES = [1, 5, 10, 25, 50, 100, 250, 500];
+const COIN_SIZES = T.coins;
 
 const keep = keeper(M.ID, { coins: 3, coin: 1 });
 const s = keep.state;

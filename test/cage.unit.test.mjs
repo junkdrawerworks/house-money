@@ -128,6 +128,41 @@ test('the player\'s card: the tiers turn over exactly at 10,000, 50,000 and 250,
   assert.equal(cage.maxBet(500), 2500);
 });
 
+// The top of 'Bets 1 to 500' in a table's menu and on its floor tile is the most its controls let one bet come to. At
+// Video Poker that's five coins, each coin up to the limit; at Cherry Bell three coins, all three within the limit;
+// everywhere else, the limit. The machines' rules are read from their pages, so a change there shows up here.
+test('every table\'s stated top bet is what its coins and controls allow, on every card', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const src = id => readFile(new URL(`../${id}/js/app.js`, import.meta.url), 'utf8');
+  const { topBet, byId } = await import('../shared/tables.js');
+  // the rules as the pages have them: the coin list from tables.js, the coin limited by the card, the coins a bet takes
+  assert.match(await src('video-poker'), /values: T\.coins,/);
+  assert.match(await src('video-poker'), /rack\.limit\(Math\.min\(max, c\.chips\)\)/);
+  assert.match(await src('video-poker'), /s\.coins = s\.coins >= 5 \? 1 : s\.coins \+ 1/);
+  assert.match(await src('cherry-bell'), /const COIN_SIZES = T\.coins;/);
+  assert.match(await src('cherry-bell'), /COIN_SIZES\.filter\(v => v \* 3 <= max\)/);
+  const rule = {
+    'video-poker': lim => Math.max(...byId('video-poker').coins.filter(c => c <= lim).map(c => 5 * c)),
+    'cherry-bell': lim => Math.max(...byId('cherry-bell').coins.filter(c => c * 3 <= lim).map(c => 3 * c)),
+  };
+  const seen = {};
+  for (const tier of cage.TIERS) {
+    fresh();
+    set({ chips: 100, wagered: tier.at });
+    for (const t of TABLES) {
+      const lim = cage.maxBet(t.max), allowed = rule[t.id] ? rule[t.id](lim) : lim;
+      assert.equal(topBet(t, lim), allowed, `${t.name} on a ${tier.name} card`);
+      (seen[t.id] ||= []).push(allowed);
+    }
+  }
+  // Red, Silver, Gold, Black
+  assert.deepEqual(seen['video-poker'], [500, 500, 2500, 2500]);
+  assert.deepEqual(seen['cherry-bell'], [75, 150, 300, 750]);
+  assert.deepEqual(seen.roulette, [500, 1000, 2500, 5000]);
+  assert.equal(byId('video-poker').coinsLine(100), 'five coins of up to 100');
+  assert.equal(byId('video-poker').coinsLine(1000), 'five coins of up to 500');
+});
+
 test('a slot machine counts the chips in a spin as out on the felt until the spin is paid', () => {
   fresh();
   set({ chips: 12 });

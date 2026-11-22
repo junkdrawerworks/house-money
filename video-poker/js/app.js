@@ -46,7 +46,7 @@ const table = mountTable({
   onCage: () => { if (!busy) paint(); },
 });
 
-const rack = makeRack($('rack'), { values: [1, 5, 25, 100, 500], key: 'house-money.video-poker.chip', onPick: v => { if (s && !inPlay()) { s.coin = v; save(); paintMeters(); } } });
+const rack = makeRack($('rack'), { values: T.coins, key: 'house-money.video-poker.chip', onPick: v => { if (s && !inPlay()) { s.coin = v; save(); paintMeters(); } } });
 let busy = false;
 
 function load() {

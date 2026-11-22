@@ -4,7 +4,7 @@
 import * as cage from '../shared/cage.js';
 import * as records from '../shared/records.js';
 import * as sound from '../shared/sound.js';
-import { TABLES, units } from '../shared/tables.js';
+import { TABLES, units, topBet } from '../shared/tables.js';
 import { outLine, elsewhereLine } from '../shared/table.js';
 import { drive } from '../shared/sync.js';
 
@@ -58,7 +58,7 @@ function stats() {
     const rec = r.rounds ? `${units(t, r.rounds)} · ${r.net >= 0 ? 'up' : 'down'} ${fmt(Math.abs(r.net))}${r.best > 0 ? ` · best win ${fmt(r.best)}` : ''}` : '';
     el.innerHTML = w ? `<b class="waiting">${w}</b>${rec ? ` · ${rec}` : ''}` : rec || 'Not played yet';
     el.classList.toggle('up', !w && r.net > 0);
-    document.querySelector(`#at-${t.id} [data-lim]`).textContent = `Bets ${fmt(t.min)}–${fmt(cage.maxBet(t.max))}`;
+    document.querySelector(`#at-${t.id} [data-lim]`).textContent = `Bets ${fmt(t.min)}–${fmt(topBet(t, cage.maxBet(t.max)))}`;
   }
 }
 

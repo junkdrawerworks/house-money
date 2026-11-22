@@ -16,7 +16,7 @@
 
 import * as cage from './cage.js';
 import * as sound from './sound.js';
-import { TABLES } from './tables.js';
+import { TABLES, topBet } from './tables.js';
 import { sit } from './seat.js';
 import { drive } from './sync.js';
 
@@ -108,9 +108,12 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
   }
 
   function limits() { return { min, max: cage.maxBet(max) }; }
+  // the most one bet can come to here: the limit, or what the machine's coins allow within it
+  const me = TABLES.find(t => t.id === id);
+  const top = () => topBet(me, limits().max);
   function limitsLine() {
-    const t = cage.tier();
-    sheet.querySelector('#limits').textContent = `Bets ${cage.fmt(min)} to ${cage.fmt(limits().max)} on your ${t.name} card.`;
+    const t = cage.tier(), how = me?.coinsLine ? ` (${me.coinsLine(limits().max)})` : '';
+    sheet.querySelector('#limits').textContent = `Bets ${cage.fmt(min)} to ${cage.fmt(top())}${how} on your ${t.name} card.`;
   }
 
   const soundBtn = sheet.querySelector('[data-act="sound"]');
@@ -191,7 +194,7 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
     const p = bar.querySelector('.purse');
     p.style.setProperty('--tier', { silver: '#d9dde3', gold: '#f2c33a', black: '#ffffff' }[t.id] || '#f5dc93');
     p.classList.remove('tier-up'); void p.offsetWidth; p.classList.add('tier-up');
-    return `Your player’s card goes ${t.name}: bets up to ${cage.fmt(limits().max)} here now, and ${times} the limits at every table.`;
+    return `Your player’s card goes ${t.name}: bets up to ${cage.fmt(top())} here now, and ${times} the limits at every table.`;
   }
   let held = '';
   function hold(text = '') {
@@ -228,7 +231,6 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
     const away = cage.out(here()), there = cage.elsewhere();
     const short = n < min;
     if (!short && !(n < cage.LOW && (away.length || there.length))) return '';
-    const me = TABLES.find(t => t.id === id);
     const parts = [];
     if (short && !n) parts.push('Your rack is empty.');
     else if (short) parts.push(me?.slot ?`${name} takes ${cage.fmt(min)} a spin and you have ${cage.fmt(n)}.` : `The smallest bet at ${name} is ${cage.fmt(min)}, and you have ${cage.fmt(n)}.`);
