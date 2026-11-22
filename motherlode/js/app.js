@@ -83,6 +83,8 @@ function paint() {
   // while Auto runs, the button says what a tap on it does now
   $('auto').textContent = auto ? 'Stop' : 'Auto';
   $('auto').classList.toggle('on', auto);
+  // like Spin, off when the chips won't cover the bet and no free spins are running (but a running Auto can always stop)
+  $('auto').disabled = !auto && !inFree && s.bet > chips;
   table.hold(spinning || inFree ? '' : overLine(s.bet, chips, 20, 'Bet less to keep playing.'));
   $('free').hidden = !inFree;
   document.body.classList.toggle('freeplay', inFree);

@@ -666,6 +666,7 @@ if (cageWants('motherlode')) {
   await ctx.close();
   const free = await sit('motherlode/?seen', { cage: { chips: 15, wagered: 985, high: 1000, stakes: 1 }, motherlode: { bet: 20, free: { left: 8, total: 8, sticky: [], won: 0, bet: 20 } } });
   assert.equal(await free.p.isVisible('.cage-note'), false, 'Motherlode: the note showed in the free spins');
+  assert.equal(await free.p.isDisabled('#auto'), false, 'Motherlode: Auto dimmed in the free spins at 15 chips');
   await free.ctx.close();
 }
 
@@ -698,6 +699,8 @@ if (cageWants('motherlode')) {
   assert.deepEqual(await p.evaluate(() => window.__auto.filter((t, i, a) => t !== a[i - 1])), ['Stop', 'Auto'], 'Motherlode: Auto running doesn\'t say a tap stops it');
   assert.equal((await p.textContent('#say')).trim(), 'Auto stopped: not enough chips for a 20 bet.', 'Motherlode: Auto stopped without a word');
   assert.equal((await cageOf(p)).chips, 10);
+  // and like Spin, Auto dims while the chips won't cover the bet
+  assert.deepEqual([await p.isDisabled('#spin'), await p.isDisabled('#auto')], [true, true], 'Motherlode: Auto lit with 10 chips against a 20 bet');
   await ctx.close();
 }
 
