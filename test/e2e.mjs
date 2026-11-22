@@ -445,10 +445,21 @@ if (cageWants('blackjack')) {
     const { p, ctx } = await sit('blackjack/?fast&seen', { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 },
       blackjack: { shoe: deal(cards), phase: 'bet', bet: 0, last: 0, hands: [], active: 0, dealer: [], hole: true, insurance: 0, felt: 0, carry: 0 } });
     await p.click('#rack .c25'); await p.click('#spot');
+    // every card that flies in, in the order it was sent and with its delay
+    await p.evaluate(() => {
+      window.__dealt = [];
+      const was = Element.prototype.animate;
+      Element.prototype.animate = function (k, o) {
+        if (this.classList.contains('card') && o?.delay !== undefined) window.__dealt.push([this.closest('#dealerRow') ? 'dealer' : 'you', o.delay]);
+        return was.call(this, k, o);
+      };
+    });
     await p.click('#deal');
     for (const m of moves) { await p.waitForSelector(`${m}:not([disabled]):not([hidden])`); await p.click(m); }
     await p.waitForSelector('#doneActions:not([hidden])');
     assert.equal((await p.textContent('#say')).trim(), said, `Blackjack, ${what}`);
+    // the opening deal goes one card at a time, round the table: you, the dealer, you, the hole card
+    assert.deepEqual((await p.evaluate(() => window.__dealt)).slice(0, 4), [['you', 0], ['dealer', 140], ['you', 280], ['dealer', 420]], `Blackjack, ${what}: the opening deal's order`);
     assert.deepEqual(await stacks(p), chips, `Blackjack, ${what}: the chips on the felt after the round`);
     // a reload after the result pays nothing again, and the chips still show what came back
     const paid = (await cageOf(p)).chips;

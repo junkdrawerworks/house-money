@@ -78,27 +78,39 @@ const handEls = new Map(); // hand id → element
 
 // Each card on screen carries the card it shows (data-c, 'As'), so the row can be checked against the hand card by
 // card: from the first one that doesn't match (a split takes the second card away and deals a new one in its place),
-// the rest are taken off and dealt in again from the shoe.
+// the rest are taken off and dealt in again from the shoe. The cards to deal are handed back, not dealt: paintCards
+// deals every row's together, in the order a dealer goes round the table.
 const tag = c => `${c.r}${c.s}`;
 function syncRow(row, cards, { hole = false, size } = {}) {
   if (size) row.style.setProperty('--size', `${size}px`);
   let keep = 0;
   while (keep < cards.length && row.children[keep]?.dataset.c === tag(cards[keep])) keep++;
   while (row.children.length > keep) row.lastElementChild.remove();
-  const jobs = [];
+  const fresh = [];
   cards.forEach((c, i) => {
     const down = hole && i === 1;
-    let el = row.children[i];
+    const el = row.children[i];
     if (!el) {
-      el = cardEl(c, { down });
-      el.dataset.c = tag(c);
-      jobs.push(dealInto(row, el, { from: $('shoe').getBoundingClientRect(), delay: jobs.length * 140 }));
-      sound.card();
+      const n = cardEl(c, { down });
+      n.dataset.c = tag(c);
+      fresh.push({ row, el: n, i });
     } else if (el.classList.contains('down') && !down) {
       turn(el, c); sound.flip();
     }
   });
-  return Promise.all(jobs);
+  return fresh;
+}
+
+// Deals the new cards one at a time, 140 ms apart, each with its own swish: round by round, every hand before the
+// dealer, so the opening deal goes your first card, the dealer's up card, your second, the hole card.
+const DEAL_GAP = 140;
+function dealOut(hands, dealer) {
+  const from = $('shoe').getBoundingClientRect();
+  const order = [...hands, ...dealer].sort((a, b) => a.i - b.i); // stable: hands first within a round
+  return Promise.all(order.map(({ row, el }, n) => {
+    sound.card({ at: n * DEAL_GAP / 1000 });
+    return dealInto(row, el, { from, delay: n * DEAL_GAP });
+  }));
 }
 
 // What a hand's chips look like: its bet while it's in play, and once the round is over, what it returns (h.pay):
@@ -131,8 +143,8 @@ function totText(cards, one = true) {
 }
 
 async function paintCards() {
-  const jobs = [];
-  jobs.push(syncRow(dealerRow, s.dealer, { hole: s.hole, size: Math.round(cardSize() / (s.hands.length <= 1 ? 1 : s.hands.length === 2 ? .8 : .62)) }));
+  const dealt = [];
+  const dealerNew = syncRow(dealerRow, s.dealer, { hole: s.hole, size: Math.round(cardSize() / (s.hands.length <= 1 ? 1 : s.hands.length === 2 ? .8 : .62)) });
   const dt = $('dealerTot');
   if (s.dealer.length) {
     const shown = s.hole ? [s.dealer[0]] : s.dealer;
@@ -157,7 +169,7 @@ async function paintCards() {
     if (handsEl.children[i] !== el) handsEl.insertBefore(el, handsEl.children[i] || null);
     el.classList.toggle('active', s.phase === 'play' && i === s.active && s.hands.length > 1);
     el.setAttribute('aria-label', `Hand ${i + 1}`);
-    jobs.push(syncRow(el.querySelector('.row'), h.cards, { size }));
+    dealt.push(...syncRow(el.querySelector('.row'), h.cards, { size }));
     const tot = el.querySelector('.tot');
     tot.textContent = totText(h.cards, s.hands.length === 1);
     tot.classList.toggle('bust', g.total(h.cards).total > 21);
@@ -170,7 +182,7 @@ async function paintCards() {
       res.textContent = { win: 'Win', lose: 'Lose', bust: 'Bust', push: 'Push', blackjack: 'Blackjack', surrender: 'Surrendered' }[h.result];
     } else if (res) res.remove();
   });
-  return Promise.all(jobs);
+  return dealOut(dealt, dealerNew);
 }
 
 function paint() {

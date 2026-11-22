@@ -51,8 +51,8 @@ function tone({ freq = 440, dur = .15, type = 'sine', gain = .15, at = 0, slide 
 export const chip = () => { burst({ dur: .035, freq: 4200, q: 3, gain: .35 }); burst({ dur: .03, freq: 3100, q: 4, gain: .2, at: .035 }); };
 // A stack of chips pushed across.
 export const chips = (n = 4) => { for (let i = 0; i < n; i++) burst({ dur: .03, freq: 3200 + Math.random() * 1600, q: 3, gain: .22, at: i * .045 + Math.random() * .01 }); };
-// A card sliding off the shoe.
-export const card = () => burst({ dur: .09, freq: 1800, q: .7, gain: .25, type: 'highpass' });
+// A card sliding off the shoe (`at`: seconds from now, for a card dealt after others).
+export const card = ({ at = 0 } = {}) => burst({ dur: .09, freq: 1800, q: .7, gain: .25, type: 'highpass', at });
 // A card turned over.
 export const flip = () => burst({ dur: .05, freq: 2600, q: 1.2, gain: .25 });
 // Dice hitting the back wall and tumbling.
