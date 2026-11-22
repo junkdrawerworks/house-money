@@ -40,6 +40,8 @@ const table = mountTable({
     <ul>
       <li>Six decks, shuffled when the cut card comes out, about three quarters of the way through.</li>
       <li>Blackjack (an ace and a ten-card as your first two) pays 3 to 2. A win pays even money.</li>
+      <li>No lost half chips: on an odd bet, the half chip a blackjack or a surrender owes you is kept and paid with
+      the next one. A blackjack on 25 pays 37 and keeps the half; the next pays 38.</li>
       <li>The dealer checks for blackjack under an ace or a ten, and stands on every 17, soft ones too.</li>
     </ul>
     <h3>The book</h3>
@@ -290,7 +292,9 @@ async function payout() {
   const d = g.total(s.dealer).total;
   const dealerLine = o.dealerBJ ? 'Dealer has blackjack.' : !g.dealerPlays(s) ? '' : d > 21 ? `Dealer busts with ${d}.` : `Dealer has ${d}.`;
   let line;
-  if (o.natural && !o.dealerBJ) line = `Blackjack! That pays ${cage.fmt(o.back - o.wagered)}.`;
+  const kept = o.half === 'kept', before = o.half === 'paid';
+  if (o.natural && !o.dealerBJ) line = `Blackjack! That pays ${cage.fmt(o.back - o.wagered)}${kept ? ', and the half chip’s kept for your next one' : before ? ', with the half chip kept from before' : ''}.`;
+  else if (s.hands[0].surrendered) line = `You surrender: half your bet${before ? ' comes back' : ''}, ${cage.fmt(o.back)}${before ? ' with the half chip kept from before.' : `, comes back${kept ? ', and the half chip’s kept for later' : ''}.`}`;
   else if (net > 0) line = `${dealerLine} You win ${cage.fmt(net)}.`;
   else if (net === 0) line = `${dealerLine} Push: your bet comes back.`;
   else if (o.back > 0) line = `${dealerLine} You get ${cage.fmt(o.back)} back.`;

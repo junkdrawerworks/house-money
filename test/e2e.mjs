@@ -398,6 +398,27 @@ if (cageWants('blackjack')) {
     assert.deepEqual([b.recs.blackjack?.rounds, b.recs.blackjack?.blackjacks], [1, 1], `Blackjack: Records lost the natural reloaded after ${ms} ms`);
     await ctx.close();
   }
+  // a natural on 25 with the half chip from an earlier one kept (carry 1), or none kept: the page closed before the
+  // payout pays it once, 38 or 37, and the half is used or kept just once
+  for (const [carry, won, after] of [[1, 38, 0], [0, 37, 1]]) {
+    for (const ms of [0, 100]) {
+      const { p, ctx } = await sit('blackjack/?seen', {
+        cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 },
+        blackjack: { shoe, phase: 'bet', bet: 0, last: 0, hands: [], active: 0, dealer: [], hole: true, insurance: 0, felt: 0, carry },
+      });
+      await p.click('#rack .c25'); await p.click('#spot');
+      await reloadAfter(p, '#deal', ms);
+      await until(async () => (await cageOf(p)).chips === 1000 + won, 4000, `Blackjack: the natural on 25 (half kept: ${carry}) was not paid ${won} after a reload ${ms} ms after the deal`);
+      const said = carry ? `Blackjack! That pays 38, with the half chip kept from before.` : `Blackjack! That pays 37, and the half chip’s kept for your next one.`;
+      await until(async () => (await p.textContent('#say')).trim() === said, 3000, `Blackjack: the natural on 25 didn't say "${said}"`);
+      await p.reload();
+      await p.waitForTimeout(400);
+      const b = await balanced(p, `Blackjack, a natural on 25 reloaded after ${ms} ms`);
+      const bj = await p.evaluate(() => JSON.parse(localStorage.getItem('house-money.blackjack')));
+      assert.deepEqual([b.chips, b.felt, bj.carry, b.recs.blackjack?.rounds], [1000 + won, 0, after, 1], `Blackjack: a natural on 25 with ${carry} half kept, reloaded after ${ms} ms`);
+      await ctx.close();
+    }
+  }
   // the dealer's ace with a king under it, insured: the hand loses 100, the 50 insurance pays 150 back
   const ace = Array(150).fill({ r: 2, s: 'c' }).concat([{ r: 13, s: 'c' }, { r: 9, s: 'h' }, { r: 1, s: 'd' }, { r: 10, s: 's' }]);
   for (const ms of [0, 100]) {

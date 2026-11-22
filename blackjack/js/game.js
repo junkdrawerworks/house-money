@@ -1,6 +1,8 @@
 // Blackjack's rules, with nothing on screen: six decks, dealer stands on all 17s, blackjack pays 3 to 2, double on any
 // first two cards and after a split, split up to four hands (split aces take one card each), late surrender,
 // insurance pays 2 to 1, and the dealer peeks under an ace or a ten for blackjack.
+// No lost half chips: on an odd bet, the half a blackjack or a surrender owes is kept (carry, in halves of a chip) and
+// paid with the next one, so 3 to 2 and half the bet back come out exact, the way baccarat keeps its twentieths.
 // The whole game is one plain object (state), saved after every move so a reload carries on mid-hand.
 
 import { shoe as makeShoe, rand } from '../../shared/cards.js';
@@ -22,7 +24,7 @@ export const isBJ = cards => cards.length === 2 && total(cards).total === 21;
 
 export function fresh(rng = rand) {
   return { shoe: makeShoe(DECKS, rng), phase: 'bet', bet: 0, last: 0, hands: [], active: 0, dealer: [], hole: true,
-    insurance: 0, shuffled: true };
+    insurance: 0, shuffled: true, carry: 0 };
 }
 
 function draw(s, rng = rand) {
@@ -155,8 +157,14 @@ export function dealerStep(s, rng = rand) {
 }
 
 // Every hand's result and what it pays back (bet included), and the insurance. Moves the state to 'done', not yet paid
-// (paid: false until the chips reach the rack).
+// (paid: false until the chips reach the rack). A blackjack or a surrender pays its whole chips and keeps any half in
+// carry, or finishes a chip with the half already kept (outcome.half: 'kept' or 'paid'). Settling the same round again
+// gives the same answer: it starts from the carry the round began with.
 export function settle(s) {
+  const carryIn = s.phase === 'done' && s.outcome && s.outcome.carryIn !== undefined ? s.outcome.carryIn : s.carry || 0;
+  let carry = carryIn;
+  // owed, in halves of a chip: whole chips now, and the odd half kept toward the next one
+  const halves = owed => { const t = owed + carry; carry = t % 2; return Math.floor(t / 2); };
   s.phase = 'done';
   s.paid = false;
   s.hole = false;
@@ -166,9 +174,9 @@ export function settle(s) {
   for (const h of s.hands) {
     const p = total(h.cards).total;
     let r, pay;
-    if (h.surrendered) { r = 'surrender'; pay = Math.floor(h.bet / 2); }
+    if (h.surrendered) { r = 'surrender'; pay = halves(h.bet); }
     else if (p > 21) { r = 'bust'; pay = 0; }
-    else if (natural && !dBJ) { r = 'blackjack'; pay = h.bet + Math.floor(h.bet * 3 / 2); }
+    else if (natural && !dBJ) { r = 'blackjack'; pay = h.bet + halves(h.bet * 3); }
     else if (dBJ) { r = natural ? 'push' : 'lose'; pay = natural ? h.bet : 0; }
     else if (dBust || p > d) { r = 'win'; pay = h.bet * 2; }
     else if (p === d) { r = 'push'; pay = h.bet; }
@@ -178,7 +186,9 @@ export function settle(s) {
   const ins = s.insurance ? (dBJ ? s.insurance * 3 : 0) : 0;
   back += ins;
   const wagered = s.hands.reduce((a, h) => a + h.bet, 0) + s.insurance;
-  s.outcome = { back, wagered, insurance: ins, dealerBJ: dBJ, natural };
+  s.carry = carry;
+  const half = carry > carryIn ? 'kept' : carry < carryIn ? 'paid' : null;
+  s.outcome = { back, wagered, insurance: ins, dealerBJ: dBJ, natural, half, carryIn };
   return s.outcome;
 }
 

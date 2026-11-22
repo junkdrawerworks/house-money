@@ -131,3 +131,74 @@ test('a dealer blackjack under an ace after insurance is settled as the dealer p
   assert.equal(s.phase, 'done');
   assert.deepEqual([s.outcome.back, s.outcome.wagered, s.outcome.dealerBJ, s.paid], [30, 30, true, false]);
 });
+
+// ---------- half chips: an odd bet's half is kept, never lost ----------
+// The next round in the same state, on a shoe that deals these cards.
+function again(s, cards, bet) {
+  g.clear(s);
+  s.shoe = Array(250).fill(C(2, 'c')).concat([...cards].reverse());
+  s.bet = bet;
+  g.deal(s);
+  return s;
+}
+const NATURAL = [C(1), C(9), C(13), C(8)];        // ace and king against 9 and 8
+const SIXTEEN = [C(10), C(10, 'h'), C(6), C(9)];  // 16 against a ten: surrender
+
+test('a natural on 25 pays 37 and keeps the half chip, and the next one pays 38', () => {
+  const s = again(g.fresh(() => 0.5), NATURAL, 25);
+  assert.equal(s.phase, 'done');
+  assert.deepEqual([s.outcome.back - 25, s.outcome.half, s.carry], [37, 'kept', 1]);
+  again(s, NATURAL, 25);
+  assert.deepEqual([s.outcome.back - 25, s.outcome.half, s.carry], [38, 'paid', 0]);
+  again(s, NATURAL, 100);
+  assert.deepEqual([s.outcome.back - 100, s.outcome.half, s.carry], [150, null, 0], 'an even bet has no half');
+});
+
+test('surrender on 25 gives back 12 and keeps the half chip, and the next gives 13', () => {
+  const s = again(g.fresh(() => 0.5), SIXTEEN, 25);
+  g.surrender(s);
+  let o = g.settle(s);
+  assert.deepEqual([o.back, o.half, s.carry], [12, 'kept', 1]);
+  again(s, SIXTEEN, 25); g.surrender(s); o = g.settle(s);
+  assert.deepEqual([o.back, o.half, s.carry], [13, 'paid', 0]);
+});
+
+test('on 15: a natural pays 22, then 23; a kept half finishes a surrender too', () => {
+  const s = again(g.fresh(() => 0.5), NATURAL, 15);
+  assert.deepEqual([s.outcome.back - 15, s.carry], [22, 1]);
+  again(s, NATURAL, 15);
+  assert.deepEqual([s.outcome.back - 15, s.carry], [23, 0]);
+  again(s, NATURAL, 15);
+  again(s, SIXTEEN, 15); g.surrender(s);
+  assert.deepEqual([g.settle(s).back, s.carry], [8, 0], 'half of 15 is 7 and a half, and the half kept from the natural makes 8');
+});
+
+test('settling a round twice pays it the same and keeps the half once', () => {
+  const s = again(g.fresh(() => 0.5), NATURAL, 25);
+  const first = s.outcome.back;
+  g.settle(s); g.settle(s);
+  assert.deepEqual([s.outcome.back, s.carry], [first, 1]);
+});
+
+test('the kept half survives a save and a reload, between rounds and in a round settled but not paid', () => {
+  const save = s => JSON.parse(JSON.stringify(s));
+  let s = save(again(g.fresh(() => 0.5), NATURAL, 25));
+  assert.equal(s.carry, 1);
+  s = save(again(s, NATURAL, 25));
+  assert.deepEqual([s.outcome.back, s.carry, s.phase], [63, 0, 'done'], 'the half kept before the reload finishes this one');
+  // a round settled, then reloaded and settled again (as a page that closed before the payout might): no second half
+  s = save(again(s, NATURAL, 25));
+  g.settle(s);
+  assert.deepEqual([s.outcome.back, s.carry], [62, 1]);
+});
+
+test('over many naturals on 25 the payout averages exactly 37.5, and insurance stays a whole chip', () => {
+  const s = g.fresh(() => 0.5);
+  let won = 0;
+  for (let i = 0; i < 1000; i++) { again(s, NATURAL, 25); won += s.outcome.back - 25; }
+  assert.equal(won, 37500);
+  assert.equal(s.carry, 0);
+  const ins = again(g.fresh(() => 0.5), [C(10), C(1), C(9), C(13)], 25);
+  g.insure(ins, 13);
+  assert.equal(ins.insurance, 12, 'insurance on 25 is capped at 12');
+});

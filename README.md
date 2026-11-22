@@ -42,6 +42,7 @@ Six decks, dealer stands on all 17s, blackjack pays 3 to 2.
 
 - **Bet** by picking a chip from the rack and tapping the circle. Clear picks the chips back up, Rebet puts down your last bet, and after a hand, Same bet deals again straight away.
 - **Hit, Stand, Double, Split, Surrender.** Double on any first two cards, and after a split. Split up to four hands; split aces get one card each. Late surrender gives back half the bet. Insurance is offered under a dealer's ace.
+- **No lost half chips.** On an odd bet, the half chip a blackjack or a surrender owes you is kept and paid with the next one: a blackjack on 25 pays 37 and keeps the half, and the next one pays 38. It's saved with the hand, so a reload neither pays it twice nor loses it.
 - **The dealer peeks** under an ace or a ten for blackjack, so you never lose a double or a split to a blackjack the dealer already had.
 - **Ask the book** says what basic strategy does with your hand against the dealer's card, and lights the button: "With soft 18 against a 9, the book says hit." Played by the book, this game gives the house about half a percent.
 - **The shoe** in the corner runs down as it's dealt, and a fresh one is shuffled once the cut card comes out, about three quarters of the way in.
