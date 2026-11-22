@@ -6,8 +6,10 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
 
 export async function go(page, base) {
   await page.goto(`${base}craps/?seen`);
-  await page.evaluate(() => {
-    localStorage.setItem('house-money.cage', JSON.stringify({ chips: 1720, wagered: 5400, high: 2100, stakes: 1 }));
+  await page.evaluate(async () => {
+    // the cage is kept one section per device (shared/ledger.js): this one's, from its totals
+    localStorage.setItem('house-money.device', 'd-shots');
+    localStorage.setItem('house-money.cage', JSON.stringify((await import('/shared/ledger.js')).cageFrom({ chips: 1720, wagered: 5400, high: 2100, stakes: 1 }, 'd-shots')));
     const bets = { pass: 25, passOdds: 100, come9: 25, comeOdds9: 50, dcome4: 10, place5: 25, place8: 30, hard8: 5 };
     localStorage.setItem('house-money.craps', JSON.stringify({
       point: 6, bets, felt: Object.values(bets).reduce((a, v) => a + v, 0), pending: 0, handRolls: 4,

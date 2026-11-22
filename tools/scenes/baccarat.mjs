@@ -10,8 +10,10 @@ export async function go(page, base) {
   // dealt in order: Player, Banker, Player, Banker, then the Banker's third (the Player stands on 7, the Banker draws on 5)
   const cards = [C(4, 'c'), C(13, 's'), C(3, 'd'), C(5, 'h'), C(3, 's')];
   const road = 'BBPBTPPPBBBBPBPPBTBBPPPBPBBBPTBP'.split('').map((w, i) => ({ w, pp: i === 6, bp: i === 19, p: 0, b: 0 }));
-  await page.evaluate(([cards, road]) => {
-    localStorage.setItem('house-money.cage', JSON.stringify({ chips: 2275, wagered: 18400, high: 3100, stakes: 1 }));
+  await page.evaluate(async ([cards, road]) => {
+    // the cage is kept one section per device (shared/ledger.js): this one's, from its totals
+    localStorage.setItem('house-money.device', 'd-shots');
+    localStorage.setItem('house-money.cage', JSON.stringify((await import('/shared/ledger.js')).cageFrom({ chips: 2275, wagered: 18400, high: 3100, stakes: 1 }, 'd-shots')));
     localStorage.setItem('house-money.baccarat.squeeze', 'on');
     localStorage.setItem('house-money.baccarat', JSON.stringify({
       shoe: Array(260).fill({ r: 10, s: 'c' }).concat(cards.reverse()),

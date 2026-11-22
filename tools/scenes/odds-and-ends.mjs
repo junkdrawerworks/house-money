@@ -8,8 +8,10 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
 export async function go(page, base) {
   await page.addInitScript(rig(aim([15, 0, 27])));   // keys across the middle, paper clips on the top and both diagonals
   await page.goto(`${base}odds-and-ends/?seen`);
-  await page.evaluate(() => {
-    localStorage.setItem('house-money.cage', JSON.stringify({ chips: 930, wagered: 3100, high: 1310, stakes: 1 }));
+  await page.evaluate(async () => {
+    // the cage is kept one section per device (shared/ledger.js): this one's, from its totals
+    localStorage.setItem('house-money.device', 'd-shots');
+    localStorage.setItem('house-money.cage', JSON.stringify((await import('/shared/ledger.js')).cageFrom({ chips: 930, wagered: 3100, high: 1310, stakes: 1 }, 'd-shots')));
     localStorage.setItem('house-money.odds-and-ends', JSON.stringify({ lines: 5, lineBet: 5, felt: 0 }));
   });
   await page.reload();

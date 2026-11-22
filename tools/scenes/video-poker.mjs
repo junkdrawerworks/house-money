@@ -7,8 +7,10 @@ export const tile = { w: 600, y: 218, vh: 900 };
 
 export async function go(page, base) {
   await page.goto(`${base}video-poker/?seen`);
-  await page.evaluate(([hand, deck]) => {
-    localStorage.setItem('house-money.cage', JSON.stringify({ chips: 1840, wagered: 9600, high: 2600, stakes: 1 }));
+  await page.evaluate(async ([hand, deck]) => {
+    // the cage is kept one section per device (shared/ledger.js): this one's, from its totals
+    localStorage.setItem('house-money.device', 'd-shots');
+    localStorage.setItem('house-money.cage', JSON.stringify((await import('/shared/ledger.js')).cageFrom({ chips: 1840, wagered: 9600, high: 2600, stakes: 1 }, 'd-shots')));
     localStorage.setItem('house-money.video-poker.chip', '5');
     localStorage.setItem('house-money.video-poker', JSON.stringify({
       phase: 'draw', coins: 5, coin: 5, hand, deck, held: [true, true, false, true, false], result: null, felt: 25,

@@ -13,8 +13,10 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
 export async function go(page, base) {
   await page.addInitScript(rig(aim([10, 8, 8])));   // bell, bell, bell
   await page.goto(`${base}cherry-bell/?seen`);
-  await page.evaluate(() => {
-    localStorage.setItem('house-money.cage', JSON.stringify({ chips: 1185, wagered: 4800, high: 1640, stakes: 1 }));
+  await page.evaluate(async () => {
+    // the cage is kept one section per device (shared/ledger.js): this one's, from its totals
+    localStorage.setItem('house-money.device', 'd-shots');
+    localStorage.setItem('house-money.cage', JSON.stringify((await import('/shared/ledger.js')).cageFrom({ chips: 1185, wagered: 4800, high: 1640, stakes: 1 }, 'd-shots')));
     localStorage.setItem('house-money.cherry-bell', JSON.stringify({ coins: 3, coin: 5, felt: 0 }));
   });
   await page.reload();

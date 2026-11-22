@@ -32,8 +32,10 @@ const SCENES = {
   blackjack: {
     async go(page) {
       await page.goto(`${base}blackjack/?seen`);
-      await page.evaluate(cards => {
-        localStorage.setItem('house-money.cage', JSON.stringify({ chips: 1450, wagered: 6200, high: 2300, stakes: 1 }));
+      await page.evaluate(async cards => {
+        // the cage is kept one section per device (shared/ledger.js): this one's, from its totals
+        localStorage.setItem('house-money.device', 'd-shots');
+        localStorage.setItem('house-money.cage', JSON.stringify((await import('/shared/ledger.js')).cageFrom({ chips: 1450, wagered: 6200, high: 2300, stakes: 1 }, 'd-shots')));
         localStorage.setItem('house-money.blackjack', JSON.stringify({ phase: 'bet', bet: 100, last: 100, felt: 100, hands: [], dealer: [], hole: true, insurance: 0, active: 0,
           shoe: Array(220).fill({ r: 2, s: 'c' }).concat(cards.reverse()) }));
       }, [C(1, 's'), C(9, 'h'), C(7, 'd'), C(10, 'c'), C(13, 'h'), C(10, 's')]);

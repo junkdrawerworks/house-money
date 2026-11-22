@@ -16,10 +16,12 @@ export async function go(page, base) {
     };
   });
   await page.goto(`${base}roulette/?seen`);
-  await page.evaluate(() => {
+  await page.evaluate(async () => {
     const bets = { n17: 25, 's17-20': 10, c13: 10, red: 50, d2: 25, st22: 5, n32: 5, 's8-11': 5, col1: 25, c26: 5, n0: 5 };
     const felt = Object.values(bets).reduce((a, b) => a + b, 0);
-    localStorage.setItem('house-money.cage', JSON.stringify({ chips: 1450, wagered: 8400, high: 2100, stakes: 1 }));
+    // the cage is kept one section per device (shared/ledger.js): this one's, from its totals
+    localStorage.setItem('house-money.device', 'd-shots');
+    localStorage.setItem('house-money.cage', JSON.stringify((await import('/shared/ledger.js')).cageFrom({ chips: 1450, wagered: 8400, high: 2100, stakes: 1 }, 'd-shots')));
     localStorage.setItem('house-money.roulette', JSON.stringify({
       bets, last: bets, undo: [], felt, spin: null,
       history: [32, 4, 19, 0, 26, 11, 7, 30, 23, 8, 15, 36, 2, 21],
