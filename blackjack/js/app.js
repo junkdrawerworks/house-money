@@ -34,8 +34,8 @@ const table = mountTable({
       double after splitting. Split aces get one card each.</li>
       <li><b>Surrender</b> gives up your first two cards for half your bet back.</li>
       <li><b>Insurance</b> is offered when the dealer shows an ace: a side bet of up to half your bet that pays 2 to 1
-      if the dealer has blackjack. With a blackjack of your own it’s <b>even money</b>: your bet won once over, whatever
-      the dealer has, instead of 3 to 2 if the dealer doesn’t have one too.</li>
+      if the dealer has blackjack. With a blackjack of your own on an even bet it’s <b>even money</b>: your bet won once
+      over, whatever the dealer has, instead of 3 to 2 if the dealer doesn’t have one too.</li>
     </ul>
     <h3>The house rules</h3>
     <ul>
@@ -180,8 +180,9 @@ function paint() {
   $('betHint').textContent = s.bet ? (s.bet < min ? `The minimum here is ${min}.` : '') : `Bets ${cage.fmt(min)} to ${cage.fmt(max)}`;
   if (p === 'insurance') {
     const half = Math.floor(s.hands[0].bet / 2);
-    // with a blackjack, insurance is even money: paid now whatever the dealer has (the same chips either way)
-    const bj = g.isBJ(s.hands[0].cards);
+    // with a blackjack on an even bet, insurance is even money: paid now whatever the dealer has (the same chips either
+    // way). On an odd bet the insurance is a chip short of half, so it stays plain insurance.
+    const bj = evenMoney();
     $('ins').textContent = bj ? 'Even money' : `Insure for ${cage.fmt(half)}`;
     $('noIns').textContent = bj ? 'Play it out' : 'No insurance';
     $('ins').disabled = busy || half < 1 || half > c.chips;
@@ -273,7 +274,10 @@ function deal() {
 $('deal').addEventListener('click', deal);
 
 // Whatever comes next after a move: the dealer's turn, the payout, or your next choice.
-const offer = () => (g.isBJ(s.hands[0].cards) ? 'Blackjack against an ace. Even money?' : 'The dealer shows an ace. Insurance?');
+// Even money: a blackjack against an ace on an even bet, where insurance (half the bet) comes to the bet won once over
+// whatever the dealer has.
+const evenMoney = () => g.isBJ(s.hands[0].cards) && s.hands[0].bet % 2 === 0;
+const offer = () => (evenMoney() ? 'Blackjack against an ace. Even money?' : 'The dealer shows an ace. Insurance?');
 async function after() {
   if (s.phase === 'insurance') { table.say(offer()); return; }
   if (s.phase === 'play') { prompt(); return; }
@@ -314,7 +318,7 @@ async function payout() {
   const each = one ? '' : `${s.hands.map((h, i) => `${i ? 'hand' : 'Hand'} ${i + 1} ${VERB[h.result]}`).join(', ')}.`;
   const lostIns = s.insurance > 0 && !o.dealerBJ;
   // a blackjack insured is even money, whatever the dealer had
-  const even = o.natural && s.insurance > 0;
+  const even = o.natural && s.insurance > 0 && s.insurance * 2 === h0.bet;
   if (even) line = `Even money: you win ${cage.fmt(net)}${kept ? ', and the half chip’s kept for your next one' : before ? ', with the half chip kept from before' : ''}.`;
   else if (o.natural && !o.dealerBJ) line = `Blackjack! That pays ${cage.fmt(h0.pay - h0.bet)}${kept ? ', and the half chip’s kept for your next one' : before ? ', with the half chip kept from before' : ''}.`;
   else if (s.hands[0].surrendered) line = before ? `You surrender: half your bet and the half chip kept from before, ${cage.fmt(o.back)}, come back.`

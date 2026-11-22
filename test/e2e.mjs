@@ -376,6 +376,20 @@ if (cageWants('blackjack')) {
     await until(async () => (await cageOf(p)).chips === 1040, 3000, `Blackjack: even money when ${what} didn't pay 20`);
     await ctx.close();
   }
+  // On an odd bet the insurance is a chip short of half (12 on 25), so it would pay 24 against a dealer's blackjack, not
+  // the bet once over: it's offered, and paid, as plain insurance.
+  const shoe = Array(150).fill(C(2)).concat([C(1, 's'), C(1, 'h'), C(13), C(13, 'h')].reverse());
+  const { p, ctx } = await sit('blackjack/?fast&seen', { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 },
+    blackjack: { shoe, phase: 'bet', bet: 25, last: 25, hands: [], active: 0, dealer: [], hole: true, insurance: 0, felt: 25, carry: 0 } });
+  await p.click('#deal');
+  await p.waitForSelector('#insActions:not([hidden])');
+  assert.deepEqual([await p.textContent('#ins'), await p.textContent('#noIns'), (await p.textContent('#say')).trim()], ['Insure for 12', 'No insurance', 'The dealer shows an ace. Insurance?'], 'Blackjack: even money offered on an odd bet');
+  await p.click('#ins');
+  await p.waitForSelector('#doneActions:not([hidden])');
+  assert.match((await p.textContent('#say')).trim(), /^Insurance pays 36\. /, 'Blackjack: an odd bet\'s insurance was called even money');
+  // 25 already off the stack, 12 more for the insurance: 36 and the 25 come back
+  await until(async () => (await cageOf(p)).chips === 1049, 3000, 'Blackjack: insurance on an odd bet with a blackjack didn\'t pay');
+  await ctx.close();
 }
 // Splits: what's on screen is the hand that's saved, card for card, after every move, at the payout and after a reload.
 // Eights split three times into four hands against a 10 and a 7, and aces split against a 6, a king on the first: a 21
