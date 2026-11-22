@@ -406,8 +406,19 @@ if (cageWants('baccarat')) {
     if (await p.isVisible('#reveal') && await p.isEnabled('#reveal')) await p.click('#reveal').catch(() => {});
     return p.isVisible('#doneActions');
   }, 8000, 'Baccarat: the coup never finished');
-  assert.equal((await p.textContent('#say')).trim(), 'Banker wins, 9 to 3. The Banker bet wins 23; the Tie loses 25. Down 2. The Banker pays 19 to 20: even money less the house’s 5%, with any fraction of a chip kept toward your next Banker win.');
+  assert.equal((await p.textContent('#say')).trim(), 'Banker 9, Player 3: Banker wins. The Banker bet wins 23; the Tie loses 25. Down 2. The Banker pays 19 to 20: even money less the house’s 5%. ¾ of a chip is kept for your next Banker win.');
   await ctx.close();
+  // with ¼ of a chip kept from before, 25 on the Banker wins 24, and the line says the kept fraction made it whole
+  const { p: q, ctx: c2 } = await sit('baccarat/?fast&seen', { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 },
+    baccarat: { shoe, phase: 'bet', bets: { player: 0, banker: 0, tie: 0, pp: 0, bp: 0 }, last: null, coup: null, stage: 0, turned: [], road: [], carry: 5, felt: 0 } });
+  await q.click('#rack .c25'); await q.click('.spot[data-bet="banker"]');
+  await q.click('#deal');
+  await until(async () => {
+    if (await q.isVisible('#reveal') && await q.isEnabled('#reveal')) await q.click('#reveal').catch(() => {});
+    return q.isVisible('#doneActions');
+  }, 8000, 'Baccarat: the coup never finished');
+  assert.equal((await q.textContent('#say')).trim(), 'Banker 9, Player 3: Banker wins. You win 24. The Banker pays 19 to 20: even money less the house’s 5%. That includes the ¼ of a chip kept from before.');
+  await c2.close();
 }
 
 // Three tabs in one browser: Blackjack, Roulette and the floor. The last 100 goes down at Blackjack, then loses.

@@ -314,15 +314,25 @@ async function proceed() {
   }
 }
 
+// A fraction of a chip in twentieths, in words: "¾", "½", "7/20".
+const GLYPH = { '1/2': '½', '1/4': '¼', '3/4': '¾', '1/5': '⅕', '2/5': '⅖', '3/5': '⅗', '4/5': '⅘', '1/10': '⅒' };
+function twentieths(n) {
+  let a = n, b = 20;
+  for (let d = 2; d <= 10; d++) while (a % d === 0 && b % d === 0) { a /= d; b /= d; }
+  return GLYPH[`${a}/${b}`] || `${a}/${b}`;
+}
+
 async function payout() {
+  const carryWas = s.carry || 0;
   const o = g.settle(s);
   s.paid = false; save();          // the result is kept before the chips move, so a reload can't pay twice
   if (!finish()) return;
   const c = s.coup;
   const net = o.back - o.wagered;
   showResult();
-  const hi = Math.max(c.pt, c.bt), lo = Math.min(c.pt, c.bt);
-  let line = c.winner === 'T' ? `Tie at ${c.pt}.` : `${NAME[c.winner]} wins, ${hi} to ${lo}.`;
+  // the winner's hand first: "Banker 9, Player 3: Banker wins." (a score, not odds)
+  const [first, second] = c.winner === 'B' ? [['Banker', c.bt], ['Player', c.pt]] : [['Player', c.pt], ['Banker', c.bt]];
+  let line = c.winner === 'T' ? `Tie at ${c.pt}.` : `${first[0]} ${first[1]}, ${second[0]} ${second[1]}: ${NAME[c.winner]} wins.`;
   if (c.pPair || c.bPair) line += c.pPair && c.bPair ? ' A pair on both sides.' : c.pPair ? ' A Player pair.' : ' A Banker pair.';
   // each bet, when some won and others didn't: "The Banker bet wins 24; the Tie loses 25. Down 1."
   const bets = SPOT_NAMES.filter(([k]) => s.bets[k] > 0);
@@ -335,11 +345,14 @@ async function payout() {
   else if (net > 0) line += ` You win ${cage.fmt(net)}.`;
   else if (net === 0 && o.back) line += ' Your bets come back.';
   else line += ' The house takes it.';
-  // the Banker's commission, the first time a Banker bet wins on this visit
-  if (c.winner === 'B' && s.bets.banker > 0 && !toldCommission) {
+  // the Banker's commission, the first time a Banker bet wins on this visit, and the fraction of a chip it keeps for
+  // the next Banker win whenever that changes
+  const banker = c.winner === 'B' && s.bets.banker > 0, carried = banker && s.carry !== carryWas;
+  if (banker && !toldCommission) {
     toldCommission = true;
-    line += ' The Banker pays 19 to 20: even money less the house’s 5%, with any fraction of a chip kept toward your next Banker win.';
+    line += ` The Banker pays 19 to 20: even money less the house’s 5%${carried ? '.' : ', with any fraction of a chip kept toward your next Banker win.'}`;
   }
+  if (carried) line += s.carry ? ` ${twentieths(s.carry)} of a chip is kept for your next Banker win.` : ` That includes the ${twentieths(carryWas)} of a chip kept from before.`;
   table.say(line, net > 0 ? 'win' : net < 0 ? 'lose' : '');
   if (net > 0) { sound.chips(5); sound.win(net >= o.wagered * 3 ? 3 : net >= o.wagered ? 2 : 1); float($('layout'), `+${cage.fmt(net)}`); }
   else if (net < 0) sound.lose(); else sound.push();
