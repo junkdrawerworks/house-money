@@ -7,8 +7,8 @@
 // refreshed only when a page that loads it is visited online, and the copy could mix two releases. So FILES is a
 // fingerprint of every file in SHELL: change any of them and test/e2e.mjs fails until FILES is changed to match (it
 // says what to), which changes this file, so every copy is made whole again at once.
-const CACHE = 'house-money-v4'; // bump the number when the file list changes
-const FILES = 'd897610b'; // test/e2e.mjs checks this
+const CACHE = 'house-money-v5'; // bump the number when the file list changes
+const FILES = 'b25b1374'; // test/e2e.mjs checks this
 const SHELL = [
   './', 'baccarat/', 'blackjack/', 'cherry-bell/', 'craps/', 'motherlode/', 'odds-and-ends/', 'records/',
   'roulette/', 'video-poker/', '404.html', 'baccarat/css/baccarat.css', 'baccarat/index.html', 'baccarat/js/app.js',
@@ -24,9 +24,10 @@ const SHELL = [
   'odds-and-ends/index.html', 'odds-and-ends/js/app.js', 'odds-and-ends/js/art.js', 'odds-and-ends/js/machine.js',
   'records/index.html', 'records/records.css', 'records/records.js', 'roulette/css/roulette.css',
   'roulette/index.html', 'roulette/js/app.js', 'roulette/js/draw.js', 'roulette/js/wheel.js', 'shared/cage.js',
-  'shared/cards.js', 'shared/casino.css', 'shared/chips.js', 'shared/edge-guard.js', 'shared/records.js',
-  'shared/reels.js', 'shared/seat.js', 'shared/sound.js', 'shared/table.js', 'shared/tables.js',
-  'video-poker/css/video-poker.css', 'video-poker/index.html', 'video-poker/js/app.js', 'video-poker/js/poker.js',
+  'shared/cards.js', 'shared/casino.css', 'shared/chips.js', 'shared/edge-guard.js', 'shared/ledger.js',
+  'shared/records.js', 'shared/reels.js', 'shared/seat.js', 'shared/sound.js', 'shared/table.js',
+  'shared/tables.js', 'video-poker/css/video-poker.css', 'video-poker/index.html', 'video-poker/js/app.js',
+  'video-poker/js/poker.js',
 ];
 
 // Each file straight from the server (a quick "not modified" for one that hasn't changed), not from the browser's own
