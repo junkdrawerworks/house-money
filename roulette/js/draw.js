@@ -32,17 +32,47 @@ export class Wheel {
     const r = this.c.getBoundingClientRect();
     const d = Math.min(devicePixelRatio || 1, 2);
     const px = Math.max(10, Math.round(Math.min(r.width, r.height || r.width) * d));
-    if (this.c.width !== px) { this.c.width = px; this.c.height = px; this.face = null; }
+    if (this.c.width !== px) { this.c.width = px; this.c.height = px; this.face = null; this.bowl = null; this.ballImg = null; }
     this.draw();
   }
 
-  // The parts that turn with the wheel, drawn once to their own canvas and rotated.
-  paintFace() {
+  // The parts that stand still (the wooden rim, the ball track with its gold edge and eight diamonds, and the dark
+  // well the wheel turns in), drawn once to their own canvas, so a frame of the spin is the bowl, the turned face and
+  // the ball.
+  paintBowl() {
     const S = this.c.width, R = S / 2;
-    const f = document.createElement('canvas');
-    f.width = f.height = S;
-    const x = f.getContext('2d');
+    const b = document.createElement('canvas');
+    b.width = b.height = S;
+    const x = b.getContext('2d');
     x.translate(R, R);
+    const rim = x.createRadialGradient(0, 0, R * G.track, 0, 0, R);
+    rim.addColorStop(0, '#2b140a'); rim.addColorStop(.35, '#6b3a1d'); rim.addColorStop(.7, '#8d5128'); rim.addColorStop(1, '#3a1b0c');
+    x.beginPath(); x.arc(0, 0, R * .995, 0, TAU); x.fillStyle = rim; x.fill();
+    const track = x.createRadialGradient(0, 0, R * G.trackIn, 0, 0, R * G.track);
+    track.addColorStop(0, '#2a1a12'); track.addColorStop(.6, '#4a2d1c'); track.addColorStop(1, '#1d0f08');
+    x.beginPath(); x.arc(0, 0, R * G.track, 0, TAU); x.fillStyle = track; x.fill();
+    x.beginPath(); x.arc(0, 0, R * G.track, 0, TAU); x.lineWidth = R * .01; x.strokeStyle = '#c9a24c'; x.stroke();
+    // the eight diamonds on the track
+    for (let k = 0; k < 8; k++) {
+      x.save(); x.rotate(k * TAU / 8 + TAU / 16);
+      x.beginPath();
+      const rr = R * (G.track + G.trackIn) / 2;
+      x.moveTo(0, -rr - R * .035); x.lineTo(R * .018, -rr); x.lineTo(0, -rr + R * .035); x.lineTo(-R * .018, -rr); x.closePath();
+      x.fillStyle = '#e9e4d6'; x.fill();
+      x.restore();
+    }
+    x.beginPath(); x.arc(0, 0, R * G.trackIn, 0, TAU); x.fillStyle = '#120806'; x.fill();
+    this.bowl = b;
+  }
+
+  // The parts that turn with the wheel, drawn once to their own canvas and rotated. The canvas is only as big as the
+  // numbers' ring, the widest part that turns, so turning it each frame moves as few pixels as it can.
+  paintFace() {
+    const R = this.c.width / 2, half = Math.ceil(R * (G.num + .015));
+    const f = document.createElement('canvas');
+    f.width = f.height = half * 2;
+    const x = f.getContext('2d');
+    x.translate(half, half);
     // pockets: a coloured ring with the numbers, and the darker pockets inside
     for (let i = 0; i < 37; i++) {
       const n = ORDER[i];
@@ -105,41 +135,23 @@ export class Wheel {
   draw() {
     const x = this.x, S = this.c.width, R = S / 2;
     if (!this.face) this.paintFace();
+    if (!this.bowl) this.paintBowl();
     x.clearRect(0, 0, S, S);
+    // the bowl, then the part that turns
+    x.drawImage(this.bowl, 0, 0);
     x.save();
     x.translate(R, R);
-    // the bowl: wooden rim and the ball track
-    const rim = x.createRadialGradient(0, 0, R * G.track, 0, 0, R);
-    rim.addColorStop(0, '#2b140a'); rim.addColorStop(.35, '#6b3a1d'); rim.addColorStop(.7, '#8d5128'); rim.addColorStop(1, '#3a1b0c');
-    x.beginPath(); x.arc(0, 0, R * .995, 0, TAU); x.fillStyle = rim; x.fill();
-    const track = x.createRadialGradient(0, 0, R * G.trackIn, 0, 0, R * G.track);
-    track.addColorStop(0, '#2a1a12'); track.addColorStop(.6, '#4a2d1c'); track.addColorStop(1, '#1d0f08');
-    x.beginPath(); x.arc(0, 0, R * G.track, 0, TAU); x.fillStyle = track; x.fill();
-    x.beginPath(); x.arc(0, 0, R * G.track, 0, TAU); x.lineWidth = R * .01; x.strokeStyle = '#c9a24c'; x.stroke();
-    // the eight diamonds on the track
-    for (let k = 0; k < 8; k++) {
-      x.save(); x.rotate(k * TAU / 8 + TAU / 16);
-      x.beginPath();
-      const rr = R * (G.track + G.trackIn) / 2;
-      x.moveTo(0, -rr - R * .035); x.lineTo(R * .018, -rr); x.lineTo(0, -rr + R * .035); x.lineTo(-R * .018, -rr); x.closePath();
-      x.fillStyle = '#e9e4d6'; x.fill();
-      x.restore();
-    }
-    // the part that turns
-    x.beginPath(); x.arc(0, 0, R * G.trackIn, 0, TAU); x.fillStyle = '#120806'; x.fill();
     x.save();
     x.rotate(this.angle);
-    x.drawImage(this.face, -R, -R);
+    x.drawImage(this.face, -this.face.width / 2, -this.face.width / 2);
     x.restore();
     // the ball
     let ball = this.ball;
     if (!ball && this.rest !== null) ball = { a: this.angle + this.rest * STEP, r: (G.pocketOut + G.pocketIn) / 2 + .01 };
     if (ball) {
+      if (!this.ballImg) this.paintBall();
       const bx = Math.sin(ball.a) * R * ball.r, by = -Math.cos(ball.a) * R * ball.r;
-      x.beginPath(); x.arc(bx + R * .008, by + R * .012, R * G.ball, 0, TAU); x.fillStyle = 'rgba(0,0,0,.35)'; x.fill();
-      const g = x.createRadialGradient(bx - R * .012, by - R * .014, R * .004, bx, by, R * G.ball);
-      g.addColorStop(0, '#ffffff'); g.addColorStop(.6, '#e8e6e0'); g.addColorStop(1, '#a9a59a');
-      x.beginPath(); x.arc(bx, by, R * G.ball, 0, TAU); x.fillStyle = g; x.fill();
+      x.drawImage(this.ballImg, bx - this.ballImg.width / 2, by - this.ballImg.width / 2);
     }
     x.restore();
   }
@@ -205,9 +217,10 @@ export class Wheel {
     });
   }
 
-  // Lets the wheel turn on slowly after the ball is in, with the ball riding along, until it's nearly still.
+  // Lets the wheel turn on slowly after the ball is in, with the ball riding along, until it's nearly still (30 s
+  // from the push). Called again once the wheel is back in sight, it picks up where the wheel has got to by now.
   coasting() {
-    if (this.coastRaf) return;
+    if (this.coastRaf || this.spinning || !this.coast || (performance.now() - this.coast.t0) / 1000 >= 30) return;
     const go = t => {
       if (this.spinning) { this.coastRaf = 0; return; }
       this.angle = this.coastAngle(t);
@@ -217,6 +230,27 @@ export class Wheel {
       else this.coastRaf = 0;
     };
     this.coastRaf = requestAnimationFrame(go);
+  }
+
+  // The ball and its shadow, drawn once to a little canvas of their own, centred on the ball.
+  paintBall() {
+    const R = this.c.width / 2, half = Math.ceil(R * (G.ball + .02)) + 1;
+    const b = document.createElement('canvas');
+    b.width = b.height = half * 2;
+    const x = b.getContext('2d');
+    x.translate(half, half);
+    x.beginPath(); x.arc(R * .008, R * .012, R * G.ball, 0, TAU); x.fillStyle = 'rgba(0,0,0,.35)'; x.fill();
+    const g = x.createRadialGradient(-R * .012, -R * .014, R * .004, 0, 0, R * G.ball);
+    g.addColorStop(0, '#ffffff'); g.addColorStop(.6, '#e8e6e0'); g.addColorStop(1, '#a9a59a');
+    x.beginPath(); x.arc(0, 0, R * G.ball, 0, TAU); x.fillStyle = g; x.fill();
+    this.ballImg = b;
+  }
+
+  // Stops redrawing the coasting wheel, while it's out of sight. (It goes on turning: coasting() again shows it where
+  // it's got to.)
+  stopCoast() {
+    cancelAnimationFrame(this.coastRaf);
+    this.coastRaf = 0;
   }
 
   // Puts the ball in a pocket with no animation (a reload, or ?fast).

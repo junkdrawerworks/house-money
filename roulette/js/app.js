@@ -435,12 +435,17 @@ picker.addEventListener('click', e => { if (e.target === picker && downOnPicker)
 
 const box = $('wheelBox');
 const wide = () => matchMedia('(min-width: 900px) and (min-height: 600px)').matches;
+// The wheel drawn only while it can be seen: slid away on a phone, it stops redrawing, and a peek picks up the coast
+// where the wheel has got to.
+const hide = () => { box.classList.remove('show'); wheel.stopCoast(); };
 $('peek').addEventListener('click', () => {
   if (busy) return;
-  box.classList.toggle('show');
+  if (box.classList.contains('show')) { hide(); return; }
+  box.classList.add('show');
   wheel.size();
+  wheel.coasting();
 });
-box.addEventListener('click', () => { if (!busy && !wide()) box.classList.remove('show'); });
+box.addEventListener('click', () => { if (!busy && !wide()) hide(); });
 
 async function spin() {
   if (busy || seat.guard()) return;
@@ -482,7 +487,7 @@ async function reveal() {
   $('result').innerHTML = `<b class="${col}">${n}</b> ${n === 0 ? 'Zero' : cap(col)}`;
   paintHistory();
   await wait(wide() ? 300 : 1300);
-  if (!wide()) box.classList.remove('show');
+  if (!wide()) hide();
   showing = { ...sp.bets };
   sp.shown = true;
   paintChips();

@@ -343,6 +343,31 @@ if (cageWants('roulette')) {
   }
 }
 
+// Roulette on a phone: after a spin the wheel slides away and stops drawing; a peek brings it back still turning (it
+// coasts on for 30 s from the push), and it stops drawing again once a tap puts it away. Counted in animation frames asked
+// for, a second at a time.
+if (cageWants('roulette')) {
+  const { p, ctx } = await sit('roulette/?seen', { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 } }, { f: .3 });
+  await p.click('#rack .c5'); await p.click('[data-k="red"]');
+  await p.evaluate(() => { const raf = requestAnimationFrame; window.__raf = 0; window.requestAnimationFrame = f => { window.__raf++; return raf(f); }; });
+  const frames = async () => { await p.evaluate(() => { window.__raf = 0; }); await p.waitForTimeout(1000); return p.evaluate(() => window.__raf); };
+  const wheelPic = () => p.evaluate(() => document.querySelector('#wheelBox canvas').toDataURL());
+  await p.click('#spin');
+  await until(async () => (await p.evaluate(() => JSON.parse(localStorage.getItem('house-money.roulette')).spin?.shown)) === true, 15000, 'Roulette: the spin never finished');
+  await until(async () => !(await p.isDisabled('#again')), 5000, 'Roulette: Rebet never came back after the spin');
+  assert.equal(await p.isVisible('#wheelBox.show'), false, 'Roulette: the wheel stayed up after the spin');
+  assert.ok(await frames() <= 2, 'Roulette: the wheel goes on drawing once it has slid away');
+  await p.click('#peek');
+  const was = await wheelPic();
+  assert.ok(await frames() > 20, 'Roulette: the wheel stopped turning while it was away');
+  assert.notEqual(await wheelPic(), was, 'Roulette: the wheel shows but doesn\'t turn');
+  await p.click('#wheelBox');
+  await p.waitForTimeout(300);
+  assert.equal(await p.isVisible('#wheelBox.show'), false, 'Roulette: a tap on the wheel didn\'t put it away');
+  assert.ok(await frames() <= 2, 'Roulette: the wheel goes on drawing once it is put away again');
+  await ctx.close();
+}
+
 // Roulette on a phone: a finger held on the 5 for 800 ms opens the list of every bet on the 5, and the list stays up
 // when the finger lifts (the tap that ends the hold lands on the list's backdrop, or on one of its rows). A tap on a
 // row then puts the chip on that bet. (Touches sent through the browser's own input, as a finger's would be.)
