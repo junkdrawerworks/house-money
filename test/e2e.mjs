@@ -1024,6 +1024,45 @@ if (cageWants('roulette')) {
   }
 }
 
+// ---------- what a screen reader hears ----------
+// Read from the browser's own accessibility tree (through the DevTools protocol), the way a screen reader gets it:
+// [{ role, name, pressed, focused }] for every node in the page that has a name.
+async function heard(p) {
+  const cdp = await p.context().newCDPSession(p);
+  const { nodes } = await cdp.send('Accessibility.getFullAXTree');
+  await cdp.detach();
+  const prop = (n, k) => n.properties?.find(x => x.name === k)?.value?.value;
+  return nodes.filter(n => !n.ignored && n.name?.value).map(n => ({ role: n.role?.value, name: n.name.value, pressed: prop(n, 'pressed'), focused: !!prop(n, 'focused') }));
+}
+const NAMES = ['', 'ace', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'jack', 'queen', 'king'];
+const SUITS = { s: 'spades', h: 'hearts', d: 'diamonds', c: 'clubs' };
+const cardName = c => `${NAMES[c.r]} of ${SUITS[c.s]}`;
+
+// Video Poker: each card is named on its button and its Hold button, after the deal, after a hold and after the draw,
+// and each card is one tab stop (its Hold button).
+if (cageWants('video-poker')) {
+  const { p, ctx } = await sit('video-poker/?fast&seen', { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 } });
+  const names = async () => (await heard(p)).filter(n => n.role === 'button' && /^(Hold )?[Cc]ard \d/.test(n.name));
+  const want = (hand, held) => hand.flatMap((c, i) => [
+    { role: 'button', name: `Card ${i + 1}: ${cardName(c)}`, pressed: undefined, focused: false },
+    { role: 'button', name: `Hold card ${i + 1}, ${cardName(c)}`, pressed: held[i] ? 'true' : 'false', focused: false },
+  ]);
+  assert.deepEqual((await names()).map(n => n.name).slice(0, 2), ['Card 1: face down', 'Hold card 1'], 'Video Poker: the cards before a deal');
+  await p.click('#deal');
+  await until(async () => !(await p.isDisabled('#deal')), 3000, 'Video Poker: the deal never finished');
+  const saved = () => p.evaluate(() => JSON.parse(localStorage.getItem('house-money.video-poker')));
+  let s = await saved();
+  assert.deepEqual(await names(), want(s.hand, [0, 0, 0, 0, 0]), 'Video Poker: the cards aren\'t named after the deal');
+  await p.keyboard.press('2');
+  assert.deepEqual((await names())[3], want(s.hand, [0, 1, 0, 0, 0])[3], 'Video Poker: Hold card 2 isn\'t pressed after the 2 key');
+  assert.deepEqual(await p.$$eval('.cardwrap', els => els.map(e => e.tabIndex)), [-1, -1, -1, -1, -1], 'Video Poker: a card takes a tab stop of its own');
+  await p.click('#deal');
+  await until(async () => (await saved()).paid === true, 3000, 'Video Poker: the draw never finished');
+  s = await saved();
+  assert.deepEqual((await names()).filter(n => !n.name.startsWith('Hold')).map(n => n.name), s.hand.map((c, i) => `Card ${i + 1}: ${cardName(c)}`), 'Video Poker: the cards aren\'t named after the draw');
+  await ctx.close();
+}
+
 // Reduced motion: no animation runs on and on (one cut short to .01ms flickers through its frames at random): Cherry
 // Bell's lamps during a spin, Video Poker's winning row, Motherlode's lanterns and big-win title, Baccarat's nudge on a
 // card waiting to be turned.

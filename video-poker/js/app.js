@@ -6,7 +6,7 @@ import * as vp from './poker.js';
 import * as cage from '../../shared/cage.js';
 import * as records from '../../shared/records.js';
 import * as sound from '../../shared/sound.js';
-import { cardEl, turn } from '../../shared/cards.js';
+import { cardEl, turn, label } from '../../shared/cards.js';
 import { rack as makeRack } from '../../shared/chips.js';
 import { mountTable, float, wait, hotkey, shortcut } from '../../shared/table.js';
 import { byId } from '../../shared/tables.js';
@@ -89,7 +89,8 @@ function buildHand() {
   for (let i = 0; i < 5; i++) {
     const el = document.createElement('div');
     el.className = 'slot';
-    el.innerHTML = `<span class="held">Held</span><button type="button" class="cardwrap" aria-label="Card ${i + 1}"></button><button type="button" class="hold">Hold</button>`;
+    // each card is one tab stop, its Hold button; the card itself still takes a tap
+    el.innerHTML = `<span class="held">Held</span><button type="button" class="cardwrap" tabindex="-1"></button><button type="button" class="hold">Hold</button>`;
     el.querySelector('.cardwrap').addEventListener('click', () => toggle(i));
     el.querySelector('.hold').addEventListener('click', () => toggle(i));
     $('hand').appendChild(el);
@@ -102,8 +103,19 @@ function setCard(i, card, { down = false } = {}) {
   wrap.innerHTML = '';
   const el = cardEl(card, { down });
   wrap.appendChild(el);
+  named(i);
   return el;
 }
+
+// A screen reader hears each card by name, on the card and on its Hold button: "Card 2: king of spades", "Hold card
+// 2, king of spades" ("face down" while the back shows).
+function named(i) {
+  const c = slots[i].querySelector('.card');
+  const what = c && !c.classList.contains('down') ? label({ r: +c.dataset.r, s: c.dataset.s }) : '';
+  slots[i].querySelector('.cardwrap').setAttribute('aria-label', `Card ${i + 1}: ${what || 'face down'}`);
+  slots[i].querySelector('.hold').setAttribute('aria-label', `Hold card ${i + 1}${what ? `, ${what}` : ''}`);
+}
+function show(i, el) { turn(el, s.hand[i]); named(i); }
 
 function paintHolds() {
   const lit = s.phase === 'done' && s.result ? vp.makers(s.hand, s.result.id) : [];
@@ -179,7 +191,7 @@ async function deal() {
   paint();
   try {
     const els = s.hand.map((c, i) => setCard(i, c, { down: true }));
-    for (let i = 0; i < 5; i++) { await wait(90); turn(els[i], s.hand[i]); sound.card(); }
+    for (let i = 0; i < 5; i++) { await wait(90); show(i, els[i]); sound.card(); }
     const best = vp.evaluate(s.hand);
     table.say(best ? `${best.name}` : 'Hold the cards you want');
   } finally { busy = false; paint(); }
@@ -201,7 +213,7 @@ async function draw() {
     }
     for (let i = 0; i < 5; i++) {
       if (held[i]) continue;
-      await wait(110); turn(els[i], s.hand[i]); sound.card();
+      await wait(110); show(i, els[i]); sound.card();
     }
     await wait(150);
     const o = finish();
