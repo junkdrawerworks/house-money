@@ -861,6 +861,36 @@ const reloadAfter = async (p, sel, ms) => {
   await p.waitForFunction(() => window.__go);
   await p.reload();
 };
+// Free spins bet nothing, so Motherlode has nothing out on the felt between them, but the round isn't over: with two
+// free spins waiting and 4 chips, the cage offers nothing on the floor, at another table or at the machine, and says
+// why. At the machine the spins play on, through a reload mid-spin, and the offer comes once the last one's done.
+// (A steady draw of 0.275 wins nothing; no ?fast at the machine, so every moment of the spins is watched.)
+if (cageWants('motherlode', 'floor', 'cage')) {
+  const why = 'Free spins waiting at Motherlode. The cage stakes you once they’re played.';
+  const { p, ctx } = await sit('?seen', { cage: { chips: 4, wagered: 996, high: 1000, stakes: 1 },
+    motherlode: { bet: 20, free: { left: 2, total: 8, sticky: [], won: 40, bet: 20 }, last: { stops: [0, 0, 0, 0, 0], sticky: [], win: 0, wagered: 0, free: true, paid: true }, felt: 0 } }, { f: .275 });
+  assert.deepEqual([await p.isVisible('#stake'), (await p.textContent('#outNote')).trim()], [false, why], 'the floor: a stake offered over free spins waiting');
+  assert.equal(await p.getAttribute('#outNote a', 'href'), 'motherlode/');
+  await p.goto(`${base}blackjack/?fast&seen`); await p.waitForTimeout(400);
+  assert.deepEqual([await offered(p), (await p.textContent('.cage-note')).trim()], [false, `The smallest bet at Blackjack is 10, and you have 4. ${why}`], 'Blackjack: a stake offered over free spins waiting');
+  await p.goto(`${base}motherlode/?seen`);
+  const seen = await watchOffer(p, "() => JSON.parse(localStorage.getItem('house-money.motherlode')).free?.left === 2", 8000);
+  assert.ok(seen.every(v => !v), 'Motherlode: the offer came up before the first of the free spins');
+  await p.waitForTimeout(300);
+  await p.reload();
+  const more = await watchOffer(p, "() => !!JSON.parse(localStorage.getItem('house-money.motherlode')).free", 15000);
+  assert.ok(more.length > 5, 'Motherlode: the last free spin was too quick to watch');
+  assert.ok(more.every(v => !v), 'Motherlode: the offer came up during the free spins');
+  await p.waitForSelector('#bigwin:not([hidden])', { timeout: 10000 });
+  await p.click('#bigwin');
+  await until(() => offered(p), 3000, 'Motherlode: no offer once the free spins were over, with 4 chips');
+  // each free spin noted once, winning nothing and betting nothing
+  const b = await books(p);
+  assert.deepEqual([b.chips, b.felt, b.recs.motherlode?.rounds, b.recs.motherlode?.wagered, b.recs.motherlode?.net], [4, 0, 2, 0, 0], 'Motherlode: the free spins over a reload');
+  await p.click('.stake-offer button');
+  assert.equal((await cageOf(p)).chips, 1004);
+  await ctx.close();
+}
 if (cageWants('blackjack')) {
   // a natural, A and K against 9 and 7, bet 100, and the page closed before the payout: 1,000 - 100 + 250
   const shoe = Array(150).fill({ r: 2, s: 'c' }).concat([{ r: 7, s: 'c' }, { r: 13, s: 'h' }, { r: 9, s: 'd' }, { r: 1, s: 's' }]);
@@ -1603,7 +1633,7 @@ if (cageWants('craps', 'floor', 'records')) {
   await until(async () => (await feltOf(p, 'craps')) === 300, 2000, 'Craps: the 300 did not go down');
   await p.click('.bar .back'); await p.waitForURL(base);
   assert.equal(await p.textContent('#chips'), '675');
-  assert.equal((await p.textContent('#outNote')).trim(), '325 still out on Blackjack and Craps.', 'the floor: no word on the chips left on the tables');
+  assert.equal((await p.textContent('#outNote')).trim(), '325 still out on Blackjack and Craps. Free spins waiting at Motherlode.', 'the floor: no word on the chips left on the tables');
   const stat = id => p.textContent(`#at-${id} [data-stat]`);
   assert.equal(await stat('craps'), '300 on the layout', 'the floor: the craps tile');
   assert.equal(await stat('blackjack'), 'A hand in play', 'the floor: the blackjack tile');

@@ -66,8 +66,9 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
   // The cage's offer is a banner at the top of the dock, above the rack and the buttons rather than on top of them, so
   // every control stays in reach while it's up. A table with no dock says where it goes instead (offerIn: Cherry Bell
   // puts it on the machine's glass, over the pay table).
-  // the chips out on this table now, which stand in for what it last saved when the cage adds up every table's felt
-  const here = () => ({ id, felt: felt() });
+  // the chips out on this table now, and whether a round plays on here without them (free spins), which stand in for
+  // what it last saved when the cage adds up every table's felt and the rounds waiting
+  const here = () => ({ id, felt: felt(), waiting: inPlay() });
   const stakeBox = document.createElement('div');
   stakeBox.className = 'stake-offer';
   stakeBox.hidden = true;
@@ -212,7 +213,8 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
     queueMicrotask(() => { checking = false; recheck(); });
   }
   function recheck() {
-    const offer = cage.canStake(here());
+    // never mid-round: not while chips are out, here or anywhere, nor while free spins wait to be played
+    const offer = !inPlay() && cage.canStake(here());
     const why = offer ? '' : stuck();
     if (note.innerHTML !== why) note.innerHTML = why;
     note.hidden = !why;
@@ -228,16 +230,17 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
   function stuck() {
     if (felt() > 0 || inPlay()) return '';
     const n = cage.read().chips;
-    const away = cage.out(here()), there = cage.elsewhere();
+    const away = cage.out(here()), there = cage.elsewhere(), free = cage.waiting(here());
     const short = n < min;
-    if (!short && !(n < cage.LOW && (away.length || there.length))) return '';
+    if (!short && !(n < cage.LOW && (away.length || there.length || free.length))) return '';
     const parts = [];
     if (short && !n) parts.push('Your rack is empty.');
     else if (short) parts.push(me?.slot ?`${name} takes ${cage.fmt(min)} a spin and you have ${cage.fmt(n)}.` : `The smallest bet at ${name} is ${cage.fmt(min)}, and you have ${cage.fmt(n)}.`);
-    if (away.length || there.length) {
-      // here, then on another device that saves to Google Drive
-      const where = [away.length ? outLine(away, '../', { stake: false }) : '', there.length ? elsewhereLine(there, away.length > 0) : ''];
-      parts.push(`${where.filter(Boolean).join(' ')} The cage stakes you when nothing’s left out.`);
+    if (away.length || there.length || free.length) {
+      // here, free spins waiting, then on another device that saves to Google Drive
+      const where = [away.length ? outLine(away, '../', { stake: false }) : '', free.length ? waitLine(free, '../') : '',
+        there.length ? elsewhereLine(there, away.length > 0 || free.length > 0) : ''];
+      parts.push(`${where.filter(Boolean).join(' ')} ${stakeWhen(away.length + there.length > 0)}`);
     } else {
       // somewhere you can play with what you have: the same kind of game first
       const fits = TABLES.filter(t => t.id !== id && t.min <= n);
@@ -278,7 +281,12 @@ export const outWords = (list, up = '../', still = false) =>
 // Where the chips are: "300 still out on Craps." With stake (while the cage holds back its stake, under 10 chips),
 // "The cage stakes you when nothing’s left out." after it.
 export const outLine = (list, up = '../', { stake = true } = {}) =>
-  `${outWords(list, up, true)}.${stake ? ' The cage stakes you when nothing’s left out.' : ''}`;
+  `${outWords(list, up, true)}.${stake ? ` ${stakeWhen(true)}` : ''}`;
+// Free spins waiting, in words: "Free spins waiting at Motherlode." (list: from cage.waiting())
+export const waitLine = (list, up = '../') => `Free spins waiting at ${names(list, up)}.`;
+// When the cage will stake you, under 10 chips: once nothing's out (out: chips out somewhere), or else once the free
+// spins waiting are played.
+export const stakeWhen = out => (out ? 'The cage stakes you when nothing’s left out.' : 'The cage stakes you once they’re played.');
 
 // Chips another device that saves to Google Drive has out on its tables, in words: "Plus 200 on the craps layout on
 // another device." (list: from cage.elsewhere(); plus: after a line about this device's own.)

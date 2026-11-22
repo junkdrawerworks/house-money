@@ -78,6 +78,22 @@ export function out(own = null) {
 
 export const feltAll = (own = null) => out(own).reduce((a, t) => a + t.felt, 0);
 
+// Rounds that play on without chips from the rack: Motherlode's free spins, saved as `free` while any are left. They
+// bet nothing, so nothing is out on the felt, but the round isn't over, and the cage waits on them as on chips out.
+// own: { id, waiting } from the table you're at, whose live word stands in for what it last saved. [{ id, name }]
+export function waiting(own = null) {
+  const list = [];
+  for (const t of TABLES) {
+    let w = false;
+    if (own && own.id === t.id && 'waiting' in own) w = !!own.waiting;
+    else {
+      try { w = !!JSON.parse(localStorage.getItem(`house-money.${t.id}`))?.free; } catch { /* nothing saved: nothing waiting */ }
+    }
+    if (w) list.push({ id: t.id, name: t.name });
+  }
+  return list;
+}
+
 // Chips another device said it had out on its tables when it last synced with Google Drive (and in the last day):
 // [{ id, name, felt }], and how many devices. Still yours, so the cage waits on them too.
 export function elsewhere() {
@@ -86,10 +102,10 @@ export function elsewhere() {
   return Object.assign(list, { devices: e.devices });
 }
 
-// The cage stakes you another START when you're down to less than LOW with nothing out on any table, so the stack
-// plus the felt always comes to START for every stake plus what the tables have won or lost. Returns the new cage, or
-// null when you don't qualify. own: as for out().
-export const canStake = (own = null) => read().chips < LOW && feltAll(own) === 0 && !elsewhere().length;
+// The cage stakes you another START when you're down to less than LOW with nothing out on any table and no free spins
+// waiting, so the stack plus the felt always comes to START for every stake plus what the tables have won or lost, and
+// the offer never comes mid-round. Returns the new cage, or null when you don't qualify. own: as for out() and waiting().
+export const canStake = (own = null) => read().chips < LOW && feltAll(own) === 0 && !waiting(own).length && !elsewhere().length;
 
 export function stake(own = null) {
   if (!canStake(own)) return null;

@@ -104,6 +104,23 @@ test('no stake while chips are out on a table', () => {
   assert.equal(cage.stake({ id: 'roulette', felt: 0 }).chips, 1003);
 });
 
+// Free spins bet nothing, so Motherlode's felt is 0 while they wait, but the round isn't over: no stake mid-round.
+test('no stake while free spins wait at Motherlode', () => {
+  fresh();
+  set({ chips: 4 });
+  localStorage.setItem('house-money.motherlode', JSON.stringify({ bet: 20, felt: 0, free: { left: 6, total: 8, sticky: [], won: 40, bet: 20 } }));
+  assert.equal(cage.canStake(), false, 'seen from the floor');
+  assert.equal(cage.canStake({ id: 'blackjack', felt: 0 }), false, 'seen from another table');
+  assert.equal(cage.canStake({ id: 'motherlode', felt: 0, waiting: true }), false, 'seen from the machine');
+  assert.equal(cage.stake(), null);
+  assert.deepEqual(cage.waiting().map(t => [t.id, t.name]), [['motherlode', 'Motherlode']]);
+  assert.deepEqual(cage.waiting({ id: 'motherlode', felt: 0, waiting: false }), [], 'the machine\'s own word stands in for what it saved');
+  // the last free spin played: the stake comes
+  localStorage.setItem('house-money.motherlode', JSON.stringify({ bet: 20, felt: 0, free: null }));
+  assert.deepEqual(cage.waiting(), []);
+  assert.equal(cage.stake().chips, 1004);
+});
+
 test('the books balance: chips plus felt is 1,000 a stake plus what the tables won or lost', () => {
   fresh();
   let net = 0;

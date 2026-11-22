@@ -5,7 +5,7 @@ import * as cage from '../shared/cage.js';
 import * as records from '../shared/records.js';
 import * as sound from '../shared/sound.js';
 import { TABLES, units, topBet } from '../shared/tables.js';
-import { outLine, elsewhereLine } from '../shared/table.js';
+import { outLine, elsewhereLine, waitLine, stakeWhen } from '../shared/table.js';
 import { drive } from '../shared/sync.js';
 
 const $ = id => document.getElementById(id);
@@ -85,11 +85,12 @@ function wallet(c) {
   if (newCard?.id === t.id) $('tierLine').insertAdjacentHTML('afterbegin', `<b class="tier-new ${t.id}">New: ${t.name} card</b> `);
   $('tierBar').style.width = t.next ? `${Math.min(100, ((c.wagered - t.at) / (t.next.at - t.at)) * 100)}%` : '100%';
   $('stake').hidden = !cage.canStake();
-  // chips still out on a table, here or on another device that saves to Google Drive: where they are (and under 10,
-  // that the cage holds back its stake till they're in)
-  const away = cage.out(), there = cage.elsewhere();
-  const words = [away.length ? outLine(away, '', { stake: false }) : '', there.length ? elsewhereLine(there) : ''].filter(Boolean);
-  if (words.length && c.chips < cage.LOW) words.push('The cage stakes you when nothing’s left out.');
+  // chips still out on a table, here or on another device that saves to Google Drive, and free spins waiting: where
+  // they are (and under 10, that the cage holds back its stake till they're in, or played)
+  const away = cage.out(), there = cage.elsewhere(), free = cage.waiting();
+  const words = [away.length ? outLine(away, '', { stake: false }) : '', free.length ? waitLine(free, '') : '',
+    there.length ? elsewhereLine(there) : ''].filter(Boolean);
+  if (words.length && c.chips < cage.LOW) words.push(stakeWhen(away.length + there.length > 0));
   $('outNote').innerHTML = words.join(' ');
   $('outNote').hidden = !words.length;
   $('tiers').innerHTML = cage.TIERS.map(x => `<li class="${x.id}${x.id === t.id ? ' now' : ''}"><b>${x.name}</b><span>${x.at ? `from ${fmt(x.at)} bet` : 'to start'}</span><span>limits ×${x.limit}</span></li>`).join('');
