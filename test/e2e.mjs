@@ -126,7 +126,7 @@ async function sit(path, saved, { ctx = null, size = phone, f = null } = {}) {
   if (own && f !== null) await ctx.addInitScript(steady, f);
   const p = await ctx.newPage();
   p.on('pageerror', e => problems.push(`${path}: ${e.message}`));
-  if (own) {
+  if (own || Object.keys(saved).length) {   // a context of the caller's own is set up only when there's something to set
     await p.goto(`${base}records/`);
     await p.evaluate(saved => {
       localStorage.clear();
@@ -475,6 +475,89 @@ for (const [id, n] of [['cherry-bell', 30], ['odds-and-ends', 20]]) {
     assert.equal(felt, 0, `${id}: chips left on the felt after spin ${i + 1}`);
     assert.equal(c.chips, 1000 + net, `${id}: the stack and Records disagree after spin ${i + 1}`);
   }
+  await ctx.close();
+}
+
+// Two tabs at one table: the tab opened last takes the seat, and the other waits under a note until Play here, so a
+// bet put down in one is never lost to the other's copy of the table, and a round is never paid twice. A tab on its
+// own never waits.
+const idleIn = p => p.isVisible('dialog.seat-idle');
+// a tap that goes round the note, the way a late or lost message between the tabs would leave it open
+const tapUnder = (p, sel) => p.evaluate(sel => document.querySelector(sel).click(), sel);
+for (const [id, name, spot, noBC] of [
+  ['blackjack', 'Blackjack', '#spot', false], ['baccarat', 'Baccarat', '.spot[data-bet="banker"]', false],
+  ['craps', 'Craps', '[data-spot="pass"]', false], ['blackjack', 'Blackjack', '#spot', true],
+]) {
+  if (!cageWants(id)) continue;
+  const at = `two tabs at ${name}${noBC ? ' (no BroadcastChannel)' : ''}`;
+  const ctx = await browser.newContext(phone);
+  // Safari before 15.4 has no BroadcastChannel: the tabs tell each other through storage instead
+  if (noBC) await ctx.addInitScript(() => { delete globalThis.BroadcastChannel; });
+  const { p: a } = await sit(`${id}/?fast&seen`, { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 } }, { ctx });
+  await a.waitForTimeout(500);
+  assert.equal(await idleIn(a), false, `${at}: a tab on its own went idle`);
+  const { p: b } = await sit(`${id}/?fast&seen`, {}, { ctx });
+  await until(() => idleIn(a), 3000, `${at}: the first tab didn't make way for the second`);
+  assert.equal((await a.textContent('dialog.seat-idle p')).trim(), `${name} is open in another tab.`);
+  assert.equal(await idleIn(b), false, `${at}: the newer tab went idle`);
+  await b.click('#rack .c5'); await b.click(spot);
+  await tapUnder(a, `#rack .c100`); await tapUnder(a, spot);
+  await a.waitForTimeout(300);
+  let n = await balanced(b, at);
+  assert.deepEqual([n.chips, n.felt], [995, 5], `${at}: the idle tab moved chips`);
+  // Play here: the first tab reads the table afresh, with the 5 on it, and the second makes way
+  await a.click('dialog.seat-idle .btn.gold');
+  await a.waitForSelector('#rack');
+  await until(() => idleIn(b), 3000, `${at}: Play here didn't take the seat back`);
+  assert.equal(await idleIn(a), false, `${at}: still idle after Play here`);
+  await a.click('#rack .c100'); await a.click(spot);
+  await a.waitForTimeout(300);
+  n = await balanced(a, at);
+  assert.deepEqual([n.chips, n.felt], [895, 105], `${at}: the bets from both tabs`);
+  await ctx.close();
+}
+// A royal flush dealt once, waiting to be drawn, open in two tabs: drawn and paid once.
+if (cageWants('video-poker')) {
+  const C = (r, s) => ({ r, s });
+  const royal = { phase: 'draw', coin: 1, coins: 5, hand: [C(10, 's'), C(11, 's'), C(12, 's'), C(13, 's'), C(1, 's')], held: [true, true, true, true, true], deck: [C(2, 'c')], result: null, felt: 5 };
+  const { p: a, ctx } = await sit('video-poker/?fast&seen', { cage: { chips: 995, wagered: 5, high: 1000, stakes: 1 }, 'video-poker': royal });
+  const { p: b } = await sit('video-poker/?fast&seen', {}, { ctx });
+  await until(() => idleIn(a), 3000, 'two tabs at Video Poker: the first tab stayed live');
+  await b.click('#deal');
+  await until(async () => (await cageOf(b)).chips === 4995, 3000, 'two tabs at Video Poker: the royal was not paid');
+  await tapUnder(a, '#deal');
+  await a.waitForTimeout(600);
+  const n = await balanced(b, 'two tabs at Video Poker');
+  assert.deepEqual([n.chips, n.recs['video-poker'].rounds, n.recs['video-poker'].royal], [4995, 1, 1], 'two tabs at Video Poker: the royal was paid twice');
+  await ctx.close();
+  // and with the message between the tabs lost: the stored hand has been drawn by another tab since this one read it,
+  // so Draw reads the table afresh instead of drawing its own copy
+  const one = await sit('video-poker/?fast&seen', { cage: { chips: 995, wagered: 5, high: 1000, stakes: 1 }, 'video-poker': royal });
+  await one.p.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('house-money.video-poker'));
+    Object.assign(s, { phase: 'done', paid: true, felt: 0, result: { id: 'royal', name: 'Royal Flush', pay: 4000 }, rev: 'another.1' });
+    localStorage.setItem('house-money.video-poker', JSON.stringify(s));
+    localStorage.setItem('house-money.cage', JSON.stringify({ chips: 4995, wagered: 5, high: 4995, stakes: 1 }));
+  });
+  await one.p.click('#deal');
+  await one.p.waitForTimeout(800);
+  assert.equal((await cageOf(one.p)).chips, 4995, 'Video Poker: a hand another tab had drawn was drawn and paid again');
+  assert.match(await one.p.textContent('#say'), /Royal Flush/, 'Video Poker: the table did not pick up the drawn hand');
+  await one.ctx.close();
+}
+// Roulette: 5 on red and the wheel spinning in one tab (it comes up 1, red); a second tab opens mid-spin and puts 100
+// on black. The spin is paid once, and the 100 stays down.
+if (cageWants('roulette')) {
+  const { p: a, ctx } = await sit('roulette/?seen', { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 } }, { f: 1.5 / 2 ** 32 });
+  await a.click('#rack .c5'); await a.click('[data-k="red"]');
+  await a.click('#spin');
+  await a.waitForTimeout(1500);
+  const { p: b } = await sit('roulette/?seen', {}, { ctx });
+  await until(() => idleIn(a), 3000, 'two tabs at Roulette: the spinning tab stayed live');
+  await b.click('#rack .c100'); await b.click('[data-k="black"]');
+  await a.waitForTimeout(8000);   // the first tab's spin would be over
+  const n = await balanced(b, 'two tabs at Roulette');
+  assert.deepEqual([n.chips, n.felt, n.recs.roulette?.rounds], [905, 100, 1], 'two tabs at Roulette: the bet on black or the spin went astray');
   await ctx.close();
 }
 

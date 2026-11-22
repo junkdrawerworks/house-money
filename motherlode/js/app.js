@@ -9,6 +9,7 @@ import * as sound from '../../shared/sound.js';
 import { mountTable, float, wait, fast } from '../../shared/table.js';
 import { byId } from '../../shared/tables.js';
 import { ReelSet, loadArt, pickStops, keeper } from '../../shared/reels.js';
+import * as seat from '../../shared/seat.js';
 
 const T = byId(M.ID);
 const $ = id => document.getElementById(id);
@@ -93,7 +94,7 @@ $('auto').addEventListener('click', () => {
 // ---------- the spin ----------
 
 async function spin() {
-  if (spinning) return;
+  if (spinning || seat.guard()) return;   // free spins and Auto stop in a tab that's lost the seat
   const free = !!s.free;
   const bet = free ? s.free.bet : s.bet;
   if (!free && !keep.stake(bet)) { auto = false; table.say('Not enough chips for that bet.'); paint(); return; }

@@ -285,3 +285,14 @@ dialog.sheet::backdrop { background: rgba(5, 2, 2, .65); }
 
 /* a quiet text button under a table's buttons: Ask the book, the strategy card */
 .book { border: 0; background: none; color: var(--gold-hi); font-size: .88rem; text-decoration: underline; text-underline-offset: 3px; padding: 2px 8px; cursor: pointer; }
+
+/* Another tab has this table (shared/seat.js): the note over everything, and the way to play here instead. */
+dialog.seat-idle {
+  max-width: min(22rem, calc(100vw - 32px)); padding: 20px; border: 2px solid var(--gold-dk); border-radius: 18px;
+  background: linear-gradient(#2c1711, #1a0d09); color: var(--ink); text-align: center; box-shadow: 0 10px 40px rgba(0, 0, 0, .6);
+}
+dialog.seat-idle::backdrop { background: rgba(5, 2, 2, .78); backdrop-filter: blur(3px); }
+.seat-idle p { margin: 0 0 8px; }
+.seat-idle p:first-child { font-size: 1.1rem; color: var(--gold-hi); }
+.seat-idle p + p { color: var(--muted); font-size: .95rem; }
+.seat-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }

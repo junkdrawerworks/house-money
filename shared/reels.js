@@ -9,6 +9,7 @@
 import { rand } from './cards.js';
 import * as cage from './cage.js';
 import * as records from './records.js';
+import * as seat from './seat.js';
 
 // ---------- the arithmetic ----------
 
@@ -345,11 +346,11 @@ export function keeper(id, defaults = {}) {
   const state = { ...defaults, ...s };
   let holding = 0;   // a bet taken for a spin that hasn't begun yet (the few lines between stake and begin)
   const felt = () => holding + (state.last && !state.last.paid ? state.last.wagered || 0 : 0);
-  const save = () => { state.felt = felt(); try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* full or off */ } };
-  // pays the last spin if it hasn't been; returns what it paid
+  const save = () => { state.felt = felt(); seat.write(KEY, state); };
+  // pays the last spin if it hasn't been (and no other tab has played this machine since); returns what it paid
   const settle = () => {
     const l = state.last;
-    if (!l || l.paid) return 0;
+    if (!l || l.paid || seat.guard()) return 0;
     l.paid = true;
     save();
     if (l.win > 0) cage.pay(l.win);
@@ -358,6 +359,7 @@ export function keeper(id, defaults = {}) {
   };
   // the bet off the stack for a new spin (free spins pass 0); false if there aren't enough chips
   const stake = n => {
+    if (seat.guard()) return false;
     if (!(n > 0)) return true;
     holding = n;          // counted as out before the cage tells anyone the chips have gone
     if (cage.take(n)) return true;

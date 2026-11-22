@@ -10,6 +10,7 @@ import { cardEl, turn, dealInto } from '../../shared/cards.js';
 import { rack as makeRack, setStack } from '../../shared/chips.js';
 import { mountTable, float, wait } from '../../shared/table.js';
 import { byId } from '../../shared/tables.js';
+import * as seat from '../../shared/seat.js';
 import { guardEdges } from '../../shared/edge-guard.js';
 
 const KEY = 'house-money.baccarat';
@@ -73,7 +74,7 @@ function load() {
   } catch { /* first visit */ }
   return g.fresh();
 }
-function save() { s.felt = onFelt(); try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* full or off */ } }
+function save() { s.felt = onFelt(); seat.write(KEY, s); }
 
 // ---------- the scoreboard ----------
 
@@ -334,7 +335,7 @@ async function payout() {
 // A settled coup's chips to the rack and its line in Records, together and once: a coup just settled, or one settled
 // before the page closed. False when there's nothing to pay.
 function finish() {
-  if (s.phase !== 'done' || !s.outcome || s.paid !== false) return false;
+  if (s.phase !== 'done' || !s.outcome || s.paid !== false || seat.guard()) return false;
   const o = s.outcome, c = s.coup;
   if (o.back > 0) cage.pay(o.back);
   s.paid = true; save();
@@ -391,7 +392,7 @@ function paint() {
 }
 
 function put(spot) {
-  if (busy) return;
+  if (busy || seat.guard()) return;
   if (s.phase === 'done') newBet();
   if (s.phase !== 'bet') return;
   const v = rack.value;
@@ -424,7 +425,7 @@ $('newBet').addEventListener('click', () => { if (!busy) newBet(); });
 $('again').addEventListener('click', () => { if (busy) return; newBet(); if (rebet()) deal(); });
 
 async function deal() {
-  if (busy || s.phase !== 'bet' || g.staked(s.bets) < table.limits().min) return;
+  if (busy || seat.guard() || s.phase !== 'bet' || g.staked(s.bets) < table.limits().min) return;
   busy = true; paint();
   try {
     g.deal(s); save();

@@ -10,6 +10,7 @@ import * as sound from '../../shared/sound.js';
 import { rack as makeRack, stackEl } from '../../shared/chips.js';
 import { mountTable, float, wait, fast } from '../../shared/table.js';
 import { byId } from '../../shared/tables.js';
+import * as seat from '../../shared/seat.js';
 import { guardEdges } from '../../shared/edge-guard.js';
 
 const KEY = 'house-money.roulette';
@@ -84,7 +85,7 @@ function load() {
   }
   return st;
 }
-function save() { s.felt = feltNow(); try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* full or off */ } }
+function save() { s.felt = feltNow(); seat.write(KEY, s); }
 
 // ---------- the layout ----------
 
@@ -430,7 +431,7 @@ $('peek').addEventListener('click', () => {
 box.addEventListener('click', () => { if (!busy && !wide()) box.classList.remove('show'); });
 
 async function spin() {
-  if (busy) return;
+  if (busy || seat.guard()) return;
   const on = sum(s.bets);
   if (!on) { table.say('Put a chip down first.'); return; }
   const { min } = table.limits();
@@ -501,7 +502,7 @@ async function reveal() {
 // The chips for a settled spin go to the rack exactly once.
 function pay() {
   const sp = s.spin;
-  if (!sp || sp.paid) return;
+  if (!sp || sp.paid || seat.guard()) return;
   sp.paid = true;
   save();                 // marked paid before the chips move: a reload in between can't pay twice
   if (sp.back > 0) cage.pay(sp.back);
@@ -509,14 +510,13 @@ function pay() {
   records.note('roulette', { wagered: sp.wagered, back: sp.back, extra: { straightHits: straight ? 1 : 0, zeros: sp.n === 0 ? 1 : 0 } });
 }
 
-// ---------- keys, resizing, other tabs ----------
+// ---------- keys and resizing (another tab at this table takes the seat: see shared/seat.js) ----------
 
 addEventListener('keydown', e => {
   if (e.metaKey || e.ctrlKey || e.altKey || document.querySelector('dialog[open]')) return;
   if (e.key === ' ' && !(e.target instanceof HTMLButtonElement && L.contains(e.target))) { e.preventDefault(); if (!$('spin').disabled) spin(); }
   else if (e.key === 'Backspace' || e.key === 'z') { e.preventDefault(); $('undo').click(); }
 });
-addEventListener('storage', e => { if (e.key === KEY && !busy) { s = load(); paintHistory(); paint(); } });
 let rs = 0;
 addEventListener('resize', () => { cancelAnimationFrame(rs); rs = requestAnimationFrame(() => { wheel.size(); paintChips(); }); });
 

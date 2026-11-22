@@ -14,11 +14,13 @@
 import * as cage from './cage.js';
 import * as sound from './sound.js';
 import { TABLES } from './tables.js';
+import { sit } from './seat.js';
 
 const SEEN = 'house-money.seen';
 
 export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () => 0, onStake = () => {}, offerIn = null,
   inPlay = () => false, onCage = () => {} }) {
+  sit({ id, name });   // one live tab per table: see seat.js
   const bar = document.querySelector('header.bar') || document.body.insertBefore(document.createElement('header'), document.body.firstChild);
   bar.className = 'bar';
   bar.innerHTML = `

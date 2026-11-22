@@ -10,6 +10,7 @@ import * as sound from '../../shared/sound.js';
 import { rack as makeRack, stackEl } from '../../shared/chips.js';
 import { mountTable, float, wait, fast } from '../../shared/table.js';
 import { byId } from '../../shared/tables.js';
+import * as seat from '../../shared/seat.js';
 
 const KEY = 'house-money.craps';
 const T = byId('craps');
@@ -77,7 +78,7 @@ function load() {
   } catch { /* first visit */ }
   return { ...g.fresh(), undo: [] };
 }
-function save() { s.felt = onFelt(); try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* full or off */ } }
+function save() { s.felt = onFelt(); seat.write(KEY, s); }
 
 // ---------- the pieces ----------
 
@@ -268,7 +269,7 @@ async function throwDice(d1, d2) {
 }
 
 function roll() {
-  if (busy || $('roll').disabled) return;
+  if (busy || $('roll').disabled || seat.guard()) return;
   busy = true; paint();
   (async () => {
     try {
@@ -306,7 +307,7 @@ $('roll').addEventListener('click', roll);
 // A roll's winnings to the rack and its line in Records, together and once: dice just landed, or a throw the page
 // closed on.
 function finish() {
-  if (!(s.pending > 0) && !s.pendingRec) return;
+  if ((!(s.pending > 0) && !s.pendingRec) || seat.guard()) return;
   const owed = s.pending || 0, rec = s.pendingRec;
   if (owed > 0) cage.pay(owed);
   s.pending = 0; s.pendingRec = null; save();

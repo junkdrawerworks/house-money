@@ -10,6 +10,7 @@ import { cardEl, turn, dealInto } from '../../shared/cards.js';
 import { rack as makeRack, setStack } from '../../shared/chips.js';
 import { mountTable, float, wait } from '../../shared/table.js';
 import { byId } from '../../shared/tables.js';
+import * as seat from '../../shared/seat.js';
 
 const KEY = 'house-money.blackjack';
 const T = byId('blackjack');
@@ -65,7 +66,7 @@ function onFelt() {
   const over = s.phase === 'bet' || (s.phase === 'done' && s.paid !== false);
   return s.bet + (over ? 0 : s.hands.reduce((a, h) => a + h.bet, 0) + s.insurance);
 }
-function save() { s.felt = onFelt(); try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* full or off */ } }
+function save() { s.felt = onFelt(); seat.write(KEY, s); }
 
 // ---------- drawing the table ----------
 
@@ -197,7 +198,7 @@ async function show() { paint(); await paintCards(); }
 // ---------- betting ----------
 
 function put(v) {
-  if (busy) return;
+  if (busy || seat.guard()) return;
   if (s.phase === 'done') newBet();
   if (s.phase !== 'bet') return;
   const { max } = table.limits();
@@ -242,6 +243,7 @@ async function step(fn) {
 }
 
 function deal() {
+  if (seat.guard()) return;
   step(async () => {
     if (s.phase !== 'bet' || s.bet < table.limits().min) return;
     table.say('');
@@ -302,7 +304,7 @@ async function payout() {
 // A settled round's chips to the rack and its line in Records, together and once: a hand just settled, or one settled
 // before the page closed. False when there's nothing to pay.
 function finish() {
-  if (s.phase !== 'done' || s.paid !== false) return false;
+  if (s.phase !== 'done' || s.paid !== false || seat.guard()) return false;
   const o = s.outcome;
   if (o.back > 0) cage.pay(o.back);
   s.paid = true; save();
@@ -311,6 +313,7 @@ function finish() {
 }
 
 function act(name, cost = 0) {
+  if (seat.guard()) return;
   step(async () => {
     if (cost && !cage.take(cost)) { table.say('Not enough chips for that.'); return; }
     g[name](s); save(); sound.tap();

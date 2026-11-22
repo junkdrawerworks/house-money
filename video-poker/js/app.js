@@ -10,6 +10,7 @@ import { cardEl, turn } from '../../shared/cards.js';
 import { rack as makeRack } from '../../shared/chips.js';
 import { mountTable, float, wait } from '../../shared/table.js';
 import { byId } from '../../shared/tables.js';
+import * as seat from '../../shared/seat.js';
 
 const KEY = 'house-money.video-poker';
 const T = byId('video-poker');
@@ -55,7 +56,7 @@ function load() {
   } catch { /* first visit */ }
   return vp.fresh();
 }
-function save() { s.felt = onFelt(); try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* full or off */ } }
+function save() { s.felt = onFelt(); seat.write(KEY, s); }
 
 // ---------- the screen ----------
 
@@ -165,7 +166,7 @@ function clearShown() {
 }
 
 async function deal() {
-  if (busy || s.phase === 'draw') return;
+  if (busy || s.phase === 'draw' || seat.guard()) return;
   const bet = s.coins * s.coin;
   if (bet > table.limits().max * 5) return;
   if (!cage.take(bet)) { table.say('Not enough chips: bet fewer coins or a smaller coin.'); return; }
@@ -182,7 +183,7 @@ async function deal() {
 }
 
 async function draw() {
-  if (busy || s.phase !== 'draw') return;
+  if (busy || s.phase !== 'draw' || seat.guard()) return;
   busy = true;
   const held = s.held.slice();
   vp.draw(s);
@@ -214,7 +215,7 @@ async function draw() {
 // A drawn hand's chips to the rack and its line in Records, together and once: a hand just drawn, or one drawn before
 // the page closed, winning or not. Returns { pay, wagered }, or null when there's nothing to pay.
 function finish() {
-  if (s.phase !== 'done' || s.paid !== false) return null;
+  if (s.phase !== 'done' || s.paid !== false || seat.guard()) return null;
   const o = { pay: s.result?.pay || 0, wagered: s.coins * s.coin };
   if (o.pay > 0) cage.pay(o.pay);
   s.paid = true; save();
