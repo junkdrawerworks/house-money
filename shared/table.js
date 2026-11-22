@@ -210,9 +210,14 @@ export const names = (list, up = '../') => {
   const a = list.map(t => `<a href="${up}${t.id}/">${t.name.replace(/&/g, '&amp;')}</a>`);
   return a.length > 1 ? `${a.slice(0, -1).join(', ')} and ${a[a.length - 1]}` : a[0] || '';
 };
-// Where the chips are while the cage holds back its stake: "15 still out on Craps." (list: from cage.out())
-export const outLine = (list, up = '../') =>
-  `${cage.fmt(list.reduce((a, t) => a + t.felt, 0))} still out on ${names(list, up)}. The cage stakes you when nothing’s left out.`;
+// Chips out on the tables, in words: "300 out on Craps", "315 out on Craps and Blackjack" (list: from cage.out();
+// still: "300 still out on Craps"). The floor, the tables' notes and Records all say it this way.
+export const outWords = (list, up = '../', still = false) =>
+  `${cage.fmt(list.reduce((a, t) => a + t.felt, 0))} ${still ? 'still ' : ''}out on ${names(list, up)}`;
+// Where the chips are: "300 still out on Craps." With stake (while the cage holds back its stake, under 10 chips),
+// "The cage stakes you when nothing’s left out." after it.
+export const outLine = (list, up = '../', { stake = true } = {}) =>
+  `${outWords(list, up, true)}.${stake ? ' The cage stakes you when nothing’s left out.' : ''}`;
 
 // 'a' or 'an' before an amount, the way it's read out: an 8, an 80, an 11, an 18,000; a 25, a 110.
 export const article = n => (/^8|^1[18](,\d{3})*$/.test(cage.fmt(n)) ? 'an' : 'a');

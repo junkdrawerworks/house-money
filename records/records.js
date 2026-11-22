@@ -4,6 +4,7 @@
 import * as cage from '../shared/cage.js';
 import * as records from '../shared/records.js';
 import { TABLES, units } from '../shared/tables.js';
+import { outWords } from '../shared/table.js';
 
 const fmt = cage.fmt;
 const $ = id => document.getElementById(id);
@@ -20,8 +21,9 @@ function draw() {
   let rounds = 0, wagered = 0, net = 0;
   for (const t of TABLES) { const x = records.table(t.id); rounds += x.rounds; wagered += x.wagered; net += x.net; }
   const t = cage.tier(c.wagered);
+  const away = cage.out();
   $('totals').innerHTML = `
-    <div><b>${fmt(c.chips)}</b><span>chips now</span></div>
+    <div><b>${fmt(c.chips)}</b><span>chips now</span>${away.length ? `<span class="away">plus ${outWords(away, '../')}</span>` : ''}</div>
     <div><b>${fmt(c.high)}</b><span>the most you’ve held</span></div>
     <div><b class="${net > 0 ? 'up' : net < 0 ? 'down' : ''}">${signed(net)}</b><span>up or down, all tables</span></div>
     <div><b>${fmt(wagered)}</b><span>chips bet over ${fmt(rounds)} ${rounds === 1 ? 'play' : 'plays'}</span></div>

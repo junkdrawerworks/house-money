@@ -12,6 +12,7 @@
 .totals div { background: rgba(20, 8, 8, .75); border: 1px solid rgba(217, 180, 90, .3); border-radius: 14px; padding: 12px; text-align: center; display: flex; flex-direction: column; gap: 4px; }
 .totals b { font: 800 1.45rem/1 var(--sans); font-variant-numeric: tabular-nums; }
 .totals span { font-size: .8rem; color: var(--muted); }
+.totals .away a { color: var(--gold-hi); font-weight: 700; }
 b.up { color: var(--win); } b.down { color: var(--lose); }
 
 .rec-list { display: grid; gap: 10px; grid-template-columns: 1fr; }

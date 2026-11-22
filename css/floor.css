@@ -113,6 +113,7 @@ body.floor main { max-width: 1040px; margin: 0 auto; padding: 8px 16px 0; }
 .what { font-size: .92rem; color: var(--muted); }
 .stat { font-size: .82rem; color: #a99d84; font-variant-numeric: tabular-nums; }
 .stat.up { color: var(--win); }
+.stat .waiting { color: var(--gold-hi); font-weight: 700; }
 .foot { display: flex; align-items: center; justify-content: space-between; margin-top: auto; padding-top: 6px; }
 .lim { font-size: .8rem; color: #a99d84; }
 .go { font-weight: 700; font-size: .92rem; color: #2a1608; background: linear-gradient(var(--gold-hi), var(--gold)); padding: 6px 14px; border-radius: 99px; }

@@ -998,7 +998,7 @@ if (cageWants('roulette')) {
   for (const [id, play] of Object.entries(plays)) {
     if (!cageWants(id)) continue;
     const { p, ctx } = await sit(`${id}/?fast&seen`, id === 'craps' ? { ...fresh, craps: { bets: { pass: 10 }, point: 0, history: [], felt: 10 } } : fresh,
-      { size: { viewport: { width: 1280, height: 800 } } });
+      { size: { viewport: { width: 1280, height: 800 }, reducedMotion: 'reduce' } });   // (reduced motion: headless Chromium reports the fade from page to page after a link as a page error)
     await p.waitForTimeout(400);
     await play(p);
     await ctx.close();
@@ -1019,6 +1019,32 @@ if (cageWants('records')) {
   assert.deepEqual((await rows('odds-and-ends')).at(-1), ['Jackpots', '2'], 'Records: Odds & Ends jackpots');
   assert.deepEqual((await rows('motherlode')).slice(-2), [['Free-spin features', '1'], ['Most won in free spins', '1,395']], 'Records: Motherlode');
   assert.match(await p.textContent('#totals'), /526chips bet over 44 plays/, 'Records: the total line');
+  await ctx.close();
+}
+
+// Chips left on a table are still yours, and the floor and Records say where: 200 on the pass line and 100 on the field
+// at craps, left there. The tiles say what's waiting at each table: the craps layout, a blackjack hand dealt and
+// Motherlode's free spins.
+if (cageWants('craps', 'floor', 'records')) {
+  const { p, ctx } = await sit('craps/?fast&seen', { cage: { chips: 975, wagered: 25, high: 1000, stakes: 1 },
+    blackjack: { phase: 'play', bet: 0, last: 25, hands: [{ id: 0, cards: [{ r: 10, s: 'c' }, { r: 6, s: 'd' }], bet: 25 }], dealer: [{ r: 9, s: 'h' }, { r: 7, s: 's' }], hole: true, insurance: 0, active: 0, felt: 25, shoe: [{ r: 2, s: 'c' }] },
+    motherlode: { bet: 20, free: { left: 5, total: 8, sticky: [], won: 40, bet: 20 } } },
+  // (with reduced motion: headless Chromium reports the page-to-page fade after a tapped link as a page error)
+  { size: { ...phone, reducedMotion: 'reduce' } });
+  await p.click('#rack .c100');
+  await p.click('[data-spot="pass"]'); await p.click('[data-spot="pass"]'); await p.click('[data-spot="field"]');
+  await until(async () => (await feltOf(p, 'craps')) === 300, 2000, 'Craps: the 300 did not go down');
+  await p.click('.bar .back'); await p.waitForURL(base);
+  assert.equal(await p.textContent('#chips'), '675');
+  assert.equal((await p.textContent('#outNote')).trim(), '325 still out on Blackjack and Craps.', 'the floor: no word on the chips left on the tables');
+  const stat = id => p.textContent(`#at-${id} [data-stat]`);
+  assert.equal(await stat('craps'), '300 on the layout', 'the floor: the craps tile');
+  assert.equal(await stat('blackjack'), 'A hand in play', 'the floor: the blackjack tile');
+  assert.equal(await stat('motherlode'), 'Free spins waiting', 'the floor: the Motherlode tile');
+  assert.equal(await stat('roulette'), 'Not played yet');
+  await p.click('.hop.alt'); await p.waitForURL(`${base}records/`);
+  assert.equal((await p.textContent('#totals div:first-child')).trim(), '675chips nowplus 325 out on Blackjack and Craps', 'Records: no word on the chips left on the tables');
+  assert.equal(await p.getAttribute('#totals .away a:last-child', 'href'), '../craps/');
   await ctx.close();
 }
 
