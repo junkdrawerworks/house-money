@@ -64,6 +64,9 @@ body.freeplay .frame { background: linear-gradient(90deg, #8a6418, #f2c33a 6%, #
 .bw-title { margin: 0; font: 400 clamp(2.4rem, 12vw, 4.4rem)/1 var(--sign); background: linear-gradient(#fff6c8, #f2c33a 55%, #b07818); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 4px 0 #3a1f08) drop-shadow(0 0 24px rgba(255, 200, 80, .6)); animation: bwPulse .9s ease-in-out infinite alternate; }
 .bw-amt { margin: 12px 0 0; font: 800 clamp(2rem, 10vw, 3.4rem)/1 var(--sans); color: #fff; font-variant-numeric: tabular-nums; text-shadow: 0 3px 0 #3a1f08, 0 0 18px rgba(255, 220, 120, .6); }
 .bw-tap { margin: 18px 0 0; color: var(--muted); font-size: .9rem; }
+.bw-kick { margin: 0 0 10px; font: 800 .95rem/1 var(--sans); letter-spacing: .14em; text-transform: uppercase; color: #ffe27a; }
+.bw-note { margin: 10px 0 0; font: 700 1rem/1.2 var(--sans); color: #f3e3c4; }
+.bigwin.small .bw-title { animation: none; }
 @keyframes bwIn { from { opacity: 0; } }
 @keyframes bwPulse { to { transform: scale(1.06); } }
 @media (prefers-reduced-motion: reduce) { .beam .hang, .bw-title { animation: none; } }

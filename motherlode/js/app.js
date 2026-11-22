@@ -40,8 +40,8 @@ const table = mountTable({
       and light up ${M.FREE_SPINS[3]}, ${M.FREE_SPINS[4]} or ${M.FREE_SPINS[5]} free spins.</li>
       <li><b>In the free spins the pickaxes stick.</b> Every pickaxe that lands stays where it is, wild, until the free
       spins are over, so they pile up. The free spins play at the bet that lit them, and they carry on where they left
-      off if you leave.</li>
-      <li><b>Auto</b> keeps spinning until you stop it (the button says Stop while it runs), the chips run short, or a big win comes in.</li>
+      off if you leave. When they’re over, a card adds up what they paid.</li>
+      <li><b>Auto</b> keeps spinning until you stop it (the button says Stop while it runs), the chips run short, or a big win comes in (free spins that pay 15 times the bet count as one).</li>
     </ul>
     <h3>The long run</h3>
     <p>Motherlode pays back about ${M.RETURN.rtp.toFixed(1)}% of what goes in, more than a quarter of that from the free
@@ -52,8 +52,11 @@ const table = mountTable({
 
 let reels, spinning = false, auto = false, shown = { wins: [], at: -1, lit: [] }, cycle = 0, fresh = [];
 let hold = [];   // the pickaxes stuck to the glass, drawn over the reels
-// for the tests (?seen): the pickaxes glowing as new, and whether the reels are turning
-if (/[?&]seen\b/.test(location.search)) window.__ml = { get fresh() { return fresh; }, get running() { return !!reels?.running; } };
+// Once the free spins are over, the pickaxes that were stuck for the last one, drawn as plain pickaxes (no gold frame)
+// over the reels until the next spin: the picture that paid, with nothing still sticking. After a reload too.
+let rest = [];
+// for the tests (?seen): the pickaxes glowing as new, whether the reels are turning, and the pickaxes stuck and at rest
+if (/[?&]seen\b/.test(location.search)) window.__ml = { get fresh() { return fresh; }, get running() { return !!reels?.running; }, get hold() { return hold; }, get rest() { return rest; } };
 
 const lineBet = () => (s.free ? s.free.bet : s.bet) / M.LINE_COUNT;
 // The free spin playing now, or the next one between spins: a spin is painted as it starts, before it's taken off
@@ -119,7 +122,7 @@ async function spin() {
   paint();
 
   const sticky = free ? s.free.sticky : [];
-  hold = sticky;
+  hold = sticky; rest = [];
   const r = M.play(pickStops(M.REELS), sticky);
   const win = r.units * (bet / M.LINE_COUNT);
   // what this spin does to the free spins, decided now and saved with it
@@ -179,7 +182,14 @@ async function show(r, win, bet, { started, ended, free, no }) {
     table.say(`Free spin ${no[0]} of ${no[1]}: ${win > 0 ? winWords(r, win) : 'no win'}.${stuck}${total}`, win > 0 || ended?.won ? 'win' : '');
   } else table.say(win > 0 ? `${winWords(r, win, true)}.` : 'No win.', win > 0 ? 'win' : '');
   if (win >= bet * 15) { if (auto && !s.free) auto = false; await celebrate(win, bet); }
-  if (ended && ended.won >= ended.bet * 15 && win < bet * 15) await celebrate(ended.won, ended.bet, 'Free spins');
+  if (ended) {
+    // Auto stops for a big feature, as it does for a big win
+    if (ended.won >= ended.bet * 15) auto = false;
+    // the closing card, after the last spin's own celebration if it had one, then the glass goes back to plain reels
+    await celebrate(ended.won, ended.bet, { feature: ended });
+    rest = hold; hold = []; fresh = [];
+    reels.draw();
+  }
 }
 
 // What a spin paid, in words: "three mine carts pay 40", "2 lines pay 60", "3 lanterns pay 40" (big: with a capital).
@@ -205,6 +215,17 @@ const lineWord = w => `${['', '', '', 'Three', 'Four', 'Five'][w.count]} ${plura
 function decorate(ctx, rs) {
   // sticky pickaxes: the pickaxe in a gold frame, standing over whatever spins under it
   const pick = rs.sprite('pick', false);
+  // the free spins over: the last picture's pickaxes as the reels would show them, shaded the same towards the top
+  // and bottom of the glass
+  if (!rs.running) for (const [c, r] of rest) {
+    const b = rs.cellRect(c, r);
+    ctx.fillStyle = rs.look.face; ctx.fillRect(b.x, b.y, b.w, b.h);
+    ctx.drawImage(pick, b.x, b.y, b.w, b.h);
+    const k = rs.look.shade, g = ctx.createLinearGradient(0, 0, 0, rs.H);
+    g.addColorStop(0, `rgba(0,0,0,${k})`); g.addColorStop(.18, 'rgba(0,0,0,0)'); g.addColorStop(.82, 'rgba(0,0,0,0)'); g.addColorStop(1, `rgba(0,0,0,${k})`);
+    ctx.fillStyle = g; ctx.fillRect(b.x, b.y, b.w, b.h);
+    if (rs.look.lines) { ctx.fillStyle = rs.look.divider; ctx.fillRect(b.x, b.y - .5, b.w, 1); }
+  }
   for (const [c, r] of hold) {
     const b = rs.cellRect(c, r);
     ctx.fillStyle = 'rgba(40,20,0,.85)'; ctx.fillRect(b.x, b.y, b.w, b.h);
@@ -250,20 +271,28 @@ function decorate(ctx, rs) {
 
 // ---------- the big win ----------
 
-function celebrate(win, bet, label) {
-  const x = win / bet;
-  const title = label || (x >= 100 ? 'Motherlode!' : x >= 40 ? 'Huge win' : 'Big win');
+// A big win (15, 40 or 100 times the bet), or the card that closes the free spins (feature: what they came to), with
+// "Free spins" over the title when the total is big and as the title when it isn't, and "8 spins · 6 pickaxes" under
+// the amount. Coins rain for a big one.
+function celebrate(win, bet, { feature = null } = {}) {
+  const x = win / bet, big = x >= 15;
+  const title = !big ? 'Free spins' : x >= 100 ? 'Motherlode!' : x >= 40 ? 'Huge win' : 'Big win';
   const box = $('bigwin');
   $('bwTitle').textContent = title;
+  $('bwKick').hidden = !(feature && big);
+  const n = feature?.sticky.length || 0;
+  $('bwNote').textContent = feature ? `${feature.total} spins · ${n ? `${n} pickaxe${n === 1 ? '' : 's'}` : 'no pickaxes'}` : '';
+  $('bwNote').hidden = !feature;
+  box.classList.toggle('small', !big);
   box.hidden = false;
-  const dur = fast ? 50 : Math.min(6000, 2200 + x * 30);
+  const dur = fast ? 50 : big ? Math.min(6000, 2200 + x * 30) : 1600;
   const cv = $('coins'), ctx = cv.getContext('2d');
   const dpr = Math.min(2, devicePixelRatio || 1);
   cv.width = innerWidth * dpr; cv.height = innerHeight * dpr;
   const coins = [];
-  const rate = Math.min(14, 3 + x / 10);
+  const rate = big ? Math.min(14, 3 + x / 10) : 0;
   let done = false, t0 = performance.now(), last = t0;
-  sound.win(3); sound.chips(12);
+  if (big) { sound.win(3); sound.chips(12); } else if (win > 0) sound.chips(4);
   return new Promise(resolve => {
     const end = () => { if (done) return; done = true; box.hidden = true; box.removeEventListener('click', end); resolve(); };
     box.addEventListener('click', end);
@@ -319,6 +348,8 @@ $('legend').innerHTML = [
   reels.decorate = decorate;
   const owed = keep.settle();
   if (s.free) hold = s.free.sticky;
+  // the free spins ended with the last spin: its pickaxes stay in the picture, plain, until the next spin
+  else if (s.last?.free) rest = s.last.sticky || [];
   const stops = s.last?.stops || M.REELS.map(r => r.strip.indexOf('nugget'));
   reels.set(stops);
   describe(M.play(stops, s.last?.sticky || []).grid);

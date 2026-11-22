@@ -502,6 +502,59 @@ if (cageWants('motherlode')) {
   await ctx.close();
 }
 
+// Motherlode's free spins ending: the last one plays, a closing card says what they came to ("Free spins", the total,
+// "8 spins · 2 pickaxes"), and then the glass is plain reels: the pickaxes that were stuck stay in the picture without
+// their gold frames, and nothing sticks to the next spin. A reload while the card is up pays nothing twice, leaves
+// nothing on the felt and shows the same picture. (A steady draw of 0.275 wins nothing.)
+if (cageWants('motherlode')) {
+  const sticky = [[4, 0], [4, 2]];
+  const last1 = { bet: 20, free: { left: 1, total: 8, sticky, won: 60, bet: 20 }, last: { stops: [0, 0, 0, 0, 0], sticky, win: 0, wagered: 0, free: true, paid: true } };
+  const seed = { cage: { chips: 940, wagered: 60, high: 1000, stakes: 1 }, motherlode: last1 };
+  const ml = p => p.evaluate(() => ({ hold: window.__ml.hold, rest: window.__ml.rest }));
+  const saved = p => p.evaluate(() => JSON.parse(localStorage.getItem('house-money.motherlode')));
+  // played through: the card, then plain reels
+  {
+    const { p, ctx } = await sit('motherlode/?seen', seed, { f: .275 });
+    await p.waitForSelector('#bigwin:not([hidden])', { timeout: 10000 });
+    assert.deepEqual([await p.textContent('#bwTitle'), await p.isVisible('#bwKick'), await p.textContent('#bwNote')], ['Free spins', false, '8 spins · 2 pickaxes'], 'Motherlode: the closing card');
+    assert.equal((await p.textContent('#say')).trim(), 'Free spin 8 of 8: no win. The free spins paid 60.');
+    await p.click('#bigwin');
+    await until(async () => (await ml(p)).hold.length === 0, 2000, 'Motherlode: the pickaxes still stick once the free spins are over');
+    assert.deepEqual((await ml(p)).rest, sticky, 'Motherlode: the picture that paid lost its pickaxes');
+    // a reload now shows the same picture, with nothing stuck and nothing out
+    await p.reload(); await p.waitForTimeout(500);
+    assert.deepEqual(await ml(p), { hold: [], rest: sticky }, 'Motherlode: a reload after the free spins shows a different picture');
+    assert.deepEqual([(await saved(p)).free, await feltOf(p, 'motherlode'), (await cageOf(p)).chips], [null, 0, 940], 'Motherlode: the free spins left something behind');
+    await ctx.close();
+  }
+  // a reload while the card is up: paid once, nothing out, and the next spin starts clean
+  {
+    const { p, ctx } = await sit('motherlode/?seen', seed, { f: .275 });
+    await p.waitForSelector('#bigwin:not([hidden])', { timeout: 10000 });
+    await p.reload(); await p.waitForTimeout(500);
+    assert.equal(await p.isVisible('#bigwin'), false);
+    assert.deepEqual([(await saved(p)).free, await feltOf(p, 'motherlode'), (await cageOf(p)).chips, (await ml(p)).rest], [null, 0, 940, sticky], 'Motherlode: a reload during the closing card');
+    assert.equal((await recordsOf(p)).motherlode?.feature, 60, 'Motherlode: the feature wasn\'t recorded once');
+    await p.click('#spin');
+    await until(async () => (await cageOf(p)).wagered === 80 && !(await p.evaluate(() => window.__ml.running)) && !(await p.isDisabled('#spin')), 8000, 'Motherlode: the next spin never finished');
+    assert.deepEqual([await ml(p), (await saved(p)).last.sticky, await feltOf(p, 'motherlode')], [{ hold: [], rest: [] }, [], 0], 'Motherlode: the free spins carried over into the next spin');
+    await ctx.close();
+  }
+  // Auto stops when the free spins come to 15 times the bet or more, and carries on when they don't
+  for (const [won, stops] of [[300, true], [60, false]]) {
+    const { p, ctx } = await sit('motherlode/?seen', { ...seed, motherlode: { ...last1, free: { ...last1.free, won } } }, { f: .275 });
+    await p.click('#auto');
+    await p.waitForSelector('#bigwin:not([hidden])', { timeout: 10000 });
+    assert.equal(await p.textContent('#bwTitle'), won >= 300 ? 'Big win' : 'Free spins');
+    await p.click('#bigwin');
+    if (stops) {
+      await p.waitForTimeout(1500);
+      assert.deepEqual([(await cageOf(p)).wagered, (await p.textContent('#auto')).trim()], [60, 'Auto'], 'Motherlode: Auto ran on after free spins that paid 15 times the bet');
+    } else await until(async () => (await cageOf(p)).wagered > 60, 6000, 'Motherlode: Auto stopped after free spins that paid less than 15 times the bet');
+    await ctx.close();
+  }
+}
+
 // Chips still in play are out on the felt until they're paid: no offer while a slot's reels turn or a video poker
 // draw is turning over, even when what's left in the rack is under 10. (No ?fast here: the reels take their time.)
 // whether the offer is up, each moment busy (a function run in the page) says the round is still in play

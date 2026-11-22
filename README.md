@@ -111,8 +111,8 @@ Jacks or Better on a full-pay machine: nine coins for a full house, six for a fl
 - **Five reels, three rows, twenty lines, down a gold mine.** Gold nuggets, mine carts, dynamite, canaries, and card ranks stamped on iron plates. Three, four or five of a kind pay from the left. The bet is spread over the lines, so it goes up in twenties.
 - **The pickaxe is wild** on reels 2 to 5.
 - **Lanterns light free spins.** Three, four or five lanterns anywhere pay 2, 10 or 50 times the bet and light 8, 12 or 20 free spins. Two lanterns already showing make the reels after them spin a moment longer.
-- **In the free spins the pickaxes stick.** Every pickaxe that lands stays on the glass, framed in gold, until the spins are over, so they pile up. Free spins play by themselves at the bet that lit them, and carry on where they left off if you leave.
-- **Big wins rain coins.** At 15 times the bet it's a Big win, at 40 a Huge win, and at 100 the Motherlode. **Auto** keeps spinning until you tap it again (it says Stop while it runs), the chips run short, or a big win comes in.
+- **In the free spins the pickaxes stick.** Every pickaxe that lands stays on the glass, framed in gold, until the spins are over, so they pile up. Free spins play by themselves at the bet that lit them, and carry on where they left off if you leave. When they're over, a card adds up what they paid, and the pickaxes come unstuck.
+- **Big wins rain coins.** At 15 times the bet it's a Big win, at 40 a Huge win, and at 100 the Motherlode. **Auto** keeps spinning until you tap it again (it says Stop while it runs), the chips run short, or a big win comes in (free spins that pay 15 times the bet count as one).
 - **The long run.** It pays back about 95.0%, more than a quarter of that from the free spins. About one spin in 2.5 wins.
 
 ## Saving to Google Drive
