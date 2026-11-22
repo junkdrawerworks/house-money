@@ -1063,6 +1063,48 @@ if (cageWants('video-poker')) {
   await ctx.close();
 }
 
+// Focus after Deal: the button you pressed hides, and focus goes on to the next one rather than to the page (where a
+// screen reader starts again from the top). Blackjack through insurance, a hand and the payout, and Baccarat through
+// the deal and Turn them over, all by keyboard at 1280x800. With nothing focused, Enter deals and focus stays put.
+const focusedName = async p => (await heard(p)).filter(n => n.focused).map(n => n.name).at(-1) ?? 'the page';
+const desk = { viewport: { width: 1280, height: 800 } };
+if (cageWants('blackjack')) {
+  const C = (r, s = 'c') => ({ r, s });
+  const shoe = Array(150).fill(C(2)).concat([C(10), C(1, 'h'), C(7), C(9, 'h'), C(10, 'd')].reverse());
+  const bj = { shoe, phase: 'bet', bet: 25, last: 25, hands: [], active: 0, dealer: [], hole: true, insurance: 0, felt: 25, carry: 0 };
+  const { p, ctx } = await sit('blackjack/?fast&seen', { cage: { chips: 975, wagered: 25, high: 1000, stakes: 1 }, blackjack: bj }, { size: desk });
+  const phase = () => p.evaluate(() => JSON.parse(localStorage.getItem('house-money.blackjack')).phase);
+  await p.focus('#deal'); await p.keyboard.press('Enter');
+  await p.waitForSelector('#insActions:not([hidden])', { timeout: 3000 });
+  assert.equal(await focusedName(p), 'No insurance', 'Blackjack: focus after Deal');
+  await p.keyboard.press('Enter');
+  await p.waitForSelector('#playActions:not([hidden])', { timeout: 3000 });
+  assert.equal(await focusedName(p), 'Hit', 'Blackjack: focus after No insurance');
+  await p.focus('#stand'); await p.keyboard.press('Enter');
+  await p.waitForSelector('#doneActions:not([hidden])', { timeout: 3000 });
+  assert.equal(await focusedName(p), 'Same bet: 25', 'Blackjack: focus after Stand');
+  // nothing focused: Enter deals the same bet again, and focus isn't moved
+  await p.evaluate(() => document.activeElement.blur());
+  await p.keyboard.press('Enter');
+  await until(async () => (await phase()) !== 'done', 3000, 'Blackjack: Enter with nothing focused didn\'t deal');
+  await p.waitForTimeout(300);
+  assert.equal(await p.evaluate(() => document.activeElement === document.body), true, 'Blackjack: focus moved though it wasn\'t on a button');
+  await ctx.close();
+}
+if (cageWants('baccarat')) {
+  const C = (r, s = 'c') => ({ r, s });
+  const bets = { player: 0, banker: 25, tie: 0, pp: 0, bp: 0 };
+  const { p, ctx } = await sit('baccarat/?fast&seen', { cage: { chips: 975, wagered: 25, high: 1000, stakes: 1 },
+    baccarat: { shoe: Array(100).fill(C(2)).concat([C(10, 'h'), C(10), C(9), C(3)]), phase: 'bet', bets, last: bets, coup: null, stage: 0, turned: [], road: [], carry: 0, felt: 25 } }, { size: desk });
+  await p.focus('#deal'); await p.keyboard.press('Enter');
+  await p.waitForSelector('#revealActions:not([hidden]) #reveal:not([disabled])', { timeout: 3000 });
+  assert.equal(await focusedName(p), 'Turn them over', 'Baccarat: focus after Deal');
+  await p.keyboard.press('Enter');
+  await p.waitForSelector('#doneActions:not([hidden]) #again:not([disabled])', { timeout: 5000 });
+  assert.equal(await focusedName(p), 'Same bet: 25', 'Baccarat: focus after Turn them over');
+  await ctx.close();
+}
+
 // Reduced motion: no animation runs on and on (one cut short to .01ms flickers through its frames at random): Cherry
 // Bell's lamps during a spin, Video Poker's winning row, Motherlode's lanterns and big-win title, Baccarat's nudge on a
 // card waiting to be turned.

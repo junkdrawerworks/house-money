@@ -8,7 +8,7 @@ import * as records from '../../shared/records.js';
 import * as sound from '../../shared/sound.js';
 import { cardEl, turn, dealInto } from '../../shared/cards.js';
 import { rack as makeRack, setStack } from '../../shared/chips.js';
-import { mountTable, float, wait, netLine, hotkey, shortcut } from '../../shared/table.js';
+import { mountTable, float, wait, netLine, hotkey, shortcut, keepFocus } from '../../shared/table.js';
 import { byId } from '../../shared/tables.js';
 import * as seat from '../../shared/seat.js';
 
@@ -201,6 +201,8 @@ function paint() {
   const left = s.shoe.length / g.CARDS;
   $('shoe').style.setProperty('--left', Math.max(0, (left - (1 - g.CUT)) / g.CUT).toFixed(3));
   table.check();
+  // the button you pressed has gone (Deal, Stand, No insurance): on to the next one, once the cards have stopped
+  if (!busy) keepFocus(...({ bet: ['deal', 'rebet', 'spot'], insurance: ['noIns', 'ins'], play: ['hit', 'stand', 'double', 'split', 'surrender'], done: ['again', 'newBet'] }[p] || []).map($));
 }
 
 async function show() { paint(); await paintCards(); }

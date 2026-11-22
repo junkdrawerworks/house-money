@@ -8,7 +8,7 @@ import * as records from '../../shared/records.js';
 import * as sound from '../../shared/sound.js';
 import { cardEl, turn, dealInto } from '../../shared/cards.js';
 import { rack as makeRack, setStack } from '../../shared/chips.js';
-import { mountTable, float, wait, netLine, hotkey } from '../../shared/table.js';
+import { mountTable, float, wait, netLine, hotkey, keepFocus } from '../../shared/table.js';
 import { byId } from '../../shared/tables.js';
 import * as seat from '../../shared/seat.js';
 import { guardEdges } from '../../shared/edge-guard.js';
@@ -403,6 +403,8 @@ function paint() {
   $('squeeze').setAttribute('aria-pressed', squeeze);
   paintTotals();
   table.check();
+  // the button you pressed has gone (Deal, Turn them over): on to the next one, once the cards have stopped
+  if (!busy) keepFocus(...({ bet: ['deal', 'rebet'], reveal: ['reveal'], done: ['again', 'newBet'] }[p] || []).map($));
 }
 
 function put(spot) {

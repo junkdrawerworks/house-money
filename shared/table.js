@@ -297,6 +297,26 @@ export function shortcut(e) {
   return !e.target?.closest?.('input, select, textarea');
 }
 
+// After a step that hides or dims the button you pressed (Deal, Turn them over, Stand), focus moves on to the button
+// that comes next, so a keyboard or screen-reader player doesn't land back at the top of the page. Only when focus was
+// in the dock and has been lost (to the page itself, or to a hidden or dimmed button): a tap or a click elsewhere
+// since, or focus anywhere else, is left alone. next: the button to go to (the first of a list that can take it).
+//   keepFocus($('hit'), $('stand'))
+let lastFocus = null;
+if (typeof document !== 'undefined') {
+  document.addEventListener('focusin', e => { lastFocus = e.target; });
+  document.addEventListener('pointerdown', e => { if (!e.target?.closest?.('.dock')) lastFocus = null; }, true);
+}
+const usable = el => el && !el.disabled && !el.closest('[hidden]') && el.getClientRects().length > 0;
+export function keepFocus(...next) {
+  const a = document.activeElement;
+  if (!lastFocus?.closest?.('.dock')) return;
+  if (a && a !== document.body && a !== lastFocus) return;
+  if (a === lastFocus && usable(a)) return;
+  const to = next.find(usable);
+  if (to && to !== a) to.focus();
+}
+
 // A brief flash of the amount won over an element: "+250".
 export function float(over, text, kind = 'win') {
   const r = over.getBoundingClientRect();
