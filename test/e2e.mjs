@@ -861,6 +861,30 @@ if (cageWants('motherlode')) {
   }
 }
 
+// Motherlode's big win: five gold nuggets across the middle, 1,000 on a 20 bet. While the card counts up to it, the
+// line under the reels says nothing (the figure it's climbing to would show through); once the card is put away, it
+// says what came in. (No ?fast: the count-up takes its real time.)
+if (cageWants('motherlode')) {
+  const { p, ctx } = await sit('motherlode/?seen', { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 }, motherlode: { bet: 20, free: null } });
+  await p.evaluate(async () => {
+    const M = await import('/motherlode/js/machine.js');
+    // each reel's draw lands a gold nugget in the middle row
+    const fs = M.REELS.map(r => { const L = r.strip.length; return (r.strip.findIndex((_, i) => r.strip[(i + 1) % L] === 'nugget') + .5) / L; });
+    const real = crypto.getRandomValues.bind(crypto);
+    crypto.getRandomValues = a => { if (fs.length && a.length === 1) { a[0] = Math.floor(fs.shift() * 2 ** 32); return a; } return real(a); };
+  });
+  await p.click('#spin');
+  await p.waitForSelector('#bigwin:not([hidden])', { timeout: 10000 });
+  assert.equal(await p.textContent('#bwTitle'), 'Huge win');
+  const under = [];
+  for (let i = 0; i < 8; i++) { under.push((await p.textContent('#paid')).trim()); await p.waitForTimeout(120); }
+  assert.deepEqual(under.filter(Boolean), [], 'Motherlode: the line under the reels said what was won while the big-win card counted up');
+  await p.click('#bigwin');
+  await until(async () => (await p.textContent('#paid')).trim() === 'Won 1,000', 2000, 'Motherlode: the line under the reels never said what the big win paid');
+  assert.equal((await cageOf(p)).chips, 1980);
+  await ctx.close();
+}
+
 // Chips still in play are out on the felt until they're paid: no offer while a slot's reels turn or a video poker
 // draw is turning over, even when what's left in the rack is under 10. (No ?fast here: the reels take their time.)
 // whether the offer is up, each moment busy (a function run in the page) says the round is still in play

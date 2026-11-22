@@ -169,12 +169,15 @@ async function show(r, win, bet, { started, ended, free, no }) {
   reels.draw();
   describe(r.grid);
   if (fresh.length) sound.chip();
+  // a big win counts up on its own card: the line under the reels waits until the card is put away, so the figure the
+  // count-up is climbing to doesn't show under it
+  const big = win >= bet * 15;
+  const paid = () => { $('paid').textContent = `Won ${cage.fmt(win)}`; float($('reelBox'), `+${cage.fmt(win)}`); };
   if (win > 0) {
     $('paid').className = 'paid win';
-    $('paid').textContent = `Won ${cage.fmt(win)}`;
-    sound.win(win >= bet * 15 ? 3 : win >= bet * 3 ? 2 : 1);
+    if (big) $('paid').innerHTML = '&nbsp;'; else paid();
+    sound.win(big ? 3 : win >= bet * 3 ? 2 : 1);
     sound.chips(Math.min(12, 2 + r.wins.length));
-    float($('reelBox'), `+${cage.fmt(win)}`);
     if (r.wins.length > 1) {
       cycle = setInterval(() => { shown.at = (shown.at + 1) % shown.wins.length; reels.draw(); }, 1300);
     }
@@ -187,7 +190,7 @@ async function show(r, win, bet, { started, ended, free, no }) {
     const total = ended ? ` The free spins paid ${cage.fmt(ended.won)}.` : '';
     table.say(`Free spin ${no[0]} of ${no[1]}: ${win > 0 ? winWords(r, win) : 'no win'}.${stuck}${total}`, win > 0 || ended?.won ? 'win' : '');
   } else table.say(win > 0 ? `${winWords(r, win, true)}.` : 'No win.', win > 0 ? 'win' : '');
-  if (win >= bet * 15) { if (auto && !s.free) auto = false; await celebrate(win, bet); }
+  if (big) { if (auto && !s.free) auto = false; await celebrate(win, bet); paid(); }
   if (ended) {
     // Auto stops for a big feature, as it does for a big win
     if (ended.won >= ended.bet * 15) auto = false;
