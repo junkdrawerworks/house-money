@@ -58,6 +58,7 @@
 .cards .card.down.live .back { box-shadow: 0 0 0 2px var(--gold-hi), 0 2px 8px rgba(0, 0, 0, .5); }
 @keyframes nudge { 50% { translate: 0 -3px; } }
 .cards .card.third.down.live { animation: none; }
+@media (prefers-reduced-motion: reduce) { .cards .card.down.live { animation: none; } }
 
 /* the squeeze: the back is cut away as you peel it, and the peeled part lies folded over */
 .card.peeling .front { transform: none; transition: none; }

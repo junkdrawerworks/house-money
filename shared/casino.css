@@ -288,8 +288,10 @@ dialog.sheet::backdrop { background: rgba(5, 2, 2, .65); }
 .jd-foot a:hover, .jd-foot a:focus-visible { text-decoration: underline; }
 .jd-foot span { margin: 0 .4em; }
 
+/* Reduced motion: every animation runs once, at once (an endless one cut to .01ms would flicker through its frames at
+   random), and nothing scrolls smoothly. The tables' own endless decorations are switched off in their style sheets. */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }
 
 /* the crossfade between the floor and the tables */

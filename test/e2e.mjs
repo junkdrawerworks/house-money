@@ -960,7 +960,7 @@ if (cageWants('roulette')) {
       assert.equal(await checked(p, '#coinSize .chip:nth-of-type(2)'), 'true', 'Cherry Bell: Space on coin size 2 did not pick it');
       assert.equal((await cageOf(p)).chips, 1000, 'Cherry Bell: Space on Menu or a coin size pulled the handle');
       await unfocused(p, ' ');
-      await until(async () => (await cageOf(p)).chips < 1000, 3000, 'Cherry Bell: Space with nothing focused did not pull');
+      await until(async () => (await cageOf(p)).wagered > 0, 3000, 'Cherry Bell: Space with nothing focused did not pull');
     },
     baccarat: async p => {
       await p.click('#rack .c25'); await p.click('.spot[data-bet="banker"]');
@@ -986,7 +986,7 @@ if (cageWants('roulette')) {
       assert.ok((await savedOf(p, 'motherlode')).bet > bet, 'Motherlode: Space on + did not raise the bet');
       assert.equal((await cageOf(p)).chips, 1000, 'Motherlode: Space on Menu or + spun');
       await unfocused(p, ' ');
-      await until(async () => (await cageOf(p)).chips < 1000, 3000, 'Motherlode: Space with nothing focused did not spin');
+      await until(async () => (await cageOf(p)).wagered > 0, 3000, 'Motherlode: Space with nothing focused did not spin');
     },
     'odds-and-ends': async p => {
       await menuBy(p, ' ', 'Odds & Ends');
@@ -994,7 +994,7 @@ if (cageWants('roulette')) {
       assert.equal((await savedOf(p, 'odds-and-ends')).lines, 4, 'Odds & Ends: Space on the lines − did not take a line off');
       assert.equal((await cageOf(p)).chips, 1000, 'Odds & Ends: Space on Menu or − spun');
       await unfocused(p, ' ');
-      await until(async () => (await cageOf(p)).chips < 1000, 3000, 'Odds & Ends: Space with nothing focused did not spin');
+      await until(async () => (await cageOf(p)).wagered > 0, 3000, 'Odds & Ends: Space with nothing focused did not spin');
     },
   };
   for (const [id, play] of Object.entries(plays)) {
@@ -1003,6 +1003,33 @@ if (cageWants('roulette')) {
       { size: { viewport: { width: 1280, height: 800 }, reducedMotion: 'reduce' } });   // (reduced motion: headless Chromium reports the fade from page to page after a link as a page error)
     await p.waitForTimeout(400);
     await play(p);
+    await ctx.close();
+  }
+}
+
+// Reduced motion: no animation runs on and on (one cut short to .01ms flickers through its frames at random): Cherry
+// Bell's lamps during a spin, Video Poker's winning row, Motherlode's lanterns and big-win title, Baccarat's nudge on a
+// card waiting to be turned.
+if (cageWants('cherry-bell', 'video-poker', 'motherlode', 'baccarat')) {
+  const endless = p => p.evaluate(() => document.getAnimations().filter(a => a.effect?.getComputedTiming().iterations === Infinity)
+    .map(a => `${a.animationName || 'an animation'} on ${a.effect.target?.className}`));
+  const rm = { ...phone, reducedMotion: 'reduce' };
+  const fresh = { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 } };
+  const C = (r, s) => ({ r, s });
+  for (const [id, saved, during] of [
+    // (a spin under reduced motion is over in a blink: the machine is dressed as it is while one turns)
+    ['cherry-bell', fresh, async p => p.evaluate(() => document.body.classList.add('spinning'))],
+    ['video-poker', { ...fresh, 'video-poker': { phase: 'done', paid: true, coin: 1, coins: 5, hand: [C(10, 's'), C(11, 's'), C(12, 's'), C(13, 's'), C(1, 's')], held: [true, true, true, true, true], deck: [], result: { id: 'royal', name: 'Royal Flush', pay: 4000 }, felt: 0 } },
+      async p => assert.equal(await p.locator('.paytable tr.hit').count(), 1, 'Video Poker: the royal flush row is not lit')],
+    ['motherlode', fresh, async p => p.evaluate(() => { document.getElementById('bigwin').hidden = false; })],
+    ['baccarat', fresh, async p => p.evaluate(() => { const c = document.querySelector('.cards') || document.body; c.insertAdjacentHTML('beforeend', '<div class="card down live"></div>'); })],
+  ]) {
+    if (!cageWants(id)) continue;
+    const { p, ctx } = await sit(`${id}/?seen`, saved, { size: rm });
+    await p.waitForTimeout(300);
+    await during(p);
+    await p.waitForTimeout(100);
+    assert.deepEqual(await endless(p), [], `${id}: endless animations with reduced motion`);
     await ctx.close();
   }
 }

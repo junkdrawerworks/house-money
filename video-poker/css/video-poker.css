@@ -46,6 +46,11 @@ body.video-poker {
 .paytable tr:last-child td.on { border-radius: 0 0 4px 4px; }
 .paytable tr.hit td { animation: payflash .5s steps(2) infinite; }
 @keyframes payflash { 50% { color: #fff; background: rgba(255, 228, 92, .35); } }
+/* reduced motion: the winning row lit steady instead of flashing */
+@media (prefers-reduced-motion: reduce) {
+  .paytable tr.hit td { animation: none; color: #fff; }
+  .paytable tr.hit td:not(.on) { background: rgba(255, 228, 92, .35); }
+}
 
 .crt .say { min-height: 2.4em; margin: 6px 0 4px; color: #fff; font: 800 .95rem/1.2 var(--sans); text-transform: uppercase; letter-spacing: .06em; text-shadow: 0 0 8px rgba(120, 170, 255, .8); }
 .crt .say.win { color: #ffe45c; text-shadow: 0 0 10px rgba(255, 228, 92, .8); }

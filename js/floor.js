@@ -83,7 +83,7 @@ function wallet(c) {
 
 cage.watch(wallet);
 $('stake').addEventListener('click', () => { if (cage.stake()) sound.chips(8); });
-$('cardBtn').addEventListener('click', () => { $('card').scrollIntoView({ behavior: 'smooth', block: 'start' }); $('card').focus({ preventScroll: true }); });
+$('cardBtn').addEventListener('click', () => { $('card').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); $('card').focus({ preventScroll: true }); });
 
 const soundBtn = $('sound');
 const soundLabel = () => { soundBtn.textContent = `Sound: ${sound.enabled() ? 'on' : 'off'}`; soundBtn.setAttribute('aria-pressed', sound.enabled()); };

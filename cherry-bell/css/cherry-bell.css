@@ -32,6 +32,7 @@ body.cherry-bell {
 }
 body.spinning .topper .lamps { animation: chase .5s steps(2) infinite; }
 @keyframes chase { 50% { background-position: 7px 0; } }
+@media (prefers-reduced-motion: reduce) { body.spinning .topper .lamps { animation: none; } }
 
 .glass {
   position: relative; border-radius: 10px; padding: 6px 8px 4px;
