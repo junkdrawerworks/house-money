@@ -42,6 +42,7 @@ body.odds-and-ends {
 
 .paid { margin: 8px 0 0; text-align: center; font: 700 1rem/1.3 var(--sans); color: var(--muted); min-height: 1.3em; }
 .paid.win { color: var(--win); }
+.linecap { margin: 2px 0 0; text-align: center; font: 600 .85rem/1.3 var(--sans); color: var(--win); min-height: 2.6em; }
 
 .odds-and-ends .bets { display: flex; gap: 12px; align-items: center; justify-content: center; flex-wrap: wrap; }
 .stepper { display: flex; align-items: center; gap: 6px; }

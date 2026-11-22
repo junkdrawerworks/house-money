@@ -113,6 +113,9 @@ async function spin() {
   $('paid').innerHTML = '&nbsp;'; $('paid').className = 'paid';
   if (!free) table.say('');
   else if (countLine) table.say(`Free spin ${freeNo()} of ${s.free.total}.`);
+  $('reels').setAttribute('aria-label', 'The reels, spinning');
+  // which free spin this is, for the line that says how it came out
+  const no = free ? [freeNo(), s.free.total] : null;
   paint();
 
   const sticky = free ? s.free.sticky : [];
@@ -143,7 +146,7 @@ async function spin() {
   spinning = false;
   // the new pickaxes glow once the reels have landed: while they spin, a glow would give away where they'll stop
   if (free) { hold = r.picks; fresh = picked; }
-  await show(r, win, bet, { started, ended, free });
+  await show(r, win, bet, { started, ended, free, no });
   paint();
   // free spins play themselves; auto keeps going
   if (s.free || (auto && cage.read().chips >= s.bet)) {
@@ -152,9 +155,10 @@ async function spin() {
   } else if (auto) { auto = false; paint(); table.say(`Auto stopped: not enough chips for ${article(s.bet)} ${cage.fmt(s.bet)} bet.`); }
 }
 
-async function show(r, win, bet, { started, ended, free }) {
+async function show(r, win, bet, { started, ended, free, no }) {
   shown = { wins: r.wins, at: -1, lit: r.lit.length >= 3 ? r.lit : [] };
   reels.draw();
+  describe(r.grid);
   if (fresh.length) sound.chip();
   if (win > 0) {
     $('paid').className = 'paid win';
@@ -166,15 +170,32 @@ async function show(r, win, bet, { started, ended, free }) {
       cycle = setInterval(() => { shown.at = (shown.at + 1) % shown.wins.length; reels.draw(); }, 1300);
     }
   } else $('paid').innerHTML = '&nbsp;';
-  if (started || (free && fresh.length) || ended) countLine = false;
+  // every spin says how it came out, a losing one too, and in the free spins which spin it was and what stuck
   if (started) table.say(`${r.lit.length} lanterns! ${started} free spins, and the pickaxes stick.`, 'win');
-  else if (free && fresh.length) table.say(fresh.length === 1 ? 'A pickaxe sticks.' : `${fresh.length} pickaxes stick.`);
-  else if (!free && win > 0 && r.wins.length) table.say(r.wins.length === 1 ? `${lineWord(r.wins[0])} pay ${cage.fmt(win)}.` : `${r.wins.length} lines pay ${cage.fmt(win)}.`, 'win');
+  else if (free) {
+    countLine = false;
+    const stuck = !fresh.length ? '' : fresh.length === 1 ? ' A pickaxe sticks.' : ` ${fresh.length} pickaxes stick.`;
+    const total = ended ? ` The free spins paid ${cage.fmt(ended.won)}.` : '';
+    table.say(`Free spin ${no[0]} of ${no[1]}: ${win > 0 ? winWords(r, win) : 'no win'}.${stuck}${total}`, win > 0 || ended?.won ? 'win' : '');
+  } else table.say(win > 0 ? `${winWords(r, win, true)}.` : 'No win.', win > 0 ? 'win' : '');
   if (win >= bet * 15) { if (auto && !s.free) auto = false; await celebrate(win, bet); }
-  if (ended) {
-    table.say(`The free spins paid ${cage.fmt(ended.won)}.`, ended.won ? 'win' : '');
-    if (ended.won >= ended.bet * 15 && win < bet * 15) await celebrate(ended.won, ended.bet, 'Free spins');
-  }
+  if (ended && ended.won >= ended.bet * 15 && win < bet * 15) await celebrate(ended.won, ended.bet, 'Free spins');
+}
+
+// What a spin paid, in words: "three mine carts pay 40", "2 lines pay 60", "3 lanterns pay 40" (big: with a capital).
+function winWords(r, win, big = false) {
+  const lit = r.lit.length >= 3 ? `${r.lit.length} lanterns` : '';
+  const lines = r.wins.length === 1 ? lineWord(r.wins[0]).toLowerCase() : r.wins.length ? `${r.wins.length} lines` : '';
+  const w = [lines, lit].filter(Boolean).join(' and ');
+  return `${big ? w[0].toUpperCase() + w.slice(1) : w} pay ${cage.fmt(win)}`;
+}
+
+// The reels' picture, for a screen reader: each row, left to right, with any pickaxes that stick laid over it. "Top
+// row: ace, mine cart, pickaxe, 10, lantern. Middle row: …"
+const WORDS = { pick: 'pickaxe', lantern: 'lantern', nugget: 'gold nugget', cart: 'mine cart', dynamite: 'dynamite', canary: 'canary', A: 'ace', K: 'king', Q: 'queen', J: 'jack', ten: '10' };
+function describe(grid) {
+  const rows = ['Top', 'Middle', 'Bottom'].map((n, r) => `${n} row: ${grid.map(col => WORDS[col[r]] || col[r]).join(', ')}.`);
+  $('reels').setAttribute('aria-label', rows.join(' '));
 }
 
 const plural = { nugget: 'gold nuggets', cart: 'mine carts', dynamite: 'dynamite', canary: 'canaries', A: 'aces', K: 'kings', Q: 'queens', J: 'jacks', ten: 'tens', pick: 'pickaxes' };
@@ -298,8 +319,9 @@ $('legend').innerHTML = [
   reels.decorate = decorate;
   const owed = keep.settle();
   if (s.free) hold = s.free.sticky;
-  if (s.last?.stops) reels.set(s.last.stops);
-  else reels.set(M.REELS.map(r => r.strip.indexOf('nugget')));
+  const stops = s.last?.stops || M.REELS.map(r => r.strip.indexOf('nugget'));
+  reels.set(stops);
+  describe(M.play(stops, s.last?.sticky || []).grid);
   // said before the first paint, which says instead why Spin is dimmed when the bet is more than the stack
   if (!s.free && !owed) table.say('Set your bet and spin. Three lanterns light up free spins.');
   paint();

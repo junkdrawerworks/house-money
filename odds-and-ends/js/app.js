@@ -118,8 +118,9 @@ async function spin() {
   if (!keep.stake(b)) { table.say('Not enough chips for that bet. Try fewer lines or a smaller chip.'); return; }
   spinning = true;
   shown = { wins: [], at: -1 }; clearInterval(cycle);
-  $('paid').innerHTML = '&nbsp;'; $('paid').className = 'paid';
+  $('paid').innerHTML = '&nbsp;'; $('paid').className = 'paid'; $('lineCap').textContent = '';
   table.say('');
+  $('reels').setAttribute('aria-label', 'The reels, spinning');
   paint();
   const stops = pickStops(M.REELS);
   const grid = view(M.REELS, stops, M.ROWS, M.ANCHOR);
@@ -134,28 +135,42 @@ async function spin() {
   paint();
 }
 
+// The drawer's picture, for a screen reader: each row, and the lines that won. "Top row: paper clip, spare key, paper
+// clip. Middle row: …. Lines 1 and 4 win."
+function describe(stops, wins = []) {
+  const grid = view(M.REELS, stops, M.ROWS, M.ANCHOR);
+  const rows = ['Top', 'Middle', 'Bottom'].map((n, r) => `${n} row: ${grid.map(col => M.NAMES[col[r]].replace(/^[A-Z](?=[a-z])/, c => c.toLowerCase())).join(', ')}.`);
+  const n = wins.map(w => w.line + 1);
+  const won = n.length ? ` Line${n.length > 1 ? 's' : ''} ${n.length > 1 ? `${n.slice(0, -1).join(', ')} and ${n.at(-1)}` : n[0]} win${n.length > 1 ? '' : 's'}.` : '';
+  $('reels').setAttribute('aria-label', rows.join(' ') + won);
+}
+
 function show(wins, win) {
   shown = { wins, at: -1 };
   reels.draw();
-  if (!win) { $('paid').textContent = 'No luck. Try again.'; return; }
+  describe(s.last.stops, wins);
+  // the line under the drawer isn't read out (it's here to look at): the dealer's line says how it came out, once
+  if (!win) { table.say('No luck. Try again.'); return; }
   $('paid').className = 'paid win';
   $('paid').textContent = `Won ${cage.fmt(win)}`;
   const big = win >= bet() * 25 ? 3 : win >= bet() * 5 ? 2 : 1;
   sound.win(big); sound.chips(Math.min(12, 3 + wins.length * 2));
   float($('reelBox'), `+${cage.fmt(win)}`);
   table.say(wins.length === 1 ? lineSay(wins[0]) : `${wins.length} lines pay ${cage.fmt(win)}.`, 'win');
-  // after a moment, go through the winning lines one at a time
+  // after a moment, go through the winning lines one at a time, in the caption under the drawer: on the dealer's line
+  // a screen reader would read out each one, every 1.6 seconds, until the next spin
   if (wins.length > 1) {
     cycle = setInterval(() => {
       shown.at = (shown.at + 1) % wins.length;
-      table.say(lineSay(wins[shown.at]), 'win');
+      $('lineCap').textContent = lineSay(wins[shown.at], true);
       reels.draw(); tabs();
     }, 1600);
   }
   tabs();
 }
 
-const lineSay = w => `Line ${w.line + 1}, ${LINE_NAMES[w.line]}: three ${plural[w.sym]} pay ${cage.fmt(w.pay * s.lineBet)}.`;
+// short: without where the line runs (for the caption, where the line is drawn)
+const lineSay = (w, short = false) => `Line ${w.line + 1}${short ? '' : `, ${LINE_NAMES[w.line]}`}: three ${plural[w.sym]} pay ${cage.fmt(w.pay * s.lineBet)}.`;
 
 // the winning lines, drawn over the reels
 function decorate(ctx, rs) {
@@ -199,8 +214,12 @@ $('legend').innerHTML = M.SYMBOLS.map(k => `<li${k === M.WILD ? ' class="wild"' 
   const owed = keep.settle();
   if (s.last?.stops) {
     reels.set(s.last.stops);
+    describe(s.last.stops, s.last.wins || []);
     if (owed) { $('paid').className = 'paid win'; $('paid').textContent = `Your last spin paid ${cage.fmt(owed)}`; }
-  } else reels.set(M.REELS.map(r => (r.strip.indexOf('penny') + r.strip.length - 1) % r.strip.length)); // pennies across the middle
+  } else { // pennies across the middle
+    const stops = M.REELS.map(r => (r.strip.indexOf('penny') + r.strip.length - 1) % r.strip.length);
+    reels.set(stops); describe(stops);
+  }
   // said before the first paint, which says instead why Spin is dimmed when the bet is more than the stack
   table.say(owed ? '' : 'Pick your lines and your bet, then spin.');
   paint();

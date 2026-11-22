@@ -1063,6 +1063,57 @@ if (cageWants('video-poker')) {
   await ctx.close();
 }
 
+// The slots say what landed: the reels' picture is named for what's on the line (or rows) after every spin, and the
+// dealer's line always says how it came out, a losing spin too, once (the amount under the reels isn't read out as
+// well). Odds & Ends goes through its winning lines in a caption that isn't read out, and its line stays put.
+const reelsName = async p => (await heard(p)).find(n => n.role === 'image' && /row|line|reels/i.test(n.name))?.name;
+const sayOf = async p => (await p.textContent('#say')).trim();
+const after = async (p, what, ms = 8000) => until(async () => !!(await sayOf(p)) && !(await p.isDisabled('#spin')), ms, `${what}: the spin never finished`);
+if (cageWants('cherry-bell')) {
+  const { p, ctx } = await sit('cherry-bell/?fast&seen', { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 }, 'cherry-bell': { coins: 1, coin: 1 } }, { f: .5 });
+  await p.click('#spin');
+  await after(p, 'Cherry Bell');
+  const line = await p.evaluate(() => import('/cherry-bell/js/machine.js').then(M => import('/shared/reels.js').then(R => R.window(M.REELS, JSON.parse(localStorage.getItem('house-money.cherry-bell')).last.stops, 3, 1).map(c => c[1]))));
+  const words = line.map(x => (x === 'bar' ? 'BAR' : x));
+  assert.equal(await reelsName(p), `On the pay line: ${words.join(', ')}.`, 'Cherry Bell: the reels aren\'t named for the pay line');
+  const said = words.join(', ');
+  assert.equal(await sayOf(p), `${said[0].toUpperCase()}${said.slice(1)}. Nothing this time.`, 'Cherry Bell: a losing pull says nothing');
+  await ctx.close();
+}
+if (cageWants('motherlode')) {
+  const { p, ctx } = await sit('motherlode/?fast&seen', { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 }, motherlode: { bet: 20, free: null } }, { f: .275 });
+  assert.equal(await p.getAttribute('#paid', 'aria-hidden'), 'true', 'Motherlode: the amount under the reels is read out as well as the line');
+  await p.click('#spin');
+  await after(p, 'Motherlode');
+  assert.equal(await sayOf(p), 'No win.', 'Motherlode: a losing spin says nothing');
+  assert.match(await reelsName(p), /^Top row: [a-z0-9 ]+(, [a-z0-9 ]+){4}\. Middle row: .+\. Bottom row: .+\.$/, 'Motherlode: the reels aren\'t named for what landed');
+  await ctx.close();
+  const { p: q, ctx: c2 } = await sit('motherlode/?seen', { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 },
+    motherlode: { bet: 20, free: { left: 5, total: 8, sticky: [], won: 0, bet: 20 }, last: { stops: [0, 0, 0, 0, 0], sticky: [], win: 0, wagered: 20, paid: true } } }, { f: .275 });
+  await until(async () => /^Free spin 4 of 8: /.test(await sayOf(q)), 8000, 'Motherlode: a free spin with no win says nothing');
+  assert.match(await sayOf(q), /^Free spin 4 of 8: no win\.( A pickaxe sticks\.| \d pickaxes stick\.)?$/);
+  await c2.close();
+}
+if (cageWants('odds-and-ends')) {
+  const { p, ctx } = await sit('odds-and-ends/?fast&seen', { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 }, 'odds-and-ends': { lines: 5, lineBet: 1 } }, { f: .04 });
+  assert.equal(await p.getAttribute('#paid', 'aria-hidden'), 'true', 'Odds & Ends: the amount under the drawer is read out as well as the line');
+  await p.click('#spin');
+  await after(p, 'Odds & Ends');
+  const said = await sayOf(p);
+  assert.match(said, /^2 lines pay \d+\.$/, 'Odds & Ends: a two-line win');
+  assert.match(await reelsName(p), /^Top row: .+\. Middle row: .+\. Bottom row: .+\. Lines \d and \d win\.$/, 'Odds & Ends: the drawer isn\'t named for what landed');
+  await until(async () => !!(await p.textContent('#lineCap')).trim(), 4000, 'Odds & Ends: the winning lines never went round in the caption');
+  await p.waitForTimeout(1800);
+  assert.equal(await sayOf(p), said, 'Odds & Ends: the winning lines go round through the line that\'s read out');
+  assert.equal(await p.getAttribute('#lineCap', 'aria-hidden'), 'true');
+  await ctx.close();
+  const { p: q, ctx: c2 } = await sit('odds-and-ends/?fast&seen', { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 }, 'odds-and-ends': { lines: 1, lineBet: 1 } }, { f: .5 });
+  await q.click('#spin');
+  await after(q, 'Odds & Ends');
+  assert.equal(await sayOf(q), 'No luck. Try again.', 'Odds & Ends: a losing spin says nothing');
+  await c2.close();
+}
+
 // Focus after Deal: the button you pressed hides, and focus goes on to the next one rather than to the page (where a
 // screen reader starts again from the top). Blackjack through insurance, a hand and the payout, and Baccarat through
 // the deal and Turn them over, all by keyboard at 1280x800. With nothing focused, Enter deals and focus stays put.

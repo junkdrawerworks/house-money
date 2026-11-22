@@ -115,6 +115,7 @@ async function pull() {
   lastWin = 0;
   document.querySelectorAll('.pays tr.lit').forEach(tr => tr.classList.remove('lit'));
   table.say('');
+  $('reels').setAttribute('aria-label', 'The reels, spinning');
   paint();
   // the result is picked now, and kept, before the reels move
   const stops = pickStops(M.REELS);
@@ -134,8 +135,15 @@ async function pull() {
   paint();
 }
 
+// What's on the pay line, in words: "cherry, BAR, blank".
+const WORD = { seven: 'seven', cherry: 'cherry', bar: 'BAR', lemon: 'lemon', orange: 'orange', bell: 'bell', plum: 'plum', blank: 'blank' };
+const onLine = stops => view(M.REELS, stops, M.ROWS, M.ANCHOR).map(c => WORD[c[1]] || c[1]);
+// The reels' picture, for a screen reader: "On the pay line: cherry, BAR, blank."
+const describe = stops => $('reels').setAttribute('aria-label', `On the pay line: ${onLine(stops).join(', ')}.`);
+
 function finish(r, win) {
   lastWin = win;
+  describe(s.last.stops);
   if (win > 0) {
     const row = $('pays').querySelectorAll('tbody tr')[r.row];
     row?.classList.add('lit');
@@ -147,8 +155,9 @@ function finish(r, win) {
     float($('reelBox'), `+${cage.fmt(win)}`);
     countUp(win);
   } else {
-    const line = view(M.REELS, s.last.stops, M.ROWS, M.ANCHOR).map(c => c[1]);
-    table.say(line.every(x => x === 'lemon') ? 'Three lemons. Of course.' : '');
+    // every pull says what it came to, a losing one too: "Bell, BAR, lemon. Nothing this time."
+    const line = onLine(s.last.stops), said = line.join(', ');
+    table.say(line.every(x => x === 'lemon') ? 'Three lemons. Of course.' : `${said[0].toUpperCase()}${said.slice(1)}. Nothing this time.`);
   }
 }
 
@@ -222,8 +231,9 @@ addEventListener('keydown', e => {
   const owed = keep.settle();
   if (s.last?.stops) {
     reels.set(s.last.stops);
+    describe(s.last.stops);
     if (owed) { lastWin = owed; table.say(`Your last pull paid ${cage.fmt(owed)}.`, 'win'); }
-  } else reels.set([0, 0, 0]); // three sevens on the line, the way a machine stands on the showroom floor
+  } else { reels.set([0, 0, 0]); describe([0, 0, 0]); } // three sevens on the line, the way a machine stands on the showroom floor
   // said before the first paint, which says instead why Spin is dimmed when the bet is more than the stack
   if (!owed) table.say('Pick a coin, then pull the handle.');
   paint();
