@@ -221,6 +221,38 @@ for (const t of TABLES) {
   }
 }
 
+// Every bet and button in sight on a phone: at first sight of a table, on the common short screens (an iPhone SE, with
+// Safari's toolbars up and down, a phone browser with its toolbar, a small Android) and on an installed iPhone with its
+// notch and home bar (insets of 47 and 34), no bet and no button you can press has its middle under the dock or below
+// the bottom of the screen. Craps scrolls by design: it brings the pass line up into view (checked below).
+const NOTCH = { insets: { top: 47, topMax: 47, bottom: 34, bottomMax: 34, left: 0, right: 0 } };
+const outOfReach = p => p.evaluate(() => {
+  const dock = document.querySelector('.dock'), out = [];
+  for (const el of document.querySelectorAll('[data-bet], button, [role="button"]')) {
+    if (el.closest('.bar, dialog, [hidden], .wheel-box') || el.disabled || el.getAttribute('aria-disabled') === 'true') continue;
+    const r = el.getBoundingClientRect();
+    if (!r.width || !r.height || getComputedStyle(el).visibility === 'hidden') continue;
+    const x = r.left + r.width / 2, y = r.top + r.height / 2;
+    const name = (el.getAttribute('aria-label') || el.textContent || el.id).trim().replace(/\s+/g, ' ');
+    if (y > innerHeight) out.push(`${name}: below the screen`);
+    else if (dock && !dock.contains(el) && dock.contains(document.elementFromPoint(x, y))) out.push(`${name}: under the dock`);
+  }
+  return out;
+});
+{
+  const want = ['baccarat'].filter(id => cageWants(id));
+  for (const [w, h, notch] of want.length ? [[360, 640], [375, 553], [375, 667], [390, 664], [390, 844, true]] : []) {
+    const { p, ctx } = await sit('records/', { cage: { chips: 3456, wagered: 3000, high: 9345, stakes: 3 } }, { size: { ...phone, viewport: { width: w, height: h } } });
+    if (notch) await (await ctx.newCDPSession(p)).send('Emulation.setSafeAreaInsetsOverride', NOTCH);
+    for (const id of want) {
+      await p.goto(`${base}${id}/?seen`);
+      await p.evaluate(() => document.fonts.ready); await p.waitForTimeout(500);
+      assert.deepEqual(await outOfReach(p), [], `${id} at ${w}x${h}${notch ? ' with a notch and a home bar' : ''}: out of reach as the table opens`);
+    }
+    await ctx.close();
+  }
+}
+
 // Roulette with 7 chips: 5 on 17 leaves 2 in the rack, and the 5 on the felt is still yours, so no offer until the
 // ball lands somewhere else (a steady draw of 0: the zero).
 if (cageWants('roulette')) {

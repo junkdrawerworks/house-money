@@ -157,6 +157,11 @@ body.table main { flex: 1; display: flex; flex-direction: column; position: rela
 .rack.locked .chip { cursor: default; }
 .rack.locked .chip:not(.on):not(:disabled) { opacity: .45; }
 @media (max-width: 360px) { .rack { gap: 5px; } .rack .chip { --chip: 44px; } }
+/* a very short screen (an iPhone SE with Safari's toolbars up): the dock gives back a little height to the table */
+@media (max-height: 600px) {
+  .dock { gap: 6px; padding-top: 6px; padding-bottom: calc(6px + var(--safe-b)); }
+  .rack .chip { --chip: 44px; }
+}
 
 .stack { position: relative; display: inline-block; width: var(--chip-s, 36px); height: calc(var(--chip-s, 36px) * (1 + (var(--n, 1) - 1) * .13)); pointer-events: none; }
 .stack .chip { --chip: var(--chip-s, 36px); position: absolute; left: 0; bottom: calc(var(--i) * var(--chip-s, 36px) * .13); box-shadow: 0 1.5px 0 rgba(0, 0, 0, .45); }

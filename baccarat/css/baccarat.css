@@ -107,4 +107,30 @@
   .layout { padding-top: 14px; }
 }
 @media (max-width: 360px) { .side { --cw: 58px; } .board { --cell: 12px; } }
+/* Short phone screens (an iPhone SE, a phone browser with its toolbars up): no row is kept for a third card, which lies
+   sideways across the foot of the first two when it comes, and the scoreboard and the bets are lower, so all five bets
+   sit above the rack. */
+@media (max-width: 699px) and (max-height: 780px) {
+  .board { --cell: 10px; }
+  .cards { grid-template-rows: calc(var(--cw) * 1.4); row-gap: 0; }
+  .cards .card.third { grid-row: 2; margin: calc(var(--cw) * -.85) 0 calc(var(--cw) * -.2); }
+  .layout { padding-top: 12px; }
+  .spot.small { min-height: 48px; }
+  .spot.big { min-height: 72px; }
+}
+@media (max-width: 699px) and (max-height: 700px) {
+  .side { --cw: 58px; }
+  .spot.big { min-height: 64px; }
+  .spot.small { min-height: 44px; }
+}
+@media (max-width: 699px) and (max-height: 600px) {
+  .board { --cell: 8px; padding: 4px; }
+  .tally { display: none; }
+  .baccarat .say { margin-top: 2px; }
+  .side { padding: 4px 4px 4px; gap: 4px; }
+  body.baccarat main { padding-top: 4px; padding-bottom: 6px; }
+  .layout { padding-top: 6px; gap: 6px; }
+  .spot { padding-block: 2px; }
+  .spot.big { min-height: 52px; }
+}
 
