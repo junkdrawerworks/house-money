@@ -32,7 +32,7 @@ const table = mountTable({
     <p>Three, four or five of a kind on a line, from the left-hand reel, times a twentieth of your bet:</p>
     <table>
       <tr><th>Symbol</th><th>3 · 4 · 5</th></tr>
-      ${['nugget', 'cart', 'dynamite', 'canary', ...lowNames].map(k => `<tr><td>${icon(k, 24)} ${M.NAMES[k]}</td><td>${M.PAYS[k][3]} · ${M.PAYS[k][4]} · ${M.PAYS[k][5]}</td></tr>`).join('')}
+      ${['nugget', 'cart', 'dynamite', 'canary', ...lowNames].map(k => `<tr><td>${icon(k, 24)} ${M.NAMES[k]}</td><td>${[3, 4, 5].map(n => cage.fmt(M.PAYS[k][n])).join(' · ')}</td></tr>`).join('')}
     </table>
     <ul>
       <li><b>The pickaxe is wild.</b> It lands on reels 2 to 5 and stands in for anything but the lantern.</li>

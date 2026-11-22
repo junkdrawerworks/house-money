@@ -20,9 +20,11 @@ const s = keep.state;
 
 const NAME = { cherry: 'cherries', bell: 'bells', plum: 'plums', orange: 'oranges', bar: 'bars', seven: 'sevens' };
 const rowsHtml = M.TABLE.map((t, i) => {
-  const shown = t.show.map(x => (x === 'any' ? '<span class="anyx">any</span>' : icon(x, 18))).join('');
+  const parts = t.show.map(x => (x === 'any' ? '<span class="anyx">any</span>' : icon(x, 18)));
+  // on the glass the symbols sit in a row of their own; in the help sheet, words between them: "any any"
+  const shown = parts.join(''), help = parts.join(' ');
   const pays = [1, 2, 3].map(c => (i === 0 && c === 3 ? M.JACKPOT : t.pay * c));
-  return { shown, pays, alt: !!t.alt, name: t.name };
+  return { shown, help, pays, alt: !!t.alt, name: t.name };
 });
 
 const table = mountTable({
@@ -35,12 +37,12 @@ const table = mountTable({
     <p>Coins paid for each coin bet, on the pay line, reading from the left:</p>
     <table>
       <tr><th>Line</th><th>Per coin</th></tr>
-      ${rowsHtml.map((r, i) => `<tr><td>${r.shown}${r.alt ? ' <small>or two and a BAR</small>' : ''}</td><td>${i === 0 ? `200 (${M.JACKPOT} on 3 coins)` : M.TABLE[i].pay}</td></tr>`).join('')}
+      ${rowsHtml.map((r, i) => `<tr><td>${r.help}${r.alt ? ' <small>or two and a BAR</small>' : ''}</td><td>${i === 0 ? `200 (${cage.fmt(M.JACKPOT)} on 3 coins)` : M.TABLE[i].pay}</td></tr>`).join('')}
     </table>
     <ul>
       <li><b>A BAR finishes the fruit.</b> Two bells, plums or oranges and a BAR on the third reel pay the same as three.</li>
       <li><b>Cherries count from the left.</b> One on the first reel pays 2, two on the first two pay 5.</li>
-      <li><b>Three coins lift the top prize.</b> Three sevens pay 200 a coin on one or two coins, and ${M.JACKPOT} on three.</li>
+      <li><b>Three coins lift the top prize.</b> Three sevens pay 200 a coin on one or two coins, and ${cage.fmt(M.JACKPOT)} on three.</li>
       <li><b>Lemons pay nothing.</b> They never have.</li>
     </ul>
     <h3>The long run</h3>
@@ -148,7 +150,10 @@ function finish(r, win) {
     const row = $('pays').querySelectorAll('tbody tr')[r.row];
     row?.classList.add('lit');
     const t = M.TABLE[r.row];
-    const what = r.row === 0 && s.coins === 3 ? 'Three sevens on three coins: the top prize!' : `${t.name} ${M.pays(r.row)} ${cage.fmt(win)}.`;
+    // two of a fruit finished by a BAR says so: "Two bells and a BAR pay 54."
+    const line = view(M.REELS, s.last.stops, M.ROWS, M.ANCHOR).map(c => c[1]);
+    const name = t.alt && line[2] === 'bar' && line[0] === t.alt[0] ? `Two ${NAME[t.alt[0]]} and a BAR` : t.name;
+    const what = r.row === 0 && s.coins === 3 ? 'Three sevens on three coins: the top prize!' : `${name} ${M.pays(r.row)} ${cage.fmt(win)}.`;
     table.say(what, 'win');
     const big = win >= bet() * 50 ? 3 : win >= bet() * 10 ? 2 : 1;
     sound.win(big); sound.chips(Math.min(12, 3 + big * 3));

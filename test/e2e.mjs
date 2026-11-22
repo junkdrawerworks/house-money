@@ -1212,6 +1212,12 @@ if (cageWants('cherry-bell')) {
   assert.equal(await reelsName(p), `On the pay line: ${words.join(', ')}.`, 'Cherry Bell: the reels aren\'t named for the pay line');
   const said = words.join(', ');
   assert.equal(await sayOf(p), `${said[0].toUpperCase()}${said.slice(1)}. Nothing this time.`, 'Cherry Bell: a losing pull says nothing');
+  // two bells and a BAR say so (the reels drawn to bell, bell, BAR)
+  await p.evaluate(() => { let k = 0; const v = [0.4751, 0.3714, 0.1882]; crypto.getRandomValues = a => { a.fill(Math.floor(v[k++ % 3] * 2 ** 32)); return a; }; });
+  await p.click('#spin');
+  await until(async () => /pay/.test(await sayOf(p)), 8000, 'Cherry Bell: bell, bell, BAR never paid');
+  assert.equal(await sayOf(p), 'Two bells and a BAR pay 18.');
+  assert.equal(await reelsName(p), 'On the pay line: bell, bell, BAR.');
   await ctx.close();
 }
 if (cageWants('motherlode')) {
@@ -1237,6 +1243,8 @@ if (cageWants('odds-and-ends')) {
   assert.match(said, /^2 lines pay \d+\.$/, 'Odds & Ends: a two-line win');
   assert.match(await reelsName(p), /^Top row: .+\. Middle row: .+\. Bottom row: .+\. Lines \d and \d win\.$/, 'Odds & Ends: the drawer isn\'t named for what landed');
   await until(async () => !!(await p.textContent('#lineCap')).trim(), 4000, 'Odds & Ends: the winning lines never went round in the caption');
+  // the penny stood in on both lines, and the caption says so
+  assert.match(await p.textContent('#lineCap'), /^Line [34]: two (rubber bands|tape measures) and the lucky penny pay \d+\.$/, 'Odds & Ends: a line the lucky penny finished');
   await p.waitForTimeout(1800);
   assert.equal(await sayOf(p), said, 'Odds & Ends: the winning lines go round through the line that\'s read out');
   assert.equal(await p.getAttribute('#lineCap', 'aria-hidden'), 'true');

@@ -28,7 +28,7 @@ const table = mountTable({
     <p>A slot machine stocked from the kitchen junk drawer: three reels, three rows and five pay lines. Choose how many
     lines to play and what to bet on each, then spin.</p>
     <h3>What pays</h3>
-    <p>Three of a kind on a line you're playing, times your bet on that line:</p>
+    <p>Three of a kind on a line you’re playing, times your bet on that line:</p>
     <table>
       <tr><th>Three</th><th>Pays</th></tr>
       ${M.SYMBOLS.map(k => `<tr><td>${icon(k, 24)} ${M.NAMES[k]}</td><td>${M.PAYS[k][3]}</td></tr>`).join('')}
@@ -37,7 +37,7 @@ const table = mountTable({
       <li><b>The lucky penny is wild.</b> It stands in for anything, so two keys and a penny pay as three keys. Three
       pennies on a line pay the most.</li>
       <li><b>Five lines:</b> line 1 runs across the middle, 2 across the top, 3 across the bottom, and 4 and 5 are the
-      diagonals. The coloured tabs at the sides show which lines you're playing, and a winning line is drawn across the
+      diagonals. The coloured tabs at the sides show which lines you’re playing, and a winning line is drawn across the
       drawer.</li>
       <li><b>Every line you play</b> costs your line bet, and every line pays on its own.</li>
     </ul>
@@ -169,8 +169,16 @@ function show(wins, win) {
   tabs();
 }
 
-// short: without where the line runs (for the caption, where the line is drawn)
-const lineSay = (w, short = false) => `Line ${w.line + 1}${short ? '' : `, ${LINE_NAMES[w.line]}`}: three ${plural[w.sym]} pay ${cage.fmt(w.pay * s.lineBet)}.`;
+// A winning line in words, saying when the lucky penny stood in: "Line 2, across the top: two spare keys and the lucky
+// penny pay 30." short: without where the line runs (for the caption, where the line is drawn).
+const one = k => { const n = M.NAMES[k].replace(/^[A-Z](?=[a-z])/, c => c.toLowerCase()); return `${/^[aeiouA]/.test(n) ? 'an' : 'a'} ${n}`; };
+function lineSay(w, short = false) {
+  const grid = view(M.REELS, s.last.stops, M.ROWS, M.ANCHOR);
+  const pennies = M.LINES[w.line].filter((r, c) => grid[c][r] === M.WILD).length;
+  const what = w.sym === M.WILD || pennies === 0 ? `three ${plural[w.sym]}`
+    : pennies === 1 ? `two ${plural[w.sym]} and the lucky penny` : `${one(w.sym)} and two lucky pennies`;
+  return `Line ${w.line + 1}${short ? '' : `, ${LINE_NAMES[w.line]}`}: ${what} pay ${cage.fmt(w.pay * s.lineBet)}.`;
+}
 
 // the winning lines, drawn over the reels
 function decorate(ctx, rs) {

@@ -248,6 +248,7 @@ dialog.sheet::backdrop { background: rgba(5, 2, 2, .65); }
 .sheet .help table { border-collapse: collapse; width: 100%; font-size: .9rem; margin: 4px 0 10px; }
 .sheet .help td, .sheet .help th { padding: 3px 6px; border-bottom: 1px solid rgba(217, 180, 90, .2); text-align: left; }
 .sheet .help td:last-child, .sheet .help th:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+.sheet .help td svg, .sheet .help td img { vertical-align: middle; }
 .sheet-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 16px; }
 .sheet-btns > :first-child { grid-column: 1 / -1; }
 
