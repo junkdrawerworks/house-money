@@ -8,7 +8,7 @@ import * as records from '../../shared/records.js';
 import * as sound from '../../shared/sound.js';
 import { cardEl, turn, dealInto } from '../../shared/cards.js';
 import { rack as makeRack, setStack } from '../../shared/chips.js';
-import { mountTable, float, wait, netLine } from '../../shared/table.js';
+import { mountTable, float, wait, netLine, hotkey } from '../../shared/table.js';
 import { byId } from '../../shared/tables.js';
 import * as seat from '../../shared/seat.js';
 import { guardEdges } from '../../shared/edge-guard.js';
@@ -464,9 +464,8 @@ $('squeeze').addEventListener('click', () => {
 });
 
 addEventListener('keydown', e => {
-  if (e.metaKey || e.ctrlKey || e.altKey || document.querySelector('dialog[open]')) return;
   if (e.key !== 'Enter' && e.key !== ' ') return;
-  if (document.activeElement && document.activeElement.matches('button, a')) return;
+  if (!hotkey(e)) return;
   const b = s.phase === 'bet' ? $('deal') : s.phase === 'reveal' ? $('reveal') : $('again');
   if (b && !b.disabled && !b.closest('[hidden]')) { b.click(); e.preventDefault(); }
 });

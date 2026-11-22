@@ -8,7 +8,7 @@ import * as cage from '../../shared/cage.js';
 import * as records from '../../shared/records.js';
 import * as sound from '../../shared/sound.js';
 import { rack as makeRack, stackEl } from '../../shared/chips.js';
-import { mountTable, float, wait, fast, netLine } from '../../shared/table.js';
+import { mountTable, float, wait, fast, netLine, hotkey, shortcut } from '../../shared/table.js';
 import { byId } from '../../shared/tables.js';
 import * as seat from '../../shared/seat.js';
 import { guardEdges } from '../../shared/edge-guard.js';
@@ -521,8 +521,8 @@ function pay() {
 // ---------- keys and resizing (another tab at this table takes the seat: see shared/seat.js) ----------
 
 addEventListener('keydown', e => {
-  if (e.metaKey || e.ctrlKey || e.altKey || document.querySelector('dialog[open]')) return;
-  if (e.key === ' ' && !(e.target instanceof HTMLButtonElement && L.contains(e.target))) { e.preventDefault(); if (!$('spin').disabled) spin(); }
+  if (!shortcut(e)) return;
+  if (e.key === ' ') { if (hotkey(e)) { e.preventDefault(); if (!$('spin').disabled) spin(); } }
   else if (e.key === 'Backspace' || e.key === 'z') { e.preventDefault(); $('undo').click(); }
 });
 let rs = 0;

@@ -214,6 +214,21 @@ export function netLine(wagered, back, on = '') {
   return n > 0 ? `Up ${cage.fmt(n)}${at}.` : n < 0 ? `Down ${cage.fmt(-n)}${at}.` : `Even${at}.`;
 }
 
+// The table's own keys. Enter and Space belong to whatever has focus: a button, a link or a rack chip does its own
+// thing with them (Clear clears, the floor link goes to the floor, a chip is picked), so a table's Enter or Space
+// (deal, roll, spin) only acts when nothing that takes those keys has focus, and not on a key held down.
+//   if ((e.key === ' ' || e.key === 'Enter') && hotkey(e)) roll();
+export function hotkey(e) {
+  if (!shortcut(e) || e.repeat) return false;
+  return !e.target?.closest?.('button, a, input, select, textarea, [role=button], [role=radio], [tabindex]');
+}
+// Letter, number and Backspace keys (H to hit, 1 to 5 to hold, Backspace or Z to undo) don't clash with a focused
+// button, so they act anywhere but in a dialog or a box being typed in.
+export function shortcut(e) {
+  if (e.metaKey || e.ctrlKey || e.altKey || document.querySelector('dialog[open]')) return false;
+  return !e.target?.closest?.('input, select, textarea');
+}
+
 // A brief flash of the amount won over an element: "+250".
 export function float(over, text, kind = 'win') {
   const r = over.getBoundingClientRect();

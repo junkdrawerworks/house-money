@@ -8,7 +8,7 @@ import * as cage from '../../shared/cage.js';
 import * as records from '../../shared/records.js';
 import * as sound from '../../shared/sound.js';
 import { rack as makeRack, stackEl } from '../../shared/chips.js';
-import { mountTable, float, wait, fast } from '../../shared/table.js';
+import { mountTable, float, wait, fast, hotkey, shortcut } from '../../shared/table.js';
 import { byId } from '../../shared/tables.js';
 import * as seat from '../../shared/seat.js';
 
@@ -361,8 +361,8 @@ function finish() {
 }
 
 addEventListener('keydown', e => {
-  if (e.metaKey || e.ctrlKey || e.altKey || document.querySelector('dialog[open]')) return;
-  if ((e.key === ' ' || e.key === 'Enter') && !(e.target instanceof HTMLButtonElement)) { roll(); e.preventDefault(); }
+  if (!shortcut(e)) return;
+  if (e.key === ' ' || e.key === 'Enter') { if (hotkey(e)) { roll(); e.preventDefault(); } }
   else if (e.key === 'Backspace' || e.key.toLowerCase() === 'z') { $('undo').click(); e.preventDefault(); }
 });
 

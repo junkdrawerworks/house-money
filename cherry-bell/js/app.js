@@ -6,7 +6,7 @@ import { ART, icon } from './art.js';
 import * as cage from '../../shared/cage.js';
 import * as sound from '../../shared/sound.js';
 import { chipEl } from '../../shared/chips.js';
-import { mountTable, float, wait } from '../../shared/table.js';
+import { mountTable, float, wait, hotkey, shortcut } from '../../shared/table.js';
 import { byId } from '../../shared/tables.js';
 import { ReelSet, loadArt, pickStops, window as view, keeper } from '../../shared/reels.js';
 
@@ -203,9 +203,8 @@ handle.addEventListener('pointercancel', release);
 handle.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pull(); } });
 
 addEventListener('keydown', e => {
-  if (e.metaKey || e.ctrlKey || e.altKey || document.querySelector('dialog[open]')) return;
-  if (e.target.closest?.('button, a, input, [role="button"]') && e.key !== ' ') return;
-  if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); pull(); }
+  if (!shortcut(e)) return;
+  if (e.key === ' ' || e.key === 'Enter') { if (hotkey(e)) { e.preventDefault(); pull(); } }
   else if (['1', '2', '3'].includes(e.key) && !spinning) { s.coins = +e.key; keep.save(); sound.chip(); paint(); }
 });
 

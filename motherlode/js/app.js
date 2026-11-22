@@ -6,7 +6,7 @@ import * as M from './machine.js';
 import { ART, icon } from './art.js';
 import * as cage from '../../shared/cage.js';
 import * as sound from '../../shared/sound.js';
-import { mountTable, float, wait, fast } from '../../shared/table.js';
+import { mountTable, float, wait, fast, hotkey } from '../../shared/table.js';
 import { byId } from '../../shared/tables.js';
 import { ReelSet, loadArt, pickStops, keeper } from '../../shared/reels.js';
 import * as seat from '../../shared/seat.js';
@@ -268,8 +268,7 @@ function celebrate(win, bet, label) {
 
 $('spin').addEventListener('click', () => spin());
 addEventListener('keydown', e => {
-  if (e.metaKey || e.ctrlKey || e.altKey || document.querySelector('dialog[open]')) return;
-  if (e.key === ' ' && !e.target.closest?.('button, a')) { e.preventDefault(); if (!$('bigwin').hidden) $('bigwin').click(); else spin(); }
+  if (e.key === ' ' && hotkey(e)) { e.preventDefault(); if (!$('bigwin').hidden) $('bigwin').click(); else spin(); }
 });
 
 // a few lines of the pay table under the reels

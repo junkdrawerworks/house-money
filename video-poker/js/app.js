@@ -8,7 +8,7 @@ import * as records from '../../shared/records.js';
 import * as sound from '../../shared/sound.js';
 import { cardEl, turn } from '../../shared/cards.js';
 import { rack as makeRack } from '../../shared/chips.js';
-import { mountTable, float, wait } from '../../shared/table.js';
+import { mountTable, float, wait, hotkey, shortcut } from '../../shared/table.js';
 import { byId } from '../../shared/tables.js';
 import * as seat from '../../shared/seat.js';
 
@@ -231,9 +231,9 @@ $('hint').addEventListener('click', () => {
 });
 
 addEventListener('keydown', e => {
-  if (e.metaKey || e.ctrlKey || e.altKey || document.querySelector('dialog[open]')) return;
+  if (!shortcut(e)) return;
   if (/^[1-5]$/.test(e.key)) { toggle(Number(e.key) - 1); e.preventDefault(); }
-  else if (e.key === 'Enter' && !(document.activeElement && document.activeElement.matches('button, a'))) {
+  else if (e.key === 'Enter' && hotkey(e)) {
     if (!$('deal').disabled) { $('deal').click(); e.preventDefault(); }
   }
 });

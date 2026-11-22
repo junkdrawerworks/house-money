@@ -6,7 +6,7 @@ import { ART, icon } from './art.js';
 import * as cage from '../../shared/cage.js';
 import * as sound from '../../shared/sound.js';
 import { chipEl } from '../../shared/chips.js';
-import { mountTable, float } from '../../shared/table.js';
+import { mountTable, float, hotkey } from '../../shared/table.js';
 import { byId } from '../../shared/tables.js';
 import { ReelSet, loadArt, pickStops, window as view, evalLines, keeper } from '../../shared/reels.js';
 
@@ -179,8 +179,7 @@ function decorate(ctx, rs) {
 
 $('spin').addEventListener('click', spin);
 addEventListener('keydown', e => {
-  if (e.metaKey || e.ctrlKey || e.altKey || document.querySelector('dialog[open]')) return;
-  if (e.key === ' ' && !e.target.closest?.('button, a')) { e.preventDefault(); spin(); }
+  if (e.key === ' ' && hotkey(e)) { e.preventDefault(); spin(); }
 });
 addEventListener('resize', () => requestAnimationFrame(tabs));
 

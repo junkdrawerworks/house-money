@@ -789,6 +789,108 @@ if (cageWants('roulette')) {
   await ctx.close();
 }
 
+// Enter and Space on a focused button, link or rack chip do what it does, and never the table's own Enter or Space
+// (deal, roll, spin). With nothing focused, the table's key still plays.
+{
+  const keyed = async (p, sel, key) => { await p.focus(sel); await p.keyboard.press(key); await p.waitForTimeout(250); };
+  const savedOf = (p, id) => p.evaluate(id => JSON.parse(localStorage.getItem(`house-money.${id}`)) || {}, id);
+  const menuUp = p => p.isVisible('dialog.sheet[open]');
+  const menuBy = async (p, key, at) => {
+    await keyed(p, '.menu-btn', key);
+    assert.equal(await menuUp(p), true, `${at}: ${key === ' ' ? 'Space' : key} on Menu didn't open the menu`);
+    await p.keyboard.press('Escape');
+    await until(async () => !(await menuUp(p)), 2000, `${at}: the menu didn't close`);
+  };
+  const unfocused = async (p, key) => { await p.evaluate(() => document.activeElement?.blur()); await p.keyboard.press(key); };
+  const checked = (p, sel) => p.getAttribute(sel, 'aria-checked');
+  const fresh = { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 } };
+  const plays = {
+    blackjack: async p => {
+      await p.click('#rack .c25'); await p.click('#spot');
+      await keyed(p, '#clear', 'Enter');
+      assert.deepEqual([(await savedOf(p, 'blackjack')).phase, (await savedOf(p, 'blackjack')).bet, (await cageOf(p)).chips], ['bet', 0, 1000], 'Blackjack: Enter on Clear dealt instead of clearing');
+      await p.click('#spot');
+      for (const key of ['Enter', ' ']) await menuBy(p, key, 'Blackjack');
+      assert.deepEqual([(await savedOf(p, 'blackjack')).phase, (await savedOf(p, 'blackjack')).bet], ['bet', 25], 'Blackjack: Enter on Menu dealt');
+      await unfocused(p, 'Enter');
+      await until(async () => (await savedOf(p, 'blackjack')).phase !== 'bet', 3000, 'Blackjack: Enter with nothing focused did not deal');
+    },
+    craps: async p => {
+      await keyed(p, '#clear', ' ');
+      assert.deepEqual([(await savedOf(p, 'craps')).bets?.pass || 0, (await savedOf(p, 'craps')).history.length], [0, 0], 'Craps: Space on Take down rolled instead of taking the pass bet down');
+      await p.click('#rack .c5'); await p.click('[data-spot="pass"]');
+      await p.focus('.bar .back'); await p.keyboard.press('Enter');
+      await p.waitForURL(base, { timeout: 3000 }).catch(() => assert.fail('Craps: Enter on the Floor link did not go to the floor'));
+      assert.deepEqual([(await savedOf(p, 'craps')).bets.pass, (await savedOf(p, 'craps')).history.length], [5, 0], 'Craps: Enter on the Floor link rolled the dice');
+      await p.goto(`${base}craps/?fast&seen`); await p.waitForTimeout(300);
+      await unfocused(p, 'Enter');
+      await until(async () => (await savedOf(p, 'craps')).history.length === 1, 4000, 'Craps: Enter with nothing focused did not roll');
+    },
+    roulette: async p => {
+      await p.click('#rack .c5'); await p.click('[data-k="red"]');
+      await keyed(p, '#rack .c25', ' ');
+      assert.equal(await checked(p, '#rack .c25'), 'true', 'Roulette: Space on the 25 chip did not pick it');
+      assert.deepEqual([(await savedOf(p, 'roulette')).bets, (await savedOf(p, 'roulette')).history.length], [{ red: 5 }, 0], 'Roulette: Space on a rack chip spun');
+      await keyed(p, '#clear', ' ');
+      assert.deepEqual([(await savedOf(p, 'roulette')).bets, (await savedOf(p, 'roulette')).history.length], [{}, 0], 'Roulette: Space on Clear spun instead of clearing');
+      await p.click('[data-k="red"]');
+      await unfocused(p, ' ');
+      await until(async () => (await savedOf(p, 'roulette')).history.length === 1, 4000, 'Roulette: Space with nothing focused did not spin');
+    },
+    'cherry-bell': async p => {
+      await menuBy(p, ' ', 'Cherry Bell');
+      await menuBy(p, 'Enter', 'Cherry Bell');
+      await keyed(p, '#coinSize .chip:nth-of-type(2)', ' ');
+      assert.equal(await checked(p, '#coinSize .chip:nth-of-type(2)'), 'true', 'Cherry Bell: Space on coin size 2 did not pick it');
+      assert.equal((await cageOf(p)).chips, 1000, 'Cherry Bell: Space on Menu or a coin size pulled the handle');
+      await unfocused(p, ' ');
+      await until(async () => (await cageOf(p)).chips < 1000, 3000, 'Cherry Bell: Space with nothing focused did not pull');
+    },
+    baccarat: async p => {
+      await p.click('#rack .c25'); await p.click('.spot[data-bet="banker"]');
+      await keyed(p, '#clear', 'Enter');
+      assert.deepEqual([(await savedOf(p, 'baccarat')).phase, (await savedOf(p, 'baccarat')).bets.banker], ['bet', 0], 'Baccarat: Enter on Clear dealt instead of clearing');
+      await p.click('.spot[data-bet="banker"]');
+      await menuBy(p, 'Enter', 'Baccarat');
+      await unfocused(p, 'Enter');
+      await until(async () => (await savedOf(p, 'baccarat')).phase !== 'bet', 3000, 'Baccarat: Enter with nothing focused did not deal');
+    },
+    'video-poker': async p => {
+      await keyed(p, '#rack .c25', 'Enter');
+      assert.equal(await checked(p, '#rack .c25'), 'true', 'Video Poker: Enter on the 25 chip did not pick it');
+      await menuBy(p, 'Enter', 'Video Poker');
+      assert.equal((await cageOf(p)).chips, 1000, 'Video Poker: Enter on a chip or Menu dealt');
+      await unfocused(p, 'Enter');
+      await until(async () => (await savedOf(p, 'video-poker')).phase === 'draw', 3000, 'Video Poker: Enter with nothing focused did not deal');
+    },
+    motherlode: async p => {
+      await menuBy(p, ' ', 'Motherlode');
+      const bet = (await savedOf(p, 'motherlode')).bet || 20;
+      await keyed(p, '#betUp', ' ');
+      assert.ok((await savedOf(p, 'motherlode')).bet > bet, 'Motherlode: Space on + did not raise the bet');
+      assert.equal((await cageOf(p)).chips, 1000, 'Motherlode: Space on Menu or + spun');
+      await unfocused(p, ' ');
+      await until(async () => (await cageOf(p)).chips < 1000, 3000, 'Motherlode: Space with nothing focused did not spin');
+    },
+    'odds-and-ends': async p => {
+      await menuBy(p, ' ', 'Odds & Ends');
+      await keyed(p, '#linesDown', ' ');
+      assert.equal((await savedOf(p, 'odds-and-ends')).lines, 4, 'Odds & Ends: Space on the lines − did not take a line off');
+      assert.equal((await cageOf(p)).chips, 1000, 'Odds & Ends: Space on Menu or − spun');
+      await unfocused(p, ' ');
+      await until(async () => (await cageOf(p)).chips < 1000, 3000, 'Odds & Ends: Space with nothing focused did not spin');
+    },
+  };
+  for (const [id, play] of Object.entries(plays)) {
+    if (!cageWants(id)) continue;
+    const { p, ctx } = await sit(`${id}/?fast&seen`, id === 'craps' ? { ...fresh, craps: { bets: { pass: 10 }, point: 0, history: [], felt: 10 } } : fresh,
+      { size: { viewport: { width: 1280, height: 800 } } });
+    await p.waitForTimeout(400);
+    await play(p);
+    await ctx.close();
+  }
+}
+
 // Records: each table's rounds in its own word, and the machines' own counters.
 if (cageWants('records')) {
   const { p, ctx } = await sit('records/', { records: { since: '2026-11-01', tables: {

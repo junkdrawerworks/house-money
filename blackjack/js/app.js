@@ -8,7 +8,7 @@ import * as records from '../../shared/records.js';
 import * as sound from '../../shared/sound.js';
 import { cardEl, turn, dealInto } from '../../shared/cards.js';
 import { rack as makeRack, setStack } from '../../shared/chips.js';
-import { mountTable, float, wait, netLine } from '../../shared/table.js';
+import { mountTable, float, wait, netLine, hotkey, shortcut } from '../../shared/table.js';
 import { byId } from '../../shared/tables.js';
 import * as seat from '../../shared/seat.js';
 
@@ -368,13 +368,14 @@ $('book').addEventListener('click', () => {
   document.querySelectorAll('.play .btn').forEach(el => el.classList.toggle('tip', el.id === b.act));
 });
 
-// The keyboard: H, S, D, P (split), R (surrender), Enter deals or deals again.
+// The keyboard: H, S, D, P (split), R (surrender), Enter deals or deals again (unless a button has focus: then it's
+// that button's Enter).
 addEventListener('keydown', e => {
-  if (e.metaKey || e.ctrlKey || e.altKey || document.querySelector('dialog[open]')) return;
+  if (!shortcut(e)) return;
   const k = e.key.toLowerCase();
   const map = { h: 'hit', s: 'stand', d: 'double', p: 'split', r: 'surrender' };
   if (s.phase === 'play' && map[k]) { $(map[k]).click(); e.preventDefault(); }
-  else if (k === 'enter') {
+  else if (k === 'enter' && hotkey(e)) {
     const b = s.phase === 'bet' ? $('deal') : s.phase === 'done' ? $('again') : null;
     if (b && !b.disabled) { b.click(); e.preventDefault(); }
   }
