@@ -82,10 +82,14 @@
   background: #121214; color: #f2f2f2; padding: 3px 5px; border-radius: 99px; pointer-events: none;
 }
 .area .stack, .slot .stack, .prop .stack { position: absolute; left: 50%; bottom: 16px; margin-left: calc(var(--chip-s) / -2); z-index: 1; }
-.slot .stack.odds { bottom: 50px; }
-.slot.is-off::after { top: auto; bottom: 2px; right: 50%; transform: translateX(50%); }
-.slot.is-off .stack { bottom: 22px; }
-.slot.is-off .stack.odds { bottom: 54px; }
+/* a number's slot: the Off pill sits at the top, under the print, clear of the stack and its amount; a come or don't
+   come bet with odds stands taller, its odds stacked above the bet with room for both amounts */
+.slot.is-off::after { top: 27px; right: 50%; transform: translateX(50%); }
+.slot .stack.odds { bottom: 74px; }
+.slot:has(> .stack.odds) { min-height: 136px; }
+.slot .stack.odds.off .chip { opacity: .5; }
+.slot .stack.odds.off .amt { background: #121214; color: #f2f2f2; }
+.slot .stack.odds.off .amt b { font: 800 .58rem/1 var(--sans); letter-spacing: .08em; text-transform: uppercase; }
 .lost { animation: lost .7s ease-out; }
 @keyframes lost { 30% { background: rgba(196, 35, 44, .55); } }
 .won { animation: won .9s ease-out; }

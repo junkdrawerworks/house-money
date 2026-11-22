@@ -138,15 +138,25 @@ function paint() {
     const m = /^(come|dcome)(\d+)$/.exec(k);
     const amt = b[k] || 0;
     if (amt) el.appendChild(stackEl(amt, { most: 5 }));
+    // off on the come-out: place bets and hardways, and the odds on a come bet (the come bet itself works: it wins on
+    // its number and loses on a 7), so only the odds are marked off there
+    const oddsOff = !s.point && !!m && m[1] === 'come';
     let odds = 0;
-    if (m) { odds = b[betFor(el)] || 0; if (odds) { const o = stackEl(odds, { most: 4 }); o.classList.add('odds'); el.appendChild(o); } }
+    if (m) {
+      odds = b[betFor(el)] || 0;
+      if (odds) {
+        const o = stackEl(odds, { most: 4 });
+        o.classList.add('odds');
+        if (oddsOff) { o.classList.add('off'); o.querySelector('.amt').insertAdjacentHTML('beforeend', ' <b>off</b>'); }
+        el.appendChild(o);
+      }
+    }
     const bet = betFor(el);
     const open = g.can(s, bet, table.limits().max).ok;
     el.classList.toggle('closed', !amt && !odds && !open);
-    // off on the come-out: place bets, hardways, and odds on a come bet
-    const off = !s.point && ((/^(place|hard)\d+$/.test(k) && amt) || (m && m[1] === 'come' && odds));
+    const off = !s.point && /^(place|hard)\d+$/.test(k) && amt;
     el.classList.toggle('is-off', !!off);
-    el.setAttribute('aria-label', label(el, amt, odds));
+    el.setAttribute('aria-label', label(el, amt, odds, { off: !!off, oddsOff: oddsOff && !!odds }));
   }
   // the puck and the point
   const puck = $('puck');
@@ -178,11 +188,11 @@ function paint() {
   table.check();
 }
 
-function label(el, amt, odds) {
+function label(el, amt, odds, { off = false, oddsOff = false } = {}) {
   const k = el.dataset.spot;
   const parts = [g.NAMES[k]];
-  if (amt) parts.push(`${cage.fmt(amt)} on it`);
-  if (odds) parts.push(`${cage.fmt(odds)} odds`);
+  if (amt) parts.push(`${cage.fmt(amt)} on it${off ? ', off on the come-out' : ''}`);
+  if (odds) parts.push(`${cage.fmt(odds)} odds${oddsOff ? ', off on the come-out' : ''}`);
   return parts.join(', ');
 }
 

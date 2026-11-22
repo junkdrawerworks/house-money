@@ -806,6 +806,37 @@ if (cageWants('craps')) {
   assert.equal((await p.textContent('#onfelt')).trim(), 'On the layout: 15');
   await ctx.close();
 }
+// Craps on the come-out with place bets, a come bet with odds and a don't come with lay odds all in the numbers, at 390
+// and 360 wide: every amount shows, nothing in a slot overlaps (stacks, amounts, the Off pill), the place bets are off,
+// and on the come bet only the odds are off (the come bet itself works on the come-out).
+if (cageWants('craps')) {
+  const bets = { place6: 6, place8: 6, come8: 10, comeOdds8: 50, dcome5: 10, dcomeOdds5: 30, place5: 5, come5: 10, comeOdds5: 20 };
+  for (const width of [390, 360]) {
+    const { p, ctx } = await sit('craps/?seen', { cage: { chips: 800, wagered: 200, high: 1000, stakes: 1 }, craps: { bets, point: 0, history: [], felt: 147, carry: 0 } },
+      { size: { ...phone, viewport: { width, height: width === 360 ? 740 : 844 } } });
+    const slots = await p.evaluate(() => [...document.querySelectorAll('.numbers .slot')].filter(el => el.querySelector('.stack')).map(el => {
+      const box = r => { const b = r.getBoundingClientRect(); return { l: b.left, r: b.right, t: b.top, b: b.bottom }; };
+      const parts = [...el.querySelectorAll(':scope > .stack')].flatMap(st => [
+        { what: 'chips', ...box({ getBoundingClientRect: () => { const cs = [...st.querySelectorAll('.chip')].map(c => c.getBoundingClientRect()); return { left: Math.min(...cs.map(c => c.left)), right: Math.max(...cs.map(c => c.right)), top: Math.min(...cs.map(c => c.top)), bottom: Math.max(...cs.map(c => c.bottom)) }; } }) },
+        { what: `amount ${st.querySelector('.amt').textContent}`, ...box(st.querySelector('.amt')), shown: getComputedStyle(st.querySelector('.amt')).visibility !== 'hidden' },
+      ]);
+      if (el.classList.contains('is-off')) {
+        const a = getComputedStyle(el, '::after'), r = el.getBoundingClientRect(), w = parseFloat(a.width), h = parseFloat(a.height);
+        parts.push({ what: 'the Off pill', l: r.left + r.width / 2 - w / 2, r: r.left + r.width / 2 + w / 2, t: r.top + parseFloat(a.top), b: r.top + parseFloat(a.top) + h });
+      }
+      return { spot: el.dataset.spot, off: el.classList.contains('is-off'), oddsOff: !!el.querySelector('.stack.odds.off'), parts };
+    }));
+    const over = (a, b) => a.l < b.r - 1 && b.l < a.r - 1 && a.t < b.b - 1 && b.t < a.b - 1;
+    for (const sl of slots) {
+      for (const [i, a] of sl.parts.entries()) for (const b of sl.parts.slice(i + 1)) assert.ok(!over(a, b), `Craps at ${width}: on ${sl.spot}, ${a.what} overlaps ${b.what}`);
+      assert.ok(sl.parts.every(x => x.shown !== false), `Craps at ${width}: an amount on ${sl.spot} is hidden`);
+    }
+    const by = Object.fromEntries(slots.map(x => [x.spot, [x.off, x.oddsOff]]));
+    assert.deepEqual(by, { dcome5: [false, false], place5: [true, false], come5: [false, true], place6: [true, false], place8: [true, false], come8: [false, true] }, `Craps at ${width}: what's marked off on the come-out`);
+    assert.equal(await p.getAttribute('[data-spot="come8"]', 'aria-label'), 'Come on 8, 10 on it, 50 odds, off on the come-out');
+    await ctx.close();
+  }
+}
 // Craps: 5 on the 6 is paid down to 5, and the line says what would pay whole; a sixth chip makes it whole and the
 // line goes. 5 in odds behind the 5 is owed 7 and a half, and the line says the half is kept.
 if (cageWants('craps')) {
