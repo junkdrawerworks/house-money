@@ -150,6 +150,9 @@ body.table main { flex: 1; display: flex; flex-direction: column; position: rela
 .rack .chip { --chip: 50px; cursor: pointer; transition: transform .15s; touch-action: manipulation; }
 .rack .chip.on { transform: translateY(-7px); box-shadow: 0 0 0 3px var(--gold-hi), 0 8px 12px rgba(0, 0, 0, .45); }
 .rack .chip:disabled { opacity: .3; cursor: default; }
+/* locked while a hand is in play: the chip in play stays up, the others dim */
+.rack.locked .chip { cursor: default; }
+.rack.locked .chip:not(.on):not(:disabled) { opacity: .45; }
 @media (max-width: 360px) { .rack { gap: 5px; } .rack .chip { --chip: 44px; } }
 
 .stack { position: relative; display: inline-block; width: var(--chip-s, 36px); height: calc(var(--chip-s, 36px) * (1 + (var(--n, 1) - 1) * .13)); pointer-events: none; }

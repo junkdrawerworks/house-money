@@ -123,7 +123,10 @@ function paintHolds() {
 function paint() {
   const c = cage.read();
   const { max } = table.limits();
-  // coin sizes over the table's top bet are off; so are coins you can't cover
+  // coin sizes over the table's top bet are off; so are coins you can't cover. The coin can't change mid-hand: the
+  // rack stays on the coin in play until the hand is paid.
+  rack.lock(inPlay());
+  if (inPlay() && rack.value !== s.coin) rack.pick(s.coin);
   rack.limit(Math.min(max, c.chips));
   if (!inPlay() && s.coin !== rack.value) { s.coin = rack.value; save(); }
   $('rack').hidden = false;

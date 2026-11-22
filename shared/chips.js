@@ -64,18 +64,20 @@ export function setStack(spot, amount, opts) {
 
 // The rack: a row of chip buttons to pick which chip a tap on the felt puts down.
 // rack(el, { values, key, chips: () => stack size, onPick })
+// r.lock(true) holds the pick where it is (a hand in play at video poker): taps do nothing and the other chips dim.
 export function rack(el, { values = DENOMS.slice(0, 5), key = 'house-money.denom', onPick = () => {} } = {}) {
   el.classList.add('rack');
   el.setAttribute('role', 'radiogroup');
   el.setAttribute('aria-label', 'Chip to bet');
   let picked = Number((() => { try { return localStorage.getItem(key); } catch { return null; } })());
   if (!values.includes(picked)) picked = values[Math.min(1, values.length - 1)];
+  let locked = false;
   const buttons = values.map(v => {
     const b = chipEl(v, 'button');
     b.type = 'button';
     b.setAttribute('role', 'radio');
     b.setAttribute('aria-label', `${fmt(v)} chip`);
-    b.addEventListener('click', () => pick(v));
+    b.addEventListener('click', () => { if (!locked) pick(v); });
     el.appendChild(b);
     return b;
   });
@@ -89,10 +91,15 @@ export function rack(el, { values = DENOMS.slice(0, 5), key = 'house-money.denom
   return {
     get value() { return picked; },
     pick,
-    // dims the chips bigger than what's left, and moves off one you can't afford
+    // dims the chips bigger than what's left, and moves off one you can't afford (not while it's locked)
     limit(chips) {
       buttons.forEach((b, i) => { b.disabled = values[i] > chips; });
-      if (picked > chips) { const fit = [...values].reverse().find(v => v <= chips); if (fit) pick(fit); }
+      if (picked > chips && !locked) { const fit = [...values].reverse().find(v => v <= chips); if (fit) pick(fit); }
+    },
+    lock(on) {
+      locked = !!on;
+      el.classList.toggle('locked', locked);
+      buttons.forEach(b => b.setAttribute('aria-disabled', locked));
     },
   };
 }

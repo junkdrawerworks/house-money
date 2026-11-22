@@ -639,6 +639,35 @@ if (cageWants('video-poker')) {
     }
   }
 }
+// Video Poker: the coin can't change mid-hand. Dealt at 5 coins of 5, a tap on the 25 chip while holding does nothing
+// (the rack stays on the 5), and the next bet is still 25: after the draw, and after a reload mid-hand or after.
+if (cageWants('video-poker')) {
+  for (const reload of ['', 'mid-hand', 'after the draw']) {
+    const { p, ctx } = await sit('video-poker/?fast&seen', { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 }, 'video-poker.chip': 5,
+      'video-poker': { phase: 'bet', coins: 5, coin: 5, deck: [], hand: [], held: [false, false, false, false, false], result: null, felt: 0 } });
+    const at = `Video Poker${reload ? `, reloaded ${reload}` : ''}`;
+    const coinNow = async when => {
+      const [coin, bet, on] = await p.evaluate(() => [JSON.parse(localStorage.getItem('house-money.video-poker')).coin, document.getElementById('betM').textContent,
+        document.querySelector('#rack .chip.on')?.getAttribute('aria-label')]);
+      assert.deepEqual([coin, bet, on], [5, '25', '5 chip'], `${at}: the coin ${when}`);
+    };
+    await p.click('#deal');
+    await p.waitForFunction(() => JSON.parse(localStorage.getItem('house-money.video-poker')).phase === 'draw');
+    await p.click('#rack .c25', { force: true });
+    await p.waitForTimeout(200);
+    await coinNow('after a tap on the 25 mid-hand');
+    if (reload === 'mid-hand') { await p.reload(); await p.waitForTimeout(400); await coinNow('after a reload mid-hand'); }
+    await p.waitForSelector('#deal:not([disabled])'); await p.click('#deal');
+    await p.waitForFunction(() => JSON.parse(localStorage.getItem('house-money.video-poker')).paid === true);
+    await p.waitForTimeout(300);
+    await coinNow('after the draw');
+    if (reload === 'after the draw') { await p.reload(); await p.waitForTimeout(400); await coinNow('after a reload'); }
+    // and once the hand is paid, the rack picks again
+    await p.click('#rack .c25');
+    assert.equal(await p.textContent('#betM'), '125', `${at}: the rack didn't pick the 25 once the hand was over`);
+    await ctx.close();
+  }
+}
 // Craps: 10 on the pass line, the dice rigged to 3 and 4, and a reload half a second after Roll, the dice in the air.
 if (cageWants('craps')) {
   const { p, ctx } = await sit('craps/?seen', {
