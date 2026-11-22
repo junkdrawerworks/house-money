@@ -9,6 +9,7 @@ import { chipEl } from '../../shared/chips.js';
 import { mountTable, float, wait, hotkey, shortcut, overLine } from '../../shared/table.js';
 import { byId } from '../../shared/tables.js';
 import { ReelSet, loadArt, pickStops, window as view, keeper } from '../../shared/reels.js';
+import { guardEdges } from '../../shared/edge-guard.js';
 
 const T = byId(M.ID);
 const $ = id => document.getElementById(id);
@@ -221,16 +222,19 @@ handle.addEventListener('pointermove', e => {
   drag.p = Math.max(0, Math.min(1, (e.clientY - drag.y) / 120));
   setPull(drag.p);
 });
-const release = () => {
+// Let go past halfway and it pulls. A touch the browser takes away (pointercancel: the phone's edge swipe for Back,
+// say) only lets the handle spring back: the pull wasn't finished, and the guard below keeps the page.
+const release = pulled => {
   if (!drag) return;
-  const pulled = drag.p > .55;
+  pulled &&= drag.p > .55;
   drag = null;
   handle.classList.add('back');
   setPull(0);
   if (pulled) { sound.tap(); pull(); }
 };
-handle.addEventListener('pointerup', release);
-handle.addEventListener('pointercancel', release);
+handle.addEventListener('pointerup', () => release(true));
+handle.addEventListener('pointercancel', () => release(false));
+guardEdges({ surfaces: [handle] });
 handle.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pull(); } });
 
 addEventListener('keydown', e => {

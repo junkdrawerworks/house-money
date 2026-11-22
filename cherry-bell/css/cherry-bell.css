@@ -119,6 +119,9 @@ body.spinning .topper .lamps { animation: chase .5s steps(2) infinite; }
 .handle.back .arm, .handle.back .knob { transition: transform .45s cubic-bezier(.3, 1.6, .5, 1), top .45s cubic-bezier(.3, 1.6, .5, 1); }
 .handle:active { cursor: grabbing; }
 
+/* Phones: the handle stands a finger's width in from the screen's side, clear of the edge swipe that means Back (see
+   shared/edge-guard.js). */
+@media (pointer: coarse) and (max-width: 560px) { .stand { padding-right: 56px; } .handle { right: 12px; } }
 /* A short phone screen: the marquee and the pay table close up, and the reels' window gives up the rest, so the coins,
    Bet one, Bet max and Spin are on the screen. */
 @media (max-width: 600px) and (max-height: 820px) {

@@ -515,6 +515,33 @@ if (cageWants('baccarat')) {
   }
 }
 
+// Cherry Bell's handle on a phone: it stands 24 px in from the side of the screen, out of the edge swipe that means
+// Back. A Back that comes while a finger is on it leaves the page where it is (shared/edge-guard.js); a pull the
+// browser takes away (pointercancel) springs back without spinning; a pull let go past halfway spins. Touches go
+// through the browser's own input, as a finger's would.
+if (cageWants('cherry-bell')) {
+  const { p, ctx } = await sit('cherry-bell/?fast&seen', { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 } });
+  const box = await p.locator('#handle').boundingBox();
+  assert.ok(390 - (box.x + box.width) >= 24 && box.width >= 44, `Cherry Bell: the handle is ${Math.round(390 - box.x - box.width)} px from the side of the screen, ${box.width} px wide`);
+  const cdp = await ctx.newCDPSession(p);
+  const x = box.x + box.width / 2, y = box.y + 30;
+  const touch = (type, at = []) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: at.map(([x, y]) => ({ x, y })) });
+  const pullDown = async () => { await touch('touchStart', [[x, y]]); for (let d = 20; d <= 100; d += 20) await touch('touchMove', [[x, y + d]]); };
+  const spun = () => p.evaluate(() => !!JSON.parse(localStorage.getItem('house-money.cherry-bell') || '{}').last);
+  await touch('touchStart', [[x, y]]);
+  await p.evaluate(() => history.back());
+  await p.waitForTimeout(700);
+  assert.ok(p.url().includes('/cherry-bell/'), `Cherry Bell: a Back with a finger on the handle left the page for ${p.url()}`);
+  await touch('touchEnd');
+  await p.waitForTimeout(1200);   // the guard's second for a slip runs out
+  await pullDown(); await touch('touchCancel'); await p.waitForTimeout(600);
+  assert.equal(await spun(), false, 'Cherry Bell: a pull the browser took away still spun');
+  assert.equal((await cageOf(p)).chips, 1000, 'Cherry Bell: a pull the browser took away still took the bet');
+  await pullDown(); await touch('touchEnd', []); await p.waitForTimeout(600);
+  assert.equal(await spun(), true, 'Cherry Bell: a pull let go past halfway didn\'t spin');
+  await ctx.close();
+}
+
 // Three tabs in one browser: Blackjack, Roulette and the floor. The last 100 goes down at Blackjack, then loses.
 // The other two follow along: no offer while it's on the felt, and the offer, with the rack dimmed, once it's gone.
 if (cageWants('blackjack', 'roulette', 'floor')) {
