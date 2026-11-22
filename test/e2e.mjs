@@ -164,6 +164,21 @@ const steady = f => { crypto.getRandomValues = a => { a.fill(Math.floor(f * 2 **
 const cageOf = p => p.evaluate(() => JSON.parse(localStorage.getItem('house-money.cage')));
 const feltOf = (p, id) => p.evaluate(id => JSON.parse(localStorage.getItem(`house-money.${id}`))?.felt, id);
 
+// The player's card on the floor: the bar fills toward the next card, 62% of the way to Silver at 6,200 bet, empty
+// at none, and full on Black.
+if (cageWants('floor')) {
+  for (const [wagered, pct] of [[6200, 62], [0, 0], [300000, 100]]) {
+    const { p, ctx } = await sit('?seen', { cage: { chips: 1000, wagered, high: 1000, stakes: 1 } });
+    const [bar, track, h] = await p.evaluate(() => {
+      const i = document.getElementById('tierBar');
+      return [i.getBoundingClientRect().width, i.parentElement.getBoundingClientRect().width, i.parentElement.getBoundingClientRect().height];
+    });
+    assert.ok(Math.abs(bar - track * pct / 100) < 1.5, `the floor: the card's bar is ${bar.toFixed(1)} of ${track.toFixed(1)} px at ${wagered} bet, not ${pct}%`);
+    assert.ok(track > 100 && h <= 8, `the floor: the card's bar track is ${track.toFixed(1)} x ${h.toFixed(1)} px`);
+    await ctx.close();
+  }
+}
+
 // Down to 7 chips at every table: the offer is up, with the count, and every control is still there to tap.
 for (const t of TABLES) {
   if (!cageWants(t.id)) continue;

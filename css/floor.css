@@ -64,8 +64,8 @@ body.floor {
 .pc-name { font-size: .5rem; letter-spacing: .14em; text-transform: uppercase; opacity: .85; }
 .pc-tier { font: 400 1.05rem/1 var(--sign); }
 .tier-line { font-size: .86rem; color: var(--muted); }
-.card-btn .bar { height: 6px; border-radius: 3px; background: rgba(255, 255, 255, .1); overflow: hidden; }
-.card-btn .bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--gold-dk), var(--gold-hi)); border-radius: 3px; }
+.card-btn .tier-bar { height: 6px; border-radius: 3px; background: rgba(255, 255, 255, .1); overflow: hidden; }
+.card-btn .tier-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--gold-dk), var(--gold-hi)); border-radius: 3px; }
 
 .aisle { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; max-width: 760px; margin: 0 auto; }
 .hop {
