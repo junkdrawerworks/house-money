@@ -5,6 +5,19 @@
 
 export const KEY = 'house-money.records';
 
+// The words Records shows for each table's own counters (extra, added up) and bests (max, kept highest). Every key a
+// table writes is here, or left out on purpose in test/records.unit.test.mjs.
+export const EXTRA = {
+  blackjack: { blackjacks: 'Blackjacks', won: 'Rounds won' },
+  roulette: { straightHits: 'Straight-up hits', zeros: 'Zeros' },
+  craps: { pointsMade: 'Points made', longestHand: 'Longest hand (rolls)' },
+  baccarat: { player: 'Player wins', banker: 'Banker wins', tie: 'Ties', naturals: 'Naturals' },
+  'video-poker': { royal: 'Royal flushes', 'straight-flush': 'Straight flushes', four: 'Four of a kind', 'full-house': 'Full houses' },
+  'cherry-bell': { jackpots: 'Jackpots' },
+  'odds-and-ends': { jackpots: 'Jackpots' },
+  motherlode: { features: 'Free-spin features', feature: 'Most won in free spins' },
+};
+
 const num = v => (Number.isFinite(Number(v)) ? Number(v) : 0);
 const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 

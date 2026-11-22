@@ -125,7 +125,7 @@ async function spin() {
   const wins = evalLines(grid, M.LINES.slice(0, s.lines), M.PAYS, { wild: M.WILD });
   const win = wins.reduce((a, w) => a + w.pay, 0) * s.lineBet;
   keep.begin({ stops, lines: s.lines, lineBet: s.lineBet, win, wagered: b, wins: wins.map(w => ({ line: w.line, sym: w.sym, pay: w.pay })),
-    extra: wins.some(w => w.sym === M.WILD) ? { pennies: 1 } : {}, max: { biggest: win } });
+    extra: wins.some(w => w.sym === M.WILD && w.count === 3) ? { jackpots: 1 } : {}, max: { biggest: win } });
   await reels.spin(stops, { first: .55, stagger: .28, onStop: () => sound.thunk() });
   keep.settle();
   show(wins, win);

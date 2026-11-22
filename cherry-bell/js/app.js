@@ -121,7 +121,7 @@ async function pull() {
   const r = M.pay(grid, s.coins);
   const win = r.coins * s.coin;
   keep.begin({ stops, coins: s.coins, coin: s.coin, row: r.row, win, wagered: b,
-    extra: r.row === 0 ? { sevens: 1 } : {}, max: { biggest: win } });
+    extra: r.row === 0 && s.coins === M.COINS ? { jackpots: 1 } : {}, max: { biggest: win } });
   swing();
   // two sevens or bars showing: the last reel spins on a moment longer
   const line = grid.map(col => col[1]);

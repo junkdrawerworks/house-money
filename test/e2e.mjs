@@ -478,6 +478,23 @@ for (const [id, n] of [['cherry-bell', 30], ['odds-and-ends', 20]]) {
   await ctx.close();
 }
 
+// Records: each table's rounds in its own word, and the machines' own counters.
+if (cageWants('records')) {
+  const { p, ctx } = await sit('records/', { records: { since: '2026-11-01', tables: {
+    'video-poker': { rounds: 1, wagered: 5, net: 3995, best: 3995, bestOn: '2026-11-02', royal: 1 },
+    'cherry-bell': { rounds: 12, wagered: 36, net: 964, best: 997, bestOn: '2026-11-03', jackpots: 1, biggest: 1000 },
+    'odds-and-ends': { rounds: 9, wagered: 45, net: -20, best: 5, bestOn: '2026-11-03', jackpots: 2 },
+    motherlode: { rounds: 22, wagered: 440, net: 955, best: 1375, bestOn: '2026-11-04', features: 1, feature: 1395 },
+  } } });
+  const rows = id => p.$$eval(`.rec.t-${id} li`, lis => lis.map(li => [li.querySelector('span').textContent, li.querySelector('b').textContent.trim()]));
+  assert.deepEqual((await rows('video-poker'))[0], ['Hands', '1'], 'Records: Video Poker counts hands');
+  assert.deepEqual((await rows('cherry-bell')).map(r => r[0]), ['Spins', 'Chips bet', 'Up or down', 'Biggest win', 'Jackpots'], 'Records: Cherry Bell');
+  assert.deepEqual((await rows('odds-and-ends')).at(-1), ['Jackpots', '2'], 'Records: Odds & Ends jackpots');
+  assert.deepEqual((await rows('motherlode')).slice(-2), [['Free-spin features', '1'], ['Most won in free spins', '1,395']], 'Records: Motherlode');
+  assert.match(await p.textContent('#totals'), /526chips bet over 44 plays/, 'Records: the total line');
+  await ctx.close();
+}
+
 // 500 out on the craps layout with 3 in the rack: those chips are still yours, so the cage offers nothing anywhere.
 for (const at of ['blackjack', 'roulette', 'cherry-bell', 'motherlode', '']) {
   if (!cageWants('craps', at || 'floor')) continue;

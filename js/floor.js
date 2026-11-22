@@ -4,7 +4,7 @@
 import * as cage from '../shared/cage.js';
 import * as records from '../shared/records.js';
 import * as sound from '../shared/sound.js';
-import { TABLES } from '../shared/tables.js';
+import { TABLES, units } from '../shared/tables.js';
 import { outLine } from '../shared/table.js';
 
 const $ = id => document.getElementById(id);
@@ -42,9 +42,7 @@ function stats() {
     const el = document.querySelector(`#at-${t.id} [data-stat]`);
     if (!r.rounds) el.textContent = 'Not played yet';
     else {
-      const unit = t.slot || t.id === 'video-poker' ? (r.rounds === 1 ? 'spin' : 'spins') : t.id === 'craps' ? (r.rounds === 1 ? 'roll' : 'rolls') : (r.rounds === 1 ? 'round' : 'rounds');
-      const word = t.id === 'video-poker' ? (r.rounds === 1 ? 'hand' : 'hands') : unit;
-      el.textContent = `${fmt(r.rounds)} ${word} · ${r.net >= 0 ? 'up' : 'down'} ${fmt(Math.abs(r.net))}${r.best > 0 ? ` · best win ${fmt(r.best)}` : ''}`;
+      el.textContent = `${units(t, r.rounds)} · ${r.net >= 0 ? 'up' : 'down'} ${fmt(Math.abs(r.net))}${r.best > 0 ? ` · best win ${fmt(r.best)}` : ''}`;
       el.classList.toggle('up', r.net > 0);
     }
     document.querySelector(`#at-${t.id} [data-lim]`).textContent = `Bets ${fmt(t.min)}–${fmt(cage.maxBet(t.max))}`;
