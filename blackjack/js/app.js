@@ -101,6 +101,20 @@ function syncRow(row, cards, { hole = false, size } = {}) {
   return Promise.all(jobs);
 }
 
+// What a hand's chips look like: its bet while it's in play, and once the round is over, what it returns (h.pay):
+// nothing on a loss, the bet swept off the felt; twice the bet on a win, the top chip ringed; the bet on a push; half
+// on a surrender. Drawn again only when that changes, so a resize doesn't sweep the chips twice.
+function paintBet(betEl, h) {
+  const over = s.phase === 'done' && h.result && typeof h.pay === 'number';
+  const look = !over ? '' : h.pay === 0 ? 'swept' : h.pay > h.bet ? 'winner' : '';
+  const amount = over && h.pay > 0 ? h.pay : h.bet;
+  const key = `${amount} ${look}`;
+  if (betEl.dataset.shown === key) return;
+  betEl.dataset.shown = key;
+  const st = setStack(betEl, amount, { most: 6 });
+  if (look) st.classList.add(look);
+}
+
 function cardSize() {
   const n = s.hands.length;
   const w = Math.min(innerWidth, 760);
@@ -148,7 +162,7 @@ async function paintCards() {
     tot.textContent = totText(h.cards, s.hands.length === 1);
     tot.classList.toggle('bust', g.total(h.cards).total > 21);
     tot.classList.toggle('bj', s.hands.length === 1 && g.isBJ(h.cards));
-    setStack(el.querySelector('.bet'), h.bet, { most: 6 });
+    paintBet(el.querySelector('.bet'), h);
     let res = el.querySelector('.res');
     if (h.result && s.phase === 'done') {
       if (!res) { res = document.createElement('span'); el.appendChild(res); }

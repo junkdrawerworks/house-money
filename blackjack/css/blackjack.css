@@ -71,3 +71,9 @@
   .dock .play .btn { font-size: .82rem; padding: 0 4px; }
 }
 @media (min-height: 820px) { .dealer { margin-top: 10px; } .rules { margin: 16px 0; } }
+
+/* the result in chips: a lost bet swept off the felt, a winner's top chip ringed (as at roulette) */
+.hand .bet .stack.swept { animation: sweep .5s ease-in .25s forwards; }
+@keyframes sweep { to { opacity: 0; transform: translateY(-160%) scale(.6); } }
+.hand .bet .stack.winner .chip:nth-last-child(1 of .chip) { box-shadow: 0 0 0 2px var(--win), 0 0 10px rgba(255, 226, 122, .8); }
+@media (prefers-reduced-motion: reduce) { .hand .bet .stack.swept { animation: none; opacity: 0; } }

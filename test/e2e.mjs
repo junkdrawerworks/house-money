@@ -430,18 +430,33 @@ if (cageWants('blackjack')) {
   const C = (r, s = 'c') => ({ r, s });
   // dealt from the end of the shoe: your first card, the dealer's up card, your second, the hole card, then the rest
   const deal = cards => Array(150).fill(C(2)).concat([...cards].reverse());
-  for (const [what, cards, moves, said] of [
-    ['a bust', [C(10), C(10, 'd'), C(6), C(7), C(10, 'h')], ['#hit'], 'Bust with 26. The house takes it.'],
-    ['a split that pushes and busts', [C(8), C(10), C(8, 'd'), C(8, 'h'), C(10, 'h'), C(6), C(10, 's')], ['#split', '#stand', '#hit'], 'Dealer has 18. Hand 1 pushes, hand 2 busts. Down 25.'],
-    ['a surrender', [C(10), C(10, 'd'), C(6), C(9)], ['#surrender'], 'You surrender: half your bet, 12, comes back, and the half chip’s kept for later.'],
-    ['two hands that bust', [C(8), C(10), C(8, 'd'), C(7), C(6), C(10, 'h'), C(6, 'd'), C(10, 's')], ['#split', '#hit', '#hit'], 'All your hands bust. The house takes it.'],
+  // what each hand's chips show once the round is over: what it returns, and whether it's swept or ringed
+  const stacks = p => p.$$eval('#hands .hand .bet .stack', els => els.map(st => [st.querySelector('.amt')?.textContent ?? '',
+    st.classList.contains('swept') ? 'swept' : st.classList.contains('winner') ? 'winner' : '']));
+  for (const [what, cards, moves, said, chips] of [
+    ['a bust', [C(10), C(10, 'd'), C(6), C(7), C(10, 'h')], ['#hit'], 'Bust with 26. The house takes it.', [['25', 'swept']]],
+    ['a split that pushes and busts', [C(8), C(10), C(8, 'd'), C(8, 'h'), C(10, 'h'), C(6), C(10, 's')], ['#split', '#stand', '#hit'], 'Dealer has 18. Hand 1 pushes, hand 2 busts. Down 25.', [['25', ''], ['25', 'swept']]],
+    ['a surrender', [C(10), C(10, 'd'), C(6), C(9)], ['#surrender'], 'You surrender: half your bet, 12, comes back, and the half chip’s kept for later.', [['12', '']]],
+    ['two hands that bust', [C(8), C(10), C(8, 'd'), C(7), C(6), C(10, 'h'), C(6, 'd'), C(10, 's')], ['#split', '#hit', '#hit'], 'All your hands bust. The house takes it.', [['25', 'swept'], ['25', 'swept']]],
+    ['a win', [C(10), C(7, 'h'), C(9, 'd'), C(10, 'h')], ['#stand'], 'Dealer has 17. You win 25.', [['50', 'winner']]],
+    ['a push', [C(10), C(7, 'h'), C(7, 'd'), C(10, 'h')], ['#stand'], 'Dealer has 17. Push: your bet comes back.', [['25', '']]],
+    ['a natural', [C(1), C(7, 'h'), C(13, 'd'), C(9, 'h')], [], 'Blackjack! That pays 37, and the half chip’s kept for your next one.', [['62', 'winner']]],
   ]) {
     const { p, ctx } = await sit('blackjack/?fast&seen', { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 },
       blackjack: { shoe: deal(cards), phase: 'bet', bet: 0, last: 0, hands: [], active: 0, dealer: [], hole: true, insurance: 0, felt: 0, carry: 0 } });
-    await p.click('#rack .c25'); await p.click('#spot'); await p.click('#deal');
+    await p.click('#rack .c25'); await p.click('#spot');
+    await p.click('#deal');
     for (const m of moves) { await p.waitForSelector(`${m}:not([disabled]):not([hidden])`); await p.click(m); }
     await p.waitForSelector('#doneActions:not([hidden])');
     assert.equal((await p.textContent('#say')).trim(), said, `Blackjack, ${what}`);
+    assert.deepEqual(await stacks(p), chips, `Blackjack, ${what}: the chips on the felt after the round`);
+    // a reload after the result pays nothing again, and the chips still show what came back
+    const paid = (await cageOf(p)).chips;
+    await p.reload(); await p.waitForSelector('#doneActions:not([hidden])'); await p.waitForTimeout(300);
+    assert.equal((await cageOf(p)).chips, paid, `Blackjack, ${what}: a reload after the result paid again`);
+    assert.deepEqual(await stacks(p), chips, `Blackjack, ${what}: the chips on the felt after a reload`);
+    await p.click('#newBet');
+    assert.equal(await p.locator('#hands .hand').count(), 0, `Blackjack, ${what}: New bet left the hands up`);
     await ctx.close();
   }
 }
