@@ -8,7 +8,7 @@
 // fingerprint of every file in SHELL: change any of them and test/e2e.mjs fails until FILES is changed to match (it
 // says what to), which changes this file, so every copy is made whole again at once.
 const CACHE = 'house-money-v6'; // bump the number when the file list changes
-const FILES = 'c8c1ff99'; // test/e2e.mjs checks this
+const FILES = '9cf8e639'; // test/e2e.mjs checks this
 const SHELL = [
   './', 'baccarat/', 'blackjack/', 'cherry-bell/', 'craps/', 'motherlode/', 'odds-and-ends/', 'records/',
   'roulette/', 'video-poker/', '404.html', 'baccarat/css/baccarat.css', 'baccarat/index.html', 'baccarat/js/app.js',

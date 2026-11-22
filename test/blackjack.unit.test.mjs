@@ -110,6 +110,29 @@ test('the book', () => {
   }
 });
 
+// A double or a split takes another bet's worth from the rack. When the rack can't cover it (the table greys those
+// buttons out), the book plays the hand the way it would if the move weren't there, and says why.
+test('the book, when the rack can’t cover a double or a split', () => {
+  const ask = (cards, up, afford) => {
+    const s = rigged([cards[0], up, cards[1], C(7)]); s.bet = 100; g.deal(s);
+    if (s.phase === 'insurance') g.insure(s, 0);
+    return g.book(s, { afford });
+  };
+  assert.deepEqual(ask([C(5), C(6)], C(6), false), { act: 'hit', why: 'With hard 11 against a 6 the book doubles, but that needs another 100: hit.' });
+  assert.equal(ask([C(5), C(6)], C(6), true).act, 'double');
+  // a pair is read as its total: 8s against a ten are hard 16 (surrender), aces are soft 12 (hit, even against a 5)
+  assert.deepEqual(ask([C(8), C(8, 'h')], C(10), false), { act: 'surrender', why: 'With a pair of 8s against a ten the book splits, but that needs another 100: surrender.' });
+  assert.deepEqual(ask([C(1), C(1, 'h')], C(5), false), { act: 'hit', why: 'With a pair of aces against a 5 the book splits, but that needs another 100: hit.' });
+  assert.equal(ask([C(8), C(8, 'h')], C(10), true).act, 'split');
+  // soft 18 against a 4 doubles when it can, and stands when it can't
+  assert.deepEqual(ask([C(1), C(7)], C(4), false), { act: 'stand', why: 'With soft 18 against a 4 the book doubles, but that needs another 100: stand.' });
+  // a pair the book wouldn't split anyway, and a hand it wouldn't double, say what they always said
+  assert.equal(ask([C(10), C(10, 'h')], C(6), false).why, 'With a pair of tens against a 6, the book says stand.');
+  assert.equal(ask([C(10), C(6)], C(10), false).why, 'With hard 16 against a ten, the book says surrender.');
+  // 9s against a 7 stand, as a pair or as 18
+  assert.equal(ask([C(9), C(9, 'h')], C(7), false).act, 'stand');
+});
+
 // A round that ends as it's dealt (a natural, or the dealer's blackjack under an ace or a ten, insured or not) is
 // settled there and then, so the table can always pay a saved 'done' round from its outcome after a reload.
 test('every round that reaches done carries its outcome, not yet paid', () => {

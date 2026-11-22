@@ -217,8 +217,10 @@ const PAIR = {
 };
 const WORD = { H: 'hit', S: 'stand', D: 'double', P: 'split', R: 'surrender' };
 
-// What the book says for the hand in play: { act, why }.
-export function book(s) {
+// What the book says for the hand in play: { act, why }. afford: false when the rack can't cover another bet's worth,
+// so a double or a split isn't there (the table greys them out): a double is played as a hit (a stand on soft 18), and
+// a pair is played as its total, and the book says so.
+export function book(s, { afford = true } = {}) {
   // under an ace: insurance (and even money, insurance on a blackjack) loses in the long run, so never
   if (s.phase === 'insurance') return { act: 'noIns', why: 'The book never takes insurance, and never even money.' };
   const ok = can(s);
@@ -228,16 +230,23 @@ export function book(s) {
   const col = up === 1 ? 9 : up - 2;
   const upName = up === 1 ? 'an ace' : up === 10 ? 'a ten' : up === 8 ? 'an 8' : `a ${up}`;
   const { total: t, soft } = total(h.cards);
-  let code, what;
+  let code, what, wanted = '';
   const v = value(h.cards[0]);
-  if (ok.split && v !== 5) { code = PAIR[v][col]; what = `a pair of ${v === 1 ? 'aces' : v === 10 ? 'tens' : `${v}s`}`; }
+  const pair = ok.split && v !== 5 ? PAIR[v][col] : '';
+  const pairName = `a pair of ${v === 1 ? 'aces' : v === 10 ? 'tens' : `${v}s`}`;
+  if (pair === 'P' && !afford) wanted = 'splits';
+  if (pair && !wanted) { code = pair; what = pairName; }
   else if (soft && t >= 13 && t <= 20) { code = SOFT[t - 11][col]; what = `soft ${t}`; }
+  else if (soft && t === 12) { code = 'H'; what = 'soft 12'; }   // aces that can't be split: nothing can bust them
   else { code = HARD[Math.max(8, Math.min(17, t))][col]; what = `${soft ? 'soft' : 'hard'} ${t}`; }
-  if (code === 'X') code = ok.double ? 'D' : 'S';
-  if (code === 'D' && !ok.double) code = soft && t === 18 ? 'S' : 'H';
+  const dbl = ok.double && afford;
+  if ((code === 'X' || code === 'D') && ok.double && !afford) wanted = 'doubles';
+  if (code === 'X') code = dbl ? 'D' : 'S';
+  if (code === 'D' && !dbl) code = soft && t === 18 ? 'S' : 'H';
   if (code === 'R' && !ok.surrender) code = 'H';
   if (code === 'P' && !ok.split) code = 'H';
-  if (t >= 21) code = 'S';
+  if (t >= 21) { code = 'S'; wanted = ''; }
   const act = WORD[code] || 'hit';
+  if (wanted) return { act, why: `With ${wanted === 'splits' ? pairName : what} against ${upName} the book ${wanted}, but that needs another ${h.bet.toLocaleString('en-US')}: ${act}.` };
   return { act, why: `With ${what} against ${upName}, the book says ${act}.` };
 }

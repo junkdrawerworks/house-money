@@ -436,6 +436,21 @@ if (cageWants('blackjack', 'floor')) {
   assert.equal(await p.locator('#tierLine .tier-new').count(), 0, 'the floor says the card is new on every visit');
   await ctx.close();
 }
+// Ask the book with 100 bet and 40 left in the rack: hard 11 against a 6 would double, but Double is greyed out, so
+// the book lights Hit and says why.
+if (cageWants('blackjack')) {
+  const C = (r, s = 'c') => ({ r, s });
+  const shoe = Array(150).fill(C(2)).concat([C(5), C(6, 'h'), C(6), C(10, 'h')].reverse());
+  const { p, ctx } = await sit('blackjack/?fast&seen', { cage: { chips: 40, wagered: 960, high: 1000, stakes: 1 },
+    blackjack: { shoe, phase: 'bet', bet: 100, last: 100, hands: [], active: 0, dealer: [], hole: true, insurance: 0, felt: 100, carry: 0 } });
+  await p.click('#deal');
+  await p.waitForSelector('#hit:not([disabled])');
+  assert.equal(await p.isDisabled('#double'), true, 'Blackjack: Double is lit with 40 in the rack against a 100 bet');
+  await p.click('#book');
+  assert.equal((await p.textContent('#say')).trim(), 'With hard 11 against a 6 the book doubles, but that needs another 100: hit.');
+  assert.deepEqual([await p.getAttribute('#hit', 'class'), await p.getAttribute('#double', 'class')], ['btn tip', 'btn'], 'Blackjack: the book lit a greyed-out Double');
+  await ctx.close();
+}
 // Even money: a blackjack against the dealer's ace is offered even money (Play it out, or Even money), the book says
 // never, and taking it says "Even money: you win 20." whether the dealer has blackjack or not. (The chips are what
 // insurance on a blackjack always paid.)

@@ -377,7 +377,8 @@ $('ins').addEventListener('click', () => step(async () => {
 }));
 
 $('book').addEventListener('click', () => {
-  const b = g.book(s);
+  // a double or a split takes another bet's worth from the rack, as the buttons do
+  const b = g.book(s, { afford: s.phase !== 'play' || g.hand(s).bet <= cage.read().chips });
   if (!b) return;
   table.say(b.why);
   document.querySelectorAll('.dock .actions .btn').forEach(el => el.classList.toggle('tip', el.id === b.act));
