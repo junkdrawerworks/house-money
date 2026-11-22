@@ -61,6 +61,10 @@
 .betting .hint { margin: 10px 0 0; font-size: .85rem; color: var(--muted); text-align: center; min-height: 1.2em; }
 
 .dock .play .btn { font-size: .92rem; }
+/* all five up (a pair on the first two cards): narrower gaps and sides, and the words a touch smaller on a narrow
+   phone, so Surrender stays inside its button */
+.dock .play:has(#split:not([hidden])):has(#surrender:not([hidden])) { gap: 4px; }
+.dock .play:has(#split:not([hidden])):has(#surrender:not([hidden])) .btn { padding-inline: 2px; font-size: min(.92rem, 3.5vw); }
 .dock .play .btn.tip { border-color: var(--gold-hi); box-shadow: 0 0 0 2px var(--gold-hi), 0 0 18px rgba(245, 220, 147, .5); }
 
 @media (max-width: 380px) {

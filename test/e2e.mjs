@@ -465,6 +465,17 @@ if (cageWants('blackjack')) {
     };
     await p.click('#rack .c25'); await p.click('#spot'); await p.click('#deal');
     await still(); await same('after the deal');
+    // all five buttons up (Hit, Stand, Double, Split, Surrender): every word inside its button
+    assert.equal(await p.locator('#playActions .btn:not([hidden])').count(), 5, `Blackjack, ${what}: five buttons after the deal`);
+    for (const width of [390, 360]) {
+      await p.setViewportSize({ width, height: 844 });
+      assert.deepEqual(await p.$$eval('#playActions .btn:not([hidden])', bs => bs.filter(b => {
+        const r = document.createRange(), cs = getComputedStyle(b);
+        r.selectNodeContents(b);
+        return r.getBoundingClientRect().width > b.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) + .5;
+      }).map(b => b.textContent)), [], `Blackjack, ${what}: a word runs past its button at ${width} wide`);
+    }
+    await p.setViewportSize({ width: 390, height: 844 });
     for (const [i, m] of moves.entries()) {
       await p.waitForSelector(`${m}:not([disabled]):not([hidden])`); await p.click(m);
       await still(); await same(`after move ${i + 1} (${m})`);
