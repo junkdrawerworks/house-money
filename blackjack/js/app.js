@@ -299,7 +299,8 @@ async function payout() {
   const each = one ? '' : `${s.hands.map((h, i) => `${i ? 'hand' : 'Hand'} ${i + 1} ${VERB[h.result]}`).join(', ')}.`;
   const lostIns = s.insurance > 0 && !o.dealerBJ;
   if (o.natural && !o.dealerBJ) line = `Blackjack! That pays ${cage.fmt(h0.pay - h0.bet)}${kept ? ', and the half chip’s kept for your next one' : before ? ', with the half chip kept from before' : ''}.`;
-  else if (s.hands[0].surrendered) line = `You surrender: half your bet${before ? ' comes back' : ''}, ${cage.fmt(o.back)}${before ? ' with the half chip kept from before.' : `, comes back${kept ? ', and the half chip’s kept for later' : ''}.`}`;
+  else if (s.hands[0].surrendered) line = before ? `You surrender: half your bet and the half chip kept from before, ${cage.fmt(o.back)}, come back.`
+    : `You surrender: half your bet, ${cage.fmt(o.back)}, comes back${kept ? ', and the half chip’s kept for later' : ''}.`;
   else if (one && h0.result === 'bust') line = `Bust with ${g.total(h0.cards).total}. The house takes it.`;
   else if (net > 0) line = `${dealerLine} ${each} You win ${cage.fmt(net)}.`;
   else if (net === 0) line = one && !o.insurance ? `${dealerLine} Push: your bet comes back.` : `${dealerLine} ${each} Even.`;

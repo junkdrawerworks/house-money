@@ -166,7 +166,8 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
     if (!short && !(n < cage.LOW && away.length)) return '';
     const me = TABLES.find(t => t.id === id);
     const parts = [];
-    if (short) parts.push(me?.slot ? `${name} takes ${cage.fmt(min)} a spin and you have ${cage.fmt(n)}.` : `The smallest bet at ${name} is ${cage.fmt(min)}, and you have ${cage.fmt(n)}.`);
+    if (short && !n) parts.push('Your rack is empty.');
+    else if (short) parts.push(me?.slot ?`${name} takes ${cage.fmt(min)} a spin and you have ${cage.fmt(n)}.` : `The smallest bet at ${name} is ${cage.fmt(min)}, and you have ${cage.fmt(n)}.`);
     if (away.length) parts.push(outLine(away, '../'));
     else {
       // somewhere you can play with what you have: the same kind of game first

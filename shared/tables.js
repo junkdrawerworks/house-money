@@ -24,7 +24,7 @@ export const TABLES = [
 
 export const byId = id => TABLES.find(t => t.id === id);
 
-// n rounds at a table in its own word: "1 hand", "22 spins", "3 rolls". word: false leaves out the number ("hands").
+// n rounds at a table in its own word: "1 hand", "22 spins", "3 rolls". word: true leaves out the number ("hands").
 export const units = (t, n, { word = false } = {}) => {
   const w = `${t.unit || 'round'}${n === 1 ? '' : 's'}`;
   return word ? w : `${n.toLocaleString('en-US')} ${w}`;
