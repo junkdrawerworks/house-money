@@ -59,7 +59,8 @@ const table = mountTable({
     <p>The left side is the bead plate: every coup in order, down the columns. The right is the big road: a new
     column each time the winner changes, so streaks run down the board. Ties are marked across the coup before them.
     It starts again with each new shoe. Eight decks, with the cut card 16 from the end.</p>
-    <p>The house keeps about 1.06% on Banker, 1.24% on Player, 14.4% on Tie, and about 10.4% on either pair.</p>`,
+    <p>The house keeps about 1.06% on Banker, 1.24% on Player, 14.4% on Tie, and about 10.4% on either pair.</p>
+    <p>The keyboard works too: Enter or Space deals, turns the cards over, and deals again.</p>`,
   onStake: () => paint(),
   // the stack changed, here or in another tab
   onCage: () => { if (!busy) paint(); },

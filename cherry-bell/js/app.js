@@ -50,7 +50,7 @@ const table = mountTable({
     <p>Cherry Bell pays back about ${pct(M.RETURN.low)} of what goes in on one or two coins, and ${pct(M.RETURN.max)}
     on three. About one pull in four pays something. Behind each reel is a virtual reel: every symbol gets so many of
     128 chances, and the blanks share the rest, so a seven on all three comes about once in 32,768 pulls.</p>
-    <p>The keyboard works too: Space pulls, 1 to 3 sets the coins.</p>`,
+    <p>The keyboard works too: Space or Enter pulls, and 1 to 3 sets the coins.</p>`,
 });
 
 // ---------- the pay table on the glass ----------

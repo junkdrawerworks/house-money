@@ -47,7 +47,8 @@ const table = mountTable({
     </ul>
     <h3>The book</h3>
     <p><b>Ask the book</b> shows what basic strategy says for your hand against the dealer’s card: the play that loses
-    least in the long run. Played that way, the house keeps about a third of a percent.</p>`,
+    least in the long run. Played that way, the house keeps about a third of a percent.</p>
+    <p>The keyboard works too: H hits, S stands, D doubles, P splits, R surrenders, and Enter deals.</p>`,
   onStake: () => paint(),
   // the stack changed, here or in another tab
   onCage: () => { if (!busy) paint(); },

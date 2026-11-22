@@ -41,6 +41,7 @@ const table = mountTable({
       <li><b>In the free spins the pickaxes stick.</b> Every pickaxe that lands stays where it is, wild, until the free
       spins are over, so they pile up. The free spins play at the bet that lit them, and they carry on where they left
       off if you leave. When they’re over, a card adds up what they paid.</li>
+      <li><b>Big wins.</b> Fifteen times the bet or more is a Big win, forty a Huge win, and a hundred the Motherlode.</li>
       <li><b>Auto</b> keeps spinning until you stop it (the button says Stop while it runs), the chips run short, or a big win comes in (free spins that pay 15 times the bet count as one).</li>
     </ul>
     <h3>The long run</h3>

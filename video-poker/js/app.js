@@ -40,7 +40,8 @@ const table = mountTable({
     <h3>The strategy card</h3>
     <p>The link under the buttons lights up the cards the standard strategy card would hold, and says which line of it
     applies. Played that way, the machine gives back about 99.5% of what goes in over the long run.</p>
-    <p>A new 52-card deck is shuffled for every hand. Keyboard: 1 to 5 hold, Enter deals and draws.</p>`,
+    <p>A new 52-card deck is shuffled for every hand.</p>
+    <p>The keyboard works too: 1 to 5 hold, and Enter deals and draws.</p>`,
   onStake: () => paint(),
   // the stack changed, here or in another tab
   onCage: () => { if (!busy) paint(); },

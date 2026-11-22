@@ -36,7 +36,7 @@ const table = mountTable({
       rows meet, a six line.</li>
       <li><b>Press and hold a number</b> (or right-click it) for a list of every bet that includes it, to pick from.</li>
       <li><b>Undo</b> picks up your last chip, <b>Clear</b> all of them. After a spin, <b>Rebet</b> puts the same
-      bets back down, and once they're down the same button <b>doubles</b> them.</li>
+      bets back down, and once they’re down the same button <b>doubles</b> them.</li>
     </ul>
     <h3>What it pays</h3>
     <table>
@@ -54,8 +54,9 @@ const table = mountTable({
     <h3>After the spin</h3>
     <p>The dolly marks the winning number. Winning bets come back to your rack with what they won, and the rest are
     swept. The strip above the layout keeps the last numbers, newest on the left. The wheel has no memory: a number
-    that hasn't come up in a while is no more likely next time.</p>
-    <p>On a keyboard, Space spins and Backspace undoes.</p>`,
+    that hasn’t come up in a while is no more likely next time.</p>
+    <p>The keyboard works too: Space spins, Backspace undoes, and Tab and Enter put chips on the numbers and the outside
+    bets.</p>`,
   onStake: () => paint(),
   // the stack changed, here or in another tab
   onCage: () => { if (!busy) paint(); },
