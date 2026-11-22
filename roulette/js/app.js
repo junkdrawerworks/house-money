@@ -381,6 +381,13 @@ function endPress(e, placeIt) {
   const p = press; press = null;
   if (e.pointerType !== 'mouse') light(null);
   if (placeIt && !p.picked && p.key) place(p.key);
+  // A hold that opened the list of bets on a number: the tap the finger ends with comes after the list is up, and would
+  // land on its backdrop (closing it) or on one of its rows (betting). It goes nowhere.
+  if (p.picked) {
+    const swallow = ev => { ev.preventDefault(); ev.stopPropagation(); };
+    document.addEventListener('click', swallow, { capture: true, once: true });
+    setTimeout(() => document.removeEventListener('click', swallow, { capture: true }), 400);
+  }
 }
 L.addEventListener('pointerup', e => endPress(e, true));
 L.addEventListener('pointercancel', e => endPress(e, false));
@@ -419,7 +426,10 @@ function openPicker(n) {
   if (!picker.open) picker.showModal();
 }
 $('pickClose').addEventListener('click', () => picker.close());
-picker.addEventListener('click', e => { if (e.target === picker) picker.close(); });
+// a tap on the backdrop closes it: one that started there, not a press on the layout that ends over it
+let downOnPicker = false;
+picker.addEventListener('pointerdown', e => { downOnPicker = e.target === picker; });
+picker.addEventListener('click', e => { if (e.target === picker && downOnPicker) picker.close(); downOnPicker = false; });
 
 // ---------- the spin ----------
 

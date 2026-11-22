@@ -242,6 +242,39 @@ if (cageWants('roulette')) {
   }
 }
 
+// Roulette on a phone: a finger held on the 5 for 800 ms opens the list of every bet on the 5, and the list stays up
+// when the finger lifts (the tap that ends the hold lands on the list's backdrop, or on one of its rows). A tap on a
+// row then puts the chip on that bet. (Touches sent through the browser's own input, as a finger's would be.)
+if (cageWants('roulette')) {
+  const { p, ctx } = await sit('roulette/?fast&seen', { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 } });
+  await p.click('#rack .c5');
+  const cdp = await ctx.newCDPSession(p);
+  for (const n of [5, 17, 34]) {
+    const at = await p.evaluate(n => { const e = document.querySelector(`[data-n="${n}"]`); e.scrollIntoView({ block: 'center' }); const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; }, n);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [at] });
+    await p.waitForTimeout(800);
+    assert.equal(await p.isVisible('#picker[open]'), true, `Roulette: holding the ${n} didn't open its list`);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await p.waitForTimeout(500);
+    assert.equal(await p.isVisible('#picker[open]'), true, `Roulette: the list of bets on ${n} closed when the finger lifted`);
+    assert.deepEqual(await p.evaluate(() => JSON.parse(localStorage.getItem('house-money.roulette'))?.bets || {}), {}, `Roulette: lifting the finger off the ${n} put a bet down`);
+    await p.click('#pickClose');
+  }
+  const at = await p.evaluate(() => { const e = document.querySelector('[data-n="5"]'); e.scrollIntoView({ block: 'center' }); const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [at] });
+  await p.waitForTimeout(800);
+  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await p.waitForTimeout(500);
+  await p.tap('#pickList button:nth-child(2)');
+  await p.waitForTimeout(200);
+  assert.equal(await p.isVisible('#pickList button:nth-child(2) .has'), true, 'Roulette: tapping a row in the list did not put a chip on it');
+  assert.deepEqual(Object.values(await p.evaluate(() => JSON.parse(localStorage.getItem('house-money.roulette')).bets)), [5], 'Roulette: tapping a row did not put down one 5 chip');
+  // a tap on the backdrop still closes it
+  await p.mouse.click(5, 5);
+  await until(async () => !(await p.isVisible('#picker[open]')), 2000, 'Roulette: a tap outside the list did not close it');
+  await ctx.close();
+}
+
 // Result lines that say what happened when some bets came back and more didn't, so they can't read like a push.
 if (cageWants('roulette')) {
   // 5 on red and 10 on the 3rd dozen, and the ball in the 1: red wins 5, and the spin is down 5
