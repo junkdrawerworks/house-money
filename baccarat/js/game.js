@@ -131,14 +131,16 @@ export function clear(s) {
 // ---------- the scoreboard ----------
 
 // The big road: a column for each run of Player or Banker wins, six down and then trailing right (the dragon's
-// tail). Ties don't take a cell; they're counted on the win before them. Returns cells as { c, r, w, ties }.
+// tail). Ties don't take a cell; they're counted on the win before them. A new run starts in the next column whose
+// top is free, so a tail that has stepped up to the top row never has its cell taken. Returns cells as
+// { c, r, w, ties }.
 export function bigRoad(road) {
   const cells = new Map();
   const at = (c, r) => `${c},${r}`;
   let start = -1, col = 0, row = 0, lastW = null, last = null, early = 0;
   for (const x of road) {
     if (x.w === 'T') { if (last) last.ties++; else early++; continue; }
-    if (x.w !== lastW) { start++; col = start; row = 0; }
+    if (x.w !== lastW) { start++; while (cells.has(at(start, 0))) start++; col = start; row = 0; }
     else if (row < 5 && !cells.has(at(col, row + 1))) row++;
     else col++;
     last = { c: col, r: row, w: x.w, ties: early };

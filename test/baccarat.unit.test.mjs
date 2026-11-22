@@ -125,3 +125,23 @@ test('the big road', () => {
   assert.equal(at(3, 0).w, 'P');
   assert.deepEqual(g.tally(road), { P: 4, B: 9, T: 1 });
 });
+
+test('the big road never loses a coup when dragon tails stack up', () => {
+  // each streak one shorter than the last: the tails step up until one lands at the top of the next column
+  const road = 'BBBBBBBPPPPPPBBBBBPPPPBBBPPB'.split('').map(w => ({ w }));
+  const cells = g.bigRoad(road);
+  assert.equal(cells.length, road.length, 'one cell per coup');
+  assert.equal(new Set(cells.map(c => `${c.c},${c.r}`)).size, cells.length, 'no two coups in one cell');
+});
+
+test('a long run of coups through many shoes: one big-road cell per Player or Banker win', () => {
+  const s = g.fresh();
+  for (let i = 0; i < 20000; i++) {
+    s.bets.banker = 10; g.deal(s);
+    s.turned = g.out(s); while (g.advance(s)) s.turned = g.out(s);
+    g.settle(s); g.clear(s);
+    const n = s.road.filter(x => x.w !== 'T').length;
+    const cells = g.bigRoad(s.road);
+    assert.equal(new Set(cells.map(c => `${c.c},${c.r}`)).size, n);
+  }
+});
