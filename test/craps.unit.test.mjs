@@ -224,3 +224,24 @@ test('odds on any amount have exactly no house edge, counting the fraction kept'
   }
   assert.equal(checked, 6 * 4 * 30 * 30);
 });
+
+test('which bets pay in whole chips, and what would', () => {
+  const w = (...a) => { const r = g.paysWhole(...a); return r && [r.whole, r.pays, r.owed[1].join('/'), r.better && [r.better.amount, r.better.pays], r.kept]; };
+  assert.deepEqual(w('place6', 5), [false, 5, '5/6', [6, 7], false], 'five on the 6 pays 5: make it 6 and it pays 7');
+  assert.deepEqual(w('place8', 12), [true, 14, '0/1', null, false]);
+  assert.deepEqual(w('place8', 10), [false, 11, '2/3', [12, 14], false]);
+  assert.deepEqual(w('place4', 3), [false, 5, '2/5', [5, 9], false]);
+  assert.deepEqual(w('place10', 25), [true, 45, '0/1', null, false]);
+  assert.deepEqual(w('place5', 7), [false, 9, '4/5', [10, 14], false]);
+  assert.deepEqual(w('passOdds', 5, 5), [false, 7, '1/2', null, true], 'odds keep the fraction instead');
+  assert.deepEqual(w('passOdds', 7, 8), [false, 8, '2/5', null, true]);
+  assert.deepEqual(w('passOdds', 10, 6), [true, 12, '0/1', null, true]);
+  assert.deepEqual(w('dontOdds', 5, 4), [false, 2, '1/2', null, true]);
+  assert.deepEqual(w('dcomeOdds9', 3), [true, 2, '0/1', null, true]);
+  assert.deepEqual(w('dcomeOdds6', 5), [false, 4, '1/6', null, true]);
+  assert.deepEqual(w('comeOdds10', 3), [true, 6, '0/1', null, true]);
+  assert.equal(g.paysWhole('field', 5), null, 'the field always pays whole');
+  assert.equal(g.paysWhole('passOdds', 5, 0), null, 'no point, no price');
+  // every place amount from 1 to 60: whole exactly when it's a multiple of the price's 5 or 6
+  for (const n of g.POINTS) for (let a = 1; a <= 60; a++) assert.equal(g.paysWhole(`place${n}`, a).whole, a % (n === 6 || n === 8 ? 6 : 5) === 0);
+});

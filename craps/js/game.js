@@ -44,6 +44,28 @@ export const CARRY = 30;   // the carry's unit: a thirtieth of a chip
 
 export const LINE = ['pass', 'dontPass', 'come', 'dontCome'];
 
+// Does this much on a spot pay in whole chips if it wins? For the bets whose price has a fraction in it (place bets,
+// odds and lay odds; point: the number odds behind the line are on):
+//   { whole, pays, owed: [chips, fraction as [n, d]] , better: { amount, pays } | null, kept }
+// A place bet is paid down, so better is the next amount up that pays whole. Odds keep their fraction (kept: true).
+// null for a bet that always pays whole, or with no number to price it.
+export function paysWhole(spot, amount, point = 0) {
+  let m, price, kept = false;
+  if ((m = /^place(\d+)$/.exec(spot))) price = PLACE[m[1]];
+  else if ((m = /^comeOdds(\d+)$/.exec(spot))) { price = TRUE_ODDS[m[1]]; kept = true; }
+  else if ((m = /^dcomeOdds(\d+)$/.exec(spot))) { price = LAY_ODDS[m[1]]; kept = true; }
+  else if (spot === 'passOdds' && POINTS.includes(point)) { price = TRUE_ODDS[point]; kept = true; }
+  else if (spot === 'dontOdds' && POINTS.includes(point)) { price = LAY_ODDS[point]; kept = true; }
+  if (!price || !(amount > 0)) return null;
+  const [to, fr] = price;
+  const num = amount * to, chips = Math.floor(num / fr), rest = num % fr, g = gcd(rest, fr);
+  const whole = rest === 0;
+  const up = Math.ceil(amount / fr) * fr;
+  return { whole, pays: chips, owed: [chips, whole ? [0, 1] : [rest / g, fr / g]], kept,
+    better: whole || kept ? null : { amount: up, pays: up * to / fr } };
+}
+const gcd = (a, b) => (b ? gcd(b, a % b) : a);
+
 export const NAMES = {
   pass: 'Pass line', dontPass: "Don't pass", passOdds: 'Pass line odds', dontOdds: "Don't pass odds",
   come: 'Come', dontCome: "Don't come", field: 'Field',

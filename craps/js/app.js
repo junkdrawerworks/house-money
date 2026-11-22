@@ -182,8 +182,26 @@ function put(el) {
   if (!cage.take(n)) { table.say('Not enough chips for that one.'); return; }
   s.bets[k] = (s.bets[k] || 0) + n;
   (s.undo ||= []).push([k, n]);
+  const pw = g.paysWhole(k, s.bets[k], s.point);
   if (n < rack.value) table.say(`That fills ${g.NAMES[k].toLowerCase()}: ${cage.fmt(s.bets[k])} is the most it takes.`);
+  else if (pw && !pw.whole) { table.say(notWhole(k, s.bets[k], pw)); priced = true; }
+  else if (priced) { table.say(''); priced = false; }
   save(); sound.chip(); paint();
+}
+
+// A bet that won't pay in whole chips, said as the chip goes down: a place bet is paid down, so it says what would
+// pay whole; odds keep the fraction. "Five on the 6 pays 5. Make it 6 and it pays 7."
+let priced = false;   // the line on screen is one of these
+const WORD = ['', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten'];
+const FRACTION = { '1/2': 'a half', '1/3': 'a third', '2/3': 'two thirds', '1/5': 'a fifth', '2/5': 'two fifths',
+  '3/5': 'three fifths', '4/5': 'four fifths', '1/6': 'a sixth', '5/6': 'five sixths' };
+function notWhole(k, amount, pw) {
+  const n = /\d+$/.exec(k)?.[0] || s.point;
+  const amt = WORD[amount] ? WORD[amount][0].toUpperCase() + WORD[amount].slice(1) : cage.fmt(amount);
+  if (!pw.kept) return `${amt} on the ${n} pays ${cage.fmt(pw.pays)}. Make it ${cage.fmt(pw.better.amount)} and it pays ${cage.fmt(pw.better.pays)}.`;
+  const owed = `${cage.fmt(pw.owed[0])} and ${FRACTION[pw.owed[1].join('/')]}`;
+  const lay = /^(dontOdds|dcomeOdds)/.test(k);
+  return `${lay ? `Laying ${cage.fmt(amount)} against` : `${amt} in odds on`} the ${n} pays ${owed}. The fraction’s kept toward your next odds win.`;
 }
 
 function takeDown(k, n = s.bets[k]) {

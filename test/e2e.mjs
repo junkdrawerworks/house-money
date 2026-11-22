@@ -514,6 +514,18 @@ if (cageWants('craps')) {
   assert.deepEqual([b.recs.craps?.rounds, b.recs.craps?.wagered, b.recs.craps?.net], [1, 10, 10], 'Craps: Records lost the roll reloaded mid-throw');
   await ctx.close();
 }
+// Craps: 5 on the 6 is paid down to 5, and the line says what would pay whole; a sixth chip makes it whole and the
+// line goes. 5 in odds behind the 5 is owed 7 and a half, and the line says the half is kept.
+if (cageWants('craps')) {
+  const { p, ctx } = await sit('craps/?fast&seen', { cage: { chips: 990, wagered: 10, high: 1000, stakes: 1 }, craps: { bets: { pass: 10 }, point: 5, history: [], felt: 10 } });
+  await p.click('#rack .c5'); await p.click('[data-spot="place6"]');
+  assert.equal((await p.textContent('#say')).trim(), 'Five on the 6 pays 5. Make it 6 and it pays 7.');
+  await p.click('#rack .c1'); await p.click('[data-spot="place6"]');
+  assert.equal((await p.textContent('#say')).trim(), '', 'Craps: the line about 5 on the 6 stayed once it was 6');
+  await p.click('#rack .c5'); await p.click('[data-spot="passOdds"]');
+  assert.equal((await p.textContent('#say')).trim(), 'Five in odds on the 5 pays 7 and a half. The fraction’s kept toward your next odds win.');
+  await ctx.close();
+}
 // Craps: 5 in odds behind a 5 with half a chip kept from before (15 thirtieths), the dice rigged to 2 and 3, and a
 // reload mid-throw: the odds pay 8 (7½ and the half kept), once, and nothing is kept after.
 if (cageWants('craps')) {
