@@ -837,6 +837,26 @@ if (cageWants('craps')) {
     await ctx.close();
   }
 }
+// Craps, Take down with a point on: the 4 is the point, with 10 on don't pass, 60 in lay odds and 12 on each of the 6
+// and 8. Take down picks up only the place bets and says the don't pass stays up, and a reload keeps it that way; a
+// long press on the don't pass takes it down, odds and all, and says it can't go back up.
+if (cageWants('craps')) {
+  const bets = { dontPass: 10, dontOdds: 60, place6: 12, place8: 12 };
+  const { p, ctx } = await sit('craps/?seen', { cage: { chips: 906, wagered: 94, high: 1000, stakes: 1 }, craps: { bets, point: 4, history: [{ d: [1, 3], t: 4 }], felt: 94, carry: 0 } });
+  const saved = () => p.evaluate(() => JSON.parse(localStorage.getItem('house-money.craps')).bets);
+  await p.click('#clear');
+  assert.equal((await p.textContent('#say')).trim(), 'Taken down: 24. Your don’t pass stays up; hold a finger on it to take it down.');
+  assert.deepEqual([await saved(), (await cageOf(p)).chips, await feltOf(p, 'craps')], [{ dontPass: 10, dontOdds: 60 }, 930, 70], 'Craps: Take down with a point on');
+  await p.reload(); await p.waitForTimeout(400);
+  assert.deepEqual([await saved(), (await cageOf(p)).chips, await feltOf(p, 'craps')], [{ dontPass: 10, dontOdds: 60 }, 930, 70], 'Craps: Take down with a point on, after a reload');
+  await p.evaluate(() => document.querySelector('[data-spot="dontPass"]').scrollIntoView({ block: 'center' }));
+  const box = await (await p.$('[data-spot="dontPass"]')).boundingBox();
+  await p.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+  await p.mouse.down(); await p.waitForTimeout(800); await p.mouse.up();
+  assert.equal((await p.textContent('#say')).trim(), 'Don\'t pass comes down: 70 back to your rack. It can’t go back up until the next come-out.');
+  assert.deepEqual([await saved(), (await cageOf(p)).chips, await feltOf(p, 'craps')], [{}, 1000, 0], 'Craps: a long press on the don\'t pass');
+  await ctx.close();
+}
 // Craps: 5 on the 6 is paid down to 5, and the line says what would pay whole; a sixth chip makes it whole and the
 // line goes. 5 in odds behind the 5 is owed 7 and a half, and the line says the half is kept.
 if (cageWants('craps')) {

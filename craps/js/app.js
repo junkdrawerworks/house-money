@@ -58,7 +58,9 @@ const table = mountTable({
     <h3>Chips</h3>
     <p>Winning bets stay up, the way a dealer leaves them, and the winnings go to your rack. Odds and come bets that win
     come back with their winnings. <b>Undo</b> picks up the last chip you put down; <b>Take down</b> picks up every bet
-    that’s allowed to come down. Hold a finger on one bet to take down just that one.</p>
+    that’s allowed to come down. Hold a finger on one bet to take down just that one. Take down leaves a don’t pass up
+    once there’s a point, and a don’t come on its number, with their lay odds: they’re at their best there, and can’t
+    go back up. Hold a finger on one to take it down.</p>
     <p>Line and come bets start at ${T.min}. Played on the line with full odds, the house keeps well under one percent.</p>`,
   onStake: () => paint(),
   // the stack changed, here or in another tab
@@ -255,7 +257,9 @@ for (const el of spots) {
       if (!own || busy) return;
       if (!g.removable(s, own)) { table.say(`${g.NAMES[own]} can’t come down once it has a point.`); return; }
       const n = takeDown(own);
-      if (n) { s.undo = (s.undo || []).filter(([x]) => s.bets[x]); save(); sound.chips(3); table.say(`${g.NAMES[own]} comes down: ${cage.fmt(n)} back to your rack.`); paint(); }
+      // an established don't pass can't be bet again until the next come-out
+      const gone = own === 'dontPass' && s.point ? ' It can’t go back up until the next come-out.' : '';
+      if (n) { s.undo = (s.undo || []).filter(([x]) => s.bets[x]); save(); sound.chips(3); table.say(`${g.NAMES[own]} comes down: ${cage.fmt(n)} back to your rack.${gone}`); paint(); }
     }, 550);
   });
   for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) el.addEventListener(ev, () => clearTimeout(timer));
@@ -271,11 +275,20 @@ $('undo').addEventListener('click', () => {
   }
   save(); paint();
 });
+// Take down leaves an established don't bet up, with its lay odds: don't pass once there's a point, and a don't come
+// on its number. It's allowed to come down, but it's at its best there and can't go back up, and Take down is mostly
+// pressed to pull place bets. A long press on it still takes it down.
+const staysUp = k => (s.point && (k === 'dontPass' || k === 'dontOdds')) || /^dcome(Odds)?\d+$/.test(k);
 $('clear').addEventListener('click', () => {
   if (busy) return;
   let n = 0;
-  for (const k of Object.keys(s.bets)) if (s.bets[k] && g.removable(s, k)) n += takeDown(k);
-  if (n) { sound.chips(5); table.say(`Taken down: ${cage.fmt(n)} back to your rack.`); }
+  for (const k of Object.keys(s.bets)) if (s.bets[k] && g.removable(s, k) && !staysUp(k)) n += takeDown(k);
+  // the don't bets left up, in words: "don’t pass", "don’t pass and the don’t come on the 5"
+  const up = Object.keys(s.bets).filter(k => s.bets[k] && (k === 'dontPass' || /^dcome\d+$/.test(k)) && staysUp(k))
+    .map(k => (k === 'dontPass' ? 'don’t pass' : `don’t come on the ${k.slice(5)}`));
+  const kept = up.length ? `Your ${up.length > 1 ? `${up.slice(0, -1).join(', ')} and ${up.at(-1)} stay` : `${up[0]} stays`} up; hold a finger on ${up.length > 1 ? 'one' : 'it'} to take it down.` : '';
+  if (n) { sound.chips(5); table.say(kept ? `Taken down: ${cage.fmt(n)}. ${kept}` : `Taken down: ${cage.fmt(n)} back to your rack.`); }
+  else if (kept) table.say(kept);
   s.undo = []; save(); paint();
 });
 
