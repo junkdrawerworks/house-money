@@ -335,9 +335,11 @@ function roll() {
     try {
       const d1 = g.die(), d2 = g.die();
       const handBefore = s.handRolls || 0;
+      // every roll with chips out counts once in Records, the ones that decide nothing too (they add 0 bet and 0 back)
+      const out = g.onFelt(s) > 0;
       const r = g.roll(s, d1, d2);
       s.pending = (s.pending || 0) + r.toRack; s.undo = [];
-      s.pendingRec = r.wagered || r.back ? {
+      s.pendingRec = out ? {
         wagered: r.wagered, back: r.back,
         extra: { pointsMade: r.point.made ? 1 : 0 },
         max: { longestHand: r.point.sevenOut ? handBefore + 1 : s.handRolls },

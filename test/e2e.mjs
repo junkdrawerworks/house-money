@@ -975,6 +975,44 @@ if (cageWants('craps')) {
   assert.deepEqual([b.recs.craps?.rounds, b.recs.craps?.wagered, b.recs.craps?.net], [1, 10, 10], 'Craps: Records lost the roll reloaded mid-throw');
   await ctx.close();
 }
+// Craps counts every roll with chips out, not only the ones that decide a bet: 10 on the pass line, a 4 for the point,
+// a 6 that decides nothing, then the 4 again. Records says 3 rolls, a hand of 3, and the floor's tile says so too.
+if (cageWants('craps', 'records')) {
+  const { p, ctx } = await sit('craps/?fast&seen', {
+    cage: { chips: 990, wagered: 10, high: 1000, stakes: 1 },
+    craps: { bets: { pass: 10 }, point: 0, history: [], felt: 10 },
+  });
+  await p.evaluate(() => { const q = [1, 1, 2, 2, 1, 1].map(v => v / 6); crypto.getRandomValues = a => { a[0] = Math.floor(q.shift() * 2 ** 32 + 1); return a; }; });
+  for (let i = 1; i <= 3; i++) {
+    await p.click('#roll');
+    await until(async () => (await p.evaluate(() => JSON.parse(localStorage.getItem('house-money.craps')).history.length)) === i && !(await p.isDisabled('#roll')), 4000, `Craps: roll ${i} never landed`);
+    if (i === 1) {
+      await p.waitForTimeout(100);
+      assert.equal((await recordsOf(p)).craps?.rounds, 1, 'Craps: the roll that set the point was not counted');
+    }
+  }
+  await p.waitForTimeout(200);
+  const b = await balanced(p, 'Craps, a point made in three rolls');
+  assert.deepEqual([b.recs.craps?.rounds, b.recs.craps?.longestHand, b.recs.craps?.pointsMade, b.recs.craps?.wagered, b.recs.craps?.net], [3, 3, 1, 10, 10], 'Craps: Records over a point made in three rolls');
+  await p.goto(`${base}?seen`); await p.waitForTimeout(300);
+  assert.match(await p.textContent('#at-craps [data-stat]'), /^10 on the layout · 3 rolls · up 10/, 'the floor: the craps tile after three rolls');
+  await ctx.close();
+}
+// A roll that decides nothing, the page closed while the dice are in the air: it counts once, with nothing bet or won.
+if (cageWants('craps')) {
+  const { p, ctx } = await sit('craps/?seen', {
+    cage: { chips: 990, wagered: 10, high: 1000, stakes: 1 },
+    craps: { bets: { pass: 10 }, point: 4, history: [], felt: 10 },
+  });
+  await p.evaluate(() => { const q = [2 / 6, 2 / 6]; crypto.getRandomValues = a => { a[0] = Math.floor(q.shift() * 2 ** 32 + 1); return a; }; });
+  await reloadAfter(p, '#roll', 500);
+  await p.waitForTimeout(600);
+  await p.reload(); await p.waitForTimeout(400);
+  const b = await balanced(p, 'Craps, a roll that decides nothing, reloaded mid-throw');
+  assert.deepEqual([b.chips, b.felt, b.recs.craps?.rounds, b.recs.craps?.wagered, b.recs.craps?.net, b.recs.craps?.longestHand],
+    [990, 10, 1, 0, 0, 1], 'Craps: a roll that decides nothing, reloaded mid-throw');
+  await ctx.close();
+}
 // Craps, a first visit on a phone: the pass line, the last thing on the layout, is brought up to sit just above the
 // dock, inside the screen, and only the stickman says to start there. A come bet that travels says where it went.
 if (cageWants('craps')) {
