@@ -5,7 +5,8 @@ import * as cage from '../shared/cage.js';
 import * as records from '../shared/records.js';
 import * as sound from '../shared/sound.js';
 import { TABLES, units } from '../shared/tables.js';
-import { outLine } from '../shared/table.js';
+import { outLine, elsewhereLine } from '../shared/table.js';
+import { drive } from '../shared/sync.js';
 
 const $ = id => document.getElementById(id);
 const fmt = cage.fmt;
@@ -72,16 +73,31 @@ function wallet(c) {
     : `${so} The top card: limits ×${t.limit} at every table.`;
   $('tierBar').style.width = t.next ? `${Math.min(100, ((c.wagered - t.at) / (t.next.at - t.at)) * 100)}%` : '100%';
   $('stake').hidden = !cage.canStake();
-  // chips still out on a table: where they are (and under 10, that the cage holds back its stake till they're in)
-  const away = cage.out();
-  $('outNote').innerHTML = away.length ? outLine(away, '', { stake: c.chips < cage.LOW }) : '';
-  $('outNote').hidden = !away.length;
+  // chips still out on a table, here or on another device that saves to Google Drive: where they are (and under 10,
+  // that the cage holds back its stake till they're in)
+  const away = cage.out(), there = cage.elsewhere();
+  const words = [away.length ? outLine(away, '', { stake: false }) : '', there.length ? elsewhereLine(there) : ''].filter(Boolean);
+  if (words.length && c.chips < cage.LOW) words.push('The cage stakes you when nothing’s left out.');
+  $('outNote').innerHTML = words.join(' ');
+  $('outNote').hidden = !words.length;
   $('tiers').innerHTML = cage.TIERS.map(x => `<li class="${x.id}${x.id === t.id ? ' now' : ''}"><b>${x.name}</b><span>${x.at ? `from ${fmt(x.at)} bet` : 'to start'}</span><span>limits ×${x.limit}</span></li>`).join('');
   $('stakes').textContent = `You started with ${fmt(cage.START)} chips${c.stakes > 1 ? `, and the cage has staked you ${c.stakes - 1 === 1 ? 'once' : `${c.stakes - 1} times`} since` : ''}. The most you’ve held at once: ${fmt(c.high)}.`;
   stats();
 }
 
 cage.watch(wallet);
+// Google Drive saving, only at the project's own address: the cloud by your chips, its line when this device may be
+// behind your others, and the card under the player's card. When two devices bet the same chips while apart, the
+// cage covers it, and the floor says so once.
+drive.cloud($('cloud'));
+drive.card($('drive'));
+drive.watch(() => {
+  const red = drive.isOn() && drive.behind();
+  $('stale').textContent = red ? drive.stale() : '';
+  $('stale').hidden = !red;
+  const n = drive.takeCover();
+  if (n) { $('coverNote').textContent = `Your devices bet the same chips while apart. The cage covered the ${fmt(n)}.`; $('coverNote').hidden = false; }
+});
 addEventListener('house-money:records', stats);
 $('stake').addEventListener('click', () => { if (cage.stake()) sound.chips(8); });
 $('cardBtn').addEventListener('click', () => { $('card').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); $('card').focus({ preventScroll: true }); });

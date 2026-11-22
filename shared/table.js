@@ -221,6 +221,14 @@ export const outWords = (list, up = '../', still = false) =>
 export const outLine = (list, up = '../', { stake = true } = {}) =>
   `${outWords(list, up, true)}.${stake ? ' The cage stakes you when nothing’s left out.' : ''}`;
 
+// Chips another device that saves to Google Drive has out on its tables, in words: "Plus 200 on the craps layout on
+// another device." (list: from cage.elsewhere(); plus: after a line about this device's own.)
+export function elsewhereLine(list, plus = true) {
+  const parts = list.map(t => `${cage.fmt(t.felt)} ${t.id === 'craps' || t.id === 'roulette' ? `on the ${t.name.toLowerCase()} layout` : `at ${t.name.replace(/&/g, '&amp;')}`}`);
+  const what = parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}` : parts[0];
+  return `${plus ? 'Plus ' : ''}${what} on ${list.devices > 1 ? 'your other devices' : 'another device'}.`;
+}
+
 // 'a' or 'an' before an amount, the way it's read out: an 8, an 80, an 11, an 18,000; a 25, a 110.
 export const article = n => (/^8|^1[18](,\d{3})*$/.test(cage.fmt(n)) ? 'an' : 'a');
 

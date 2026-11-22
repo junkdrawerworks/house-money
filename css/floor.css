@@ -39,7 +39,7 @@ body.floor {
 .lede { max-width: 36em; margin: 8px auto 16px; color: var(--muted); text-wrap: balance; }
 
 .wallet {
-  display: grid; gap: 12px; max-width: 520px; margin: 0 auto 14px; padding: 14px;
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; max-width: 520px; margin: 0 auto 14px; padding: 14px;
   background: rgba(20, 8, 8, .72); border: 1px solid rgba(217, 180, 90, .35); border-radius: 18px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, .4);
 }
@@ -135,3 +135,26 @@ body.floor main { max-width: 1040px; margin: 0 auto; padding: 8px 16px 0; }
 body.floor .jd-foot { padding: 0 16px calc(24px + var(--safe-b)); }
 
 @media (prefers-reduced-motion: reduce) { .marquee::before { animation: none; } }
+
+/* Google Drive saving: the cloud at the right of your chips, with a dot (green synced, amber syncing, red tap to
+   sync), the line under the chips when this device may be behind your others, and the card under the player's card. */
+.wallet .count { position: relative; }
+/* room for the cloud on the right, and the same on the left so the count stays in the middle */
+.wallet .count:has(.cloud:not([hidden])) { padding: 0 52px; min-height: 46px; }
+.wallet .count:has(.cloud:not([hidden])) p { text-align: center; }
+.cloud {
+  position: absolute; right: 0; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; padding: 0;
+  display: grid; place-items: center; border-radius: 12px; cursor: pointer;
+  background: rgba(0, 0, 0, .35); border: 1px solid rgba(217, 180, 90, .35); color: var(--gold-hi);
+}
+.cloud svg { width: 24px; height: 24px; }
+.cloud .dot { position: absolute; right: 7px; top: 9px; width: 9px; height: 9px; border-radius: 50%; background: #5fd38a; box-shadow: 0 0 0 2px #1d0d0b; }
+.cloud[data-s="busy"] .dot { background: #f0b443; }
+.cloud[data-s="tap"] .dot, .cloud[data-s="error"] .dot { right: 4px; top: 5px; display: grid; place-items: center; width: 15px; height: 15px; background: #e2484f; }
+.cloud[data-s="tap"] .dot::after, .cloud[data-s="error"] .dot::after { content: '!'; color: #fff; font: 800 11px/1 var(--sans); }
+@media (prefers-reduced-motion: no-preference) { .cloud[data-s="busy"] .dot { animation: pulse .8s ease-in-out infinite alternate; } }
+@keyframes pulse { to { opacity: .35; } }
+.stale { margin: -4px 0 0; text-align: center; font-size: .9rem; color: #ffb3b3; text-wrap: balance; }
+.drive .drive-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.drive .err { color: #ffb3b3; }
+.drive a { color: var(--gold-hi); }

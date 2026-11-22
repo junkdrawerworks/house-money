@@ -31,8 +31,11 @@
       <div class="count">
         <span class="chip c1000" aria-hidden="true"><b>1K</b></span>
         <p><b id="chips">1,000</b> <span>chips</span></p>
+        <button type="button" class="cloud" id="cloud" hidden></button>
       </div>
+      <p class="stale" id="stale" hidden></p>
       <p class="out-note" id="outNote" hidden></p>
+      <p class="out-note" id="coverNote" hidden></p>
       <button type="button" class="card-btn" id="cardBtn" aria-describedby="tierLine">
         <span class="players-card" id="pcard"><span class="pc-name">Player’s card</span><span class="pc-tier" id="tierName">Red</span></span>
         <span class="tier-line" id="tierLine"></span>
@@ -60,6 +63,8 @@
       <ol class="tiers" id="tiers"></ol>
       <p class="small" id="stakes"></p>
     </section>
+
+    <section class="cage drive" id="drive" tabindex="-1" aria-labelledby="driveH" hidden></section>
 
     <p class="switches">
       <a class="btn ghost small" href="records/">Records</a>
