@@ -271,6 +271,46 @@ if (cageWants('blackjack')) {
     await ctx.close();
   }
 }
+// Splits: what's on screen is the hand that's saved, card for card, after every move, at the payout and after a reload.
+// Eights split three times into four hands against a 10 and a 7, and aces split against a 6, a king on the first: a 21
+// after a split reads 21, not Blackjack.
+if (cageWants('blackjack')) {
+  const C = (r, s) => ({ r, s });
+  const RANKS = ['', 'ace', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine', 'ten', 'jack', 'queen', 'king'];
+  const SUITS = { s: 'spades', h: 'hearts', d: 'diamonds', c: 'clubs' };
+  const deal = cards => Array(150).fill(C(2, 'c')).concat([...cards].reverse());
+  for (const [what, cards, moves, tots] of [
+    ['eights split into four hands', [C(8, 's'), C(10, 'h'), C(8, 'h'), C(7, 'c'), C(8, 'd'), C(8, 'c'), C(3, 'd'), C(2, 'h'), C(9, 's'), C(13, 's')],
+      ['#split', '#split', '#split', '#stand', '#stand', '#stand', '#stand'], ['11', '10', '17', '18']],
+    ['aces split', [C(1, 's'), C(6, 'd'), C(1, 'h'), C(10, 'c'), C(13, 'd'), C(5, 'c'), C(2, 'c')], ['#split'], ['21', '6 / 16']],
+  ]) {
+    const { p, ctx } = await sit('blackjack/?fast&seen', { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 },
+      blackjack: { shoe: deal(cards), phase: 'bet', bet: 0, last: 0, hands: [], active: 0, dealer: [], hole: true, insurance: 0, felt: 0, carry: 0 } });
+    // the moves have finished when the next choice is lit or the round is over
+    const still = () => p.waitForFunction(() => !document.getElementById('doneActions').hidden || (!document.getElementById('playActions').hidden && !document.getElementById('stand').disabled));
+    const same = async when => {
+      const [shown, saved] = await p.evaluate(() => [
+        [...document.querySelectorAll('#hands .hand')].map(h => [...h.querySelectorAll('.row .card')].map(c => c.getAttribute('aria-label'))),
+        JSON.parse(localStorage.getItem('house-money.blackjack')).hands.map(h => h.cards),
+      ]);
+      assert.deepEqual(shown, saved.map(h => h.map(c => `${RANKS[c.r]} of ${SUITS[c.s]}`)), `Blackjack, ${what}: the hands on screen aren't the saved hands ${when}`);
+    };
+    await p.click('#rack .c25'); await p.click('#spot'); await p.click('#deal');
+    await still(); await same('after the deal');
+    for (const [i, m] of moves.entries()) {
+      await p.waitForSelector(`${m}:not([disabled]):not([hidden])`); await p.click(m);
+      await still(); await same(`after move ${i + 1} (${m})`);
+    }
+    await p.waitForSelector('#doneActions:not([hidden])');
+    await same('at the payout');
+    const totals = () => p.$$eval('#hands .hand .tot', els => els.map(e => e.textContent));
+    assert.deepEqual(await totals(), tots, `Blackjack, ${what}: the totals at the payout`);
+    await p.reload(); await p.waitForTimeout(400);
+    await same('after a reload');
+    assert.deepEqual(await totals(), tots, `Blackjack, ${what}: the totals after a reload`);
+    await ctx.close();
+  }
+}
 if (cageWants('baccarat')) {
   // 25 on the Banker and 25 on the Tie, and the Banker's natural 9 against the Player's 3: the Banker bet wins 23,
   // the Tie loses 25, and the commission is explained the first time

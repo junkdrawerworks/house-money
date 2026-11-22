@@ -75,15 +75,22 @@ function save() { s.felt = onFelt(); seat.write(KEY, s); }
 const dealerRow = $('dealerRow'), handsEl = $('hands');
 const handEls = new Map(); // hand id → element
 
+// Each card on screen carries the card it shows (data-c, 'As'), so the row can be checked against the hand card by
+// card: from the first one that doesn't match (a split takes the second card away and deals a new one in its place),
+// the rest are taken off and dealt in again from the shoe.
+const tag = c => `${c.r}${c.s}`;
 function syncRow(row, cards, { hole = false, size } = {}) {
   if (size) row.style.setProperty('--size', `${size}px`);
-  if (row.children.length > cards.length) row.innerHTML = '';
+  let keep = 0;
+  while (keep < cards.length && row.children[keep]?.dataset.c === tag(cards[keep])) keep++;
+  while (row.children.length > keep) row.lastElementChild.remove();
   const jobs = [];
   cards.forEach((c, i) => {
     const down = hole && i === 1;
     let el = row.children[i];
     if (!el) {
       el = cardEl(c, { down });
+      el.dataset.c = tag(c);
       jobs.push(dealInto(row, el, { from: $('shoe').getBoundingClientRect(), delay: jobs.length * 140 }));
       sound.card();
     } else if (el.classList.contains('down') && !down) {
@@ -100,9 +107,10 @@ function cardSize() {
   return Math.round(base * (n <= 1 ? 1 : n === 2 ? .8 : .62));
 }
 
-function totText(cards) {
+// 'Blackjack' only for the hand as dealt: two cards to 21 after a split is a plain 21, and pays even money.
+function totText(cards, one = true) {
   const { total, soft } = g.total(cards);
-  if (g.isBJ(cards)) return 'Blackjack';
+  if (one && g.isBJ(cards)) return 'Blackjack';
   if (total > 21) return `${total} · Bust`;
   return soft && total < 21 ? `${total - 10} / ${total}` : String(total);
 }
@@ -136,7 +144,7 @@ async function paintCards() {
     el.setAttribute('aria-label', `Hand ${i + 1}`);
     jobs.push(syncRow(el.querySelector('.row'), h.cards, { size }));
     const tot = el.querySelector('.tot');
-    tot.textContent = totText(h.cards);
+    tot.textContent = totText(h.cards, s.hands.length === 1);
     tot.classList.toggle('bust', g.total(h.cards).total > 21);
     tot.classList.toggle('bj', s.hands.length === 1 && g.isBJ(h.cards));
     setStack(el.querySelector('.bet'), h.bet, { most: 6 });
