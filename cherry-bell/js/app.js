@@ -60,7 +60,6 @@ $('pays').querySelector('tbody').innerHTML = rowsHtml.map(r => `
 // ---------- coin size ----------
 
 const sizesEl = $('coinSize');
-sizesEl.innerHTML = '<span>Coin</span>';
 const sizeBtns = COIN_SIZES.map(v => {
   const b = chipEl(v, 'button');
   b.type = 'button'; b.setAttribute('role', 'radio'); b.setAttribute('aria-label', `Coin size ${v}`);
@@ -183,6 +182,23 @@ function placeHandle() {
   handle.style.top = `${Math.round(win.top + win.height / 2 - stand.top - 126)}px`;
 }
 addEventListener('resize', placeHandle);
+// On a phone, the reels' window gives up height until the coins and the buttons are on the screen, down to the pay line
+// and a little of the rows either side. Worked out from where the cabinet ends, so it settles at once and grows back
+// when there's room again.
+const phone = matchMedia('(max-width: 600px)');
+function fitReels() {
+  if (!reels) return;
+  const box = $('reelBox');
+  if (!phone.matches) { box.style.removeProperty('--fit'); return; }
+  const cab = document.querySelector('.cab').getBoundingClientRect();
+  const pad = parseFloat(getComputedStyle(document.querySelector('main')).paddingBottom) || 0;
+  const rest = cab.bottom + scrollY + pad - box.getBoundingClientRect().height;
+  const room = innerHeight - rest;
+  const fit = room >= reels.H ? '' : `${Math.round(Math.max(reels.cellH * 1.25, room))}px`;
+  if (box.style.getPropertyValue('--fit') !== fit) { box.style.setProperty('--fit', fit); placeHandle(); }
+}
+new ResizeObserver(fitReels).observe(document.documentElement);
+addEventListener('resize', fitReels);
 let drag = null;
 function setPull(p) { handle.style.setProperty('--pull', p.toFixed(3)); }
 async function swing() {
@@ -242,5 +258,7 @@ addEventListener('keydown', e => {
   // said before the first paint, which says instead why Spin is dimmed when the bet is more than the stack
   if (!owed) table.say('Pick a coin, then pull the handle.');
   paint();
+  fitReels();
   placeHandle();
+  document.fonts?.ready.then(fitReels);
 })();
