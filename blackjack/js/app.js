@@ -62,7 +62,7 @@ function load() {
 // felt: the chips out on the table right now, which the cage counts as yours: the bet in the circle, and the hands
 // in play until the round is settled and paid
 function onFelt() {
-  const over = s.phase === 'bet' || (s.phase === 'done' && s.outcome && s.paid !== false);
+  const over = s.phase === 'bet' || (s.phase === 'done' && s.paid !== false);
   return s.bet + (over ? 0 : s.hands.reduce((a, h) => a + h.bet, 0) + s.insurance);
 }
 function save() { s.felt = onFelt(); try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* full or off */ } }
@@ -264,7 +264,7 @@ async function after() {
     await wait(500);
     while (g.dealerStep(s)) { save(); await paintCards(); await wait(600); }
   }
-  if (s.phase === 'dealer' || (s.phase === 'done' && !s.outcome)) await payout();
+  if (s.phase === 'dealer' || (s.phase === 'done' && s.paid === false)) await payout();
 }
 
 function prompt() {
@@ -277,14 +277,14 @@ function prompt() {
   document.querySelectorAll('.play .btn.tip').forEach(b => b.classList.remove('tip'));
 }
 
+// The dealer's turn is over (or a blackjack settled the round as it was dealt): the round is settled and kept before
+// the chips move, so a reload can't pay twice, and then it's paid.
 async function payout() {
-  const o = g.settle(s);
-  s.paid = false; save();           // the result is kept before the chips move, so a reload can't pay twice
+  if (s.phase === 'dealer') { g.settle(s); save(); }
   await paintCards();
-  if (o.back > 0) cage.pay(o.back);
-  s.paid = true; save();
+  if (!finish()) return;
+  const o = s.outcome;
   const net = o.back - o.wagered;
-  records.note('blackjack', { wagered: o.wagered, back: o.back, extra: { blackjacks: o.natural && !o.dealerBJ ? 1 : 0, won: net > 0 ? 1 : 0 } });
   const d = g.total(s.dealer).total;
   const dealerLine = o.dealerBJ ? 'Dealer has blackjack.' : !g.dealerPlays(s) ? '' : d > 21 ? `Dealer busts with ${d}.` : `Dealer has ${d}.`;
   let line;
@@ -297,6 +297,17 @@ async function payout() {
   table.say(line.trim(), net > 0 ? 'win' : net < 0 ? 'lose' : '');
   if (net > 0) { sound.chips(5); sound.win(o.natural ? 3 : net >= o.wagered * 2 ? 2 : 1); float($('hands'), `+${cage.fmt(net)}`); }
   else if (net < 0) sound.lose(); else sound.push();
+}
+
+// A settled round's chips to the rack and its line in Records, together and once: a hand just settled, or one settled
+// before the page closed. False when there's nothing to pay.
+function finish() {
+  if (s.phase !== 'done' || s.paid !== false) return false;
+  const o = s.outcome;
+  if (o.back > 0) cage.pay(o.back);
+  s.paid = true; save();
+  records.note('blackjack', { wagered: o.wagered, back: o.back, extra: { blackjacks: o.natural && !o.dealerBJ ? 1 : 0, won: o.back > o.wagered ? 1 : 0 } });
+  return true;
 }
 
 function act(name, cost = 0) {
@@ -350,12 +361,11 @@ addEventListener('resize', () => paintCards());
 // ---------- start: carry on where the last visit left off ----------
 
 (async () => {
-  // a round that settled but whose chips never reached the rack (the page closed in between) pays now
-  if (s.phase === 'done' && s.outcome && s.paid === false) { cage.pay(s.outcome.back); s.paid = true; save(); }
   await show();
   if (s.phase === 'play') prompt();
   else if (s.phase === 'insurance') table.say('The dealer shows an ace. Insurance?');
-  else if (s.phase === 'dealer' || (s.phase === 'done' && !s.outcome)) step(after); // a natural dealt, not yet settled
+  // the dealer's turn, or a round settled whose chips never reached the rack (the page closed in between): on to the payout
+  else if (s.phase === 'dealer' || (s.phase === 'done' && s.paid === false)) step(after);
   else if (s.phase === 'done') table.say('Same bet again, or a new one?');
   else table.say(s.bet ? '' : 'Place your bet.');
 })();

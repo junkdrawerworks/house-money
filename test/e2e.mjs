@@ -286,20 +286,95 @@ if (cageWants('video-poker')) {
 }
 
 // A reload in the middle of a round settles it, and the felt comes back to nothing (or to the bets left up at craps).
-if (cageWants('blackjack')) {
-  // a natural, A and K against 9 and 7, and the page closed before the payout
-  const shoe = Array(150).fill({ r: 2, s: 'c' }).concat([{ r: 7, s: 'c' }, { r: 13, s: 'h' }, { r: 9, s: 'd' }, { r: 1, s: 's' }]);
-  const { p, ctx } = await sit('blackjack/?seen', {
-    cage: { chips: 100, wagered: 900, high: 1000, stakes: 1 },
-    blackjack: { shoe, phase: 'bet', bet: 0, last: 0, hands: [], active: 0, dealer: [], hole: true, insurance: 0, felt: 0 },
-  });
-  await p.click('#rack .c100'); await p.click('#spot'); await p.click('#deal');
-  await p.waitForTimeout(80);
+// The books: the rack plus every table's felt, less what Records says the tables have won or lost, is 1,000 for every
+// stake the cage has made. Records counts every round once, whenever the page closed.
+const IDS = TABLES.map(t => t.id);
+const books = p => p.evaluate(ids => {
+  const J = k => JSON.parse(localStorage.getItem(k));
+  const c = J('house-money.cage');
+  const recs = J('house-money.records')?.tables || {};
+  let felt = 0, net = 0;
+  for (const id of ids) { felt += J(`house-money.${id}`)?.felt || 0; net += recs[id]?.net || 0; }
+  return { chips: c.chips, felt, net, stakes: c.stakes, recs };
+}, IDS);
+const balanced = async (p, at) => {
+  const b = await books(p);
+  assert.equal(b.chips + b.felt - b.net, 1000 * b.stakes, `${at}: the books are off (chips ${b.chips}, felt ${b.felt}, Records net ${b.net})`);
+  return b;
+};
+// clicks a button in the page, then reloads `ms` later (no ?fast: the cards and dice take their real time)
+const reloadAfter = async (p, sel, ms) => {
+  await p.evaluate(([sel, ms]) => { document.querySelector(sel).click(); setTimeout(() => { window.__go = 1; }, ms); }, [sel, ms]);
+  await p.waitForFunction(() => window.__go);
   await p.reload();
-  await until(async () => (await cageOf(p)).chips === 250, 4000, 'Blackjack: the natural was not paid after a reload');
+};
+if (cageWants('blackjack')) {
+  // a natural, A and K against 9 and 7, bet 100, and the page closed before the payout: 1,000 - 100 + 250
+  const shoe = Array(150).fill({ r: 2, s: 'c' }).concat([{ r: 7, s: 'c' }, { r: 13, s: 'h' }, { r: 9, s: 'd' }, { r: 1, s: 's' }]);
+  for (const ms of [0, 60, 140]) {
+    const { p, ctx } = await sit('blackjack/?seen', {
+      cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 },
+      blackjack: { shoe, phase: 'bet', bet: 0, last: 0, hands: [], active: 0, dealer: [], hole: true, insurance: 0, felt: 0 },
+    });
+    await p.click('#rack .c100'); await p.click('#spot');
+    await reloadAfter(p, '#deal', ms);
+    await until(async () => (await cageOf(p)).chips === 1150, 4000, `Blackjack: the natural was not paid after a reload ${ms} ms after the deal`);
+    await p.waitForTimeout(300);
+    const b = await balanced(p, `Blackjack, a natural reloaded after ${ms} ms`);
+    assert.equal(b.chips, 1150, 'Blackjack: paid twice');
+    assert.equal(b.felt, 0, 'Blackjack: the hand stayed on the felt after a reload');
+    assert.deepEqual([b.recs.blackjack?.rounds, b.recs.blackjack?.blackjacks], [1, 1], `Blackjack: Records lost the natural reloaded after ${ms} ms`);
+    await ctx.close();
+  }
+  // the dealer's ace with a king under it, insured: the hand loses 100, the 50 insurance pays 150 back
+  const ace = Array(150).fill({ r: 2, s: 'c' }).concat([{ r: 13, s: 'c' }, { r: 9, s: 'h' }, { r: 1, s: 'd' }, { r: 10, s: 's' }]);
+  for (const ms of [0, 100]) {
+    const { p, ctx } = await sit('blackjack/?seen', {
+      cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 },
+      blackjack: { shoe: ace, phase: 'bet', bet: 0, last: 0, hands: [], active: 0, dealer: [], hole: true, insurance: 0, felt: 0 },
+    });
+    await p.click('#rack .c100'); await p.click('#spot'); await p.click('#deal');
+    await p.waitForSelector('#insActions:not([hidden])');
+    await p.waitForFunction(() => !document.getElementById('ins').disabled);
+    await reloadAfter(p, '#ins', ms);
+    await until(async () => (await books(p)).recs.blackjack?.rounds === 1, 4000, `Blackjack: the insured round was not recorded after a reload ${ms} ms after Insure`);
+    await p.waitForTimeout(300);
+    const b = await balanced(p, `Blackjack, insured against a dealer blackjack, reloaded after ${ms} ms`);
+    assert.deepEqual([b.chips, b.felt, b.recs.blackjack.rounds, b.recs.blackjack.wagered, b.recs.blackjack.net], [1000, 0, 1, 150, 0], 'Blackjack: the insured round');
+    await ctx.close();
+  }
+}
+// A round kept as settled but not yet paid (the page closed between the two) is paid and recorded when it opens again.
+for (const [id, play] of [
+  ['blackjack', async p => {
+    await p.click('#rack .c100'); await p.click('#spot'); await p.click('#deal');
+    await p.waitForSelector('#playActions:not([hidden])'); await p.click('#stand');
+  }],
+]) {
+  if (!cageWants(id)) continue;
+  // blackjack's shoe deals 19 against the dealer's 17
+  const shoe = Array(150).fill({ r: 2, s: 'c' }).concat([{ r: 10, s: 'c' }, { r: 9, s: 'h' }, { r: 7, s: 'd' }, { r: 10, s: 's' }]);
+  const { p, ctx } = await sit(`${id}/?fast&seen`, { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 },
+    ...(id === 'blackjack' ? { blackjack: { shoe, phase: 'bet', bet: 0, last: 0, hands: [], active: 0, dealer: [], hole: true, insurance: 0, felt: 0 } } : {}) });
+  await play(p);
+  await p.waitForSelector('#doneActions:not([hidden])');
+  await p.waitForTimeout(200);
+  // back to the moment before the payout: unpaid, the chips not yet in the rack, nothing in Records
+  const back = await p.evaluate(id => {
+    const s = JSON.parse(localStorage.getItem(`house-money.${id}`));
+    const c = JSON.parse(localStorage.getItem('house-money.cage'));
+    s.paid = false; s.felt = s.outcome.wagered; c.chips -= s.outcome.back;
+    localStorage.setItem(`house-money.${id}`, JSON.stringify(s));
+    localStorage.setItem('house-money.cage', JSON.stringify(c));
+    localStorage.removeItem('house-money.records');
+    return s.outcome.back;
+  }, id);
+  await p.reload();
+  await until(async () => (await books(p)).felt === 0, 4000, `${id}: the unpaid round stayed on the felt`);
   await p.waitForTimeout(300);
-  assert.equal((await cageOf(p)).chips, 250, 'Blackjack: paid twice');
-  assert.equal(await feltOf(p, 'blackjack'), 0, 'Blackjack: the hand stayed on the felt after a reload');
+  const b = await balanced(p, `${id}: an unpaid round reopened`);
+  assert.equal(b.felt, 0, `${id}: the unpaid round stayed on the felt`);
+  assert.equal(b.recs[id]?.rounds, 1, `${id}: an unpaid round paid ${back} on reopening but Records lost it`);
   await ctx.close();
 }
 if (cageWants('video-poker')) {

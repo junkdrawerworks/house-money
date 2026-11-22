@@ -100,3 +100,34 @@ test('the book', () => {
   assert.equal(at([C(9), C(9)], C(7)), 'stand');
   assert.equal(at([C(5), C(5)], C(9)), 'double');
 });
+
+// A round that ends as it's dealt (a natural, or the dealer's blackjack under an ace or a ten, insured or not) is
+// settled there and then, so the table can always pay a saved 'done' round from its outcome after a reload.
+test('every round that reaches done carries its outcome, not yet paid', () => {
+  let seed = 7;
+  const rng = () => { seed = (seed * 1103515245 + 12345) % 2 ** 31; return seed / 2 ** 31; };
+  const s = g.fresh(rng);
+  let ended = 0, insured = 0;
+  for (let i = 0; i < 20000; i++) {
+    g.clear(s);
+    s.bet = 10;
+    g.deal(s, rng);
+    if (s.phase === 'insurance') { g.insure(s, i % 2 ? 5 : 0); insured++; }
+    if (s.phase !== 'done') continue;
+    ended++;
+    assert.ok(s.outcome, `round ${i}: done with no outcome`);
+    assert.equal(s.paid, false, `round ${i}: settled but already marked paid`);
+    assert.equal(s.hole, false, `round ${i}: the hole card still down on a settled round`);
+    assert.equal(s.outcome.wagered, 10 + s.insurance);
+  }
+  // about one round in eleven ends as it's dealt, and one in thirteen offers insurance
+  assert.ok(ended > 1000 && insured > 1000, `${ended} rounds ended on the deal, ${insured} offered insurance`);
+});
+
+test('a dealer blackjack under an ace after insurance is settled as the dealer peeks', () => {
+  const s = rigged([C(10), C(1), C(9), C(13)], 20);
+  g.deal(s);
+  g.insure(s, 10);
+  assert.equal(s.phase, 'done');
+  assert.deepEqual([s.outcome.back, s.outcome.wagered, s.outcome.dealerBJ, s.paid], [30, 30, true, false]);
+});

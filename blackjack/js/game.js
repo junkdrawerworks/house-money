@@ -33,7 +33,7 @@ function draw(s, rng = rand) {
 export const dueShuffle = s => s.shoe.length < CARDS * (1 - CUT);
 
 // Deals a round on the bet in the circle. Leaves the state in 'insurance' (dealer shows an ace), 'play', or 'done'
-// (someone had blackjack). The caller has already taken the bet off the stack.
+// (someone had blackjack, and the round is settled). The caller has already taken the bet off the stack.
 export function deal(s, rng = rand) {
   if (s.phase !== 'bet' || !(s.bet > 0)) return s;
   s.shuffled = false;
@@ -47,7 +47,8 @@ export function deal(s, rng = rand) {
   return s;
 }
 
-// Insurance taken (amount, up to half the bet) or not (0), then the dealer peeks.
+// Insurance taken (amount, up to half the bet) or not (0), then the dealer peeks. A blackjack either side settles the
+// round there and then, so a round is never 'done' without its outcome.
 export function insure(s, amount = 0) {
   if (s.phase !== 'insurance') return s;
   s.insurance = Math.max(0, Math.min(Math.floor(amount), Math.floor(s.hands[0].bet / 2)));
@@ -58,8 +59,7 @@ export function insure(s, amount = 0) {
 function afterInsurance(s) {
   const up = s.dealer[0];
   const peeks = up.r === 1 || value(up) === 10;
-  if (peeks && isBJ(s.dealer)) { s.hole = false; s.phase = 'done'; s.hands[0].done = true; return; }
-  if (isBJ(s.hands[0].cards)) { s.hole = false; s.phase = 'done'; s.hands[0].done = true; return; }
+  if ((peeks && isBJ(s.dealer)) || isBJ(s.hands[0].cards)) { s.hands[0].done = true; settle(s); return; }
   s.phase = 'play';
 }
 
@@ -154,9 +154,11 @@ export function dealerStep(s, rng = rand) {
   return true;
 }
 
-// Every hand's result and what it pays back (bet included), and the insurance. Moves the state to 'done'.
+// Every hand's result and what it pays back (bet included), and the insurance. Moves the state to 'done', not yet paid
+// (paid: false until the chips reach the rack).
 export function settle(s) {
   s.phase = 'done';
+  s.paid = false;
   s.hole = false;
   const d = total(s.dealer).total, dBJ = isBJ(s.dealer), dBust = d > 21;
   const natural = s.hands.length === 1 && isBJ(s.hands[0].cards);
