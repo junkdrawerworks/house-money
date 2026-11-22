@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Blackjack · House Money</title>
+  <meta name="description" content="Blackjack at House Money: six decks, dealer stands on all 17s, blackjack pays 3 to 2. Double, split, surrender, and ask the book. Play chips only.">
+  <meta property="og:title" content="Blackjack · House Money">
+  <meta property="og:description" content="Six decks, dealer stands on all 17s, blackjack pays 3 to 2.">
+  <meta property="og:image" content="https://house-money.junkdrawer.works/og.png">
+  <meta property="og:url" content="https://house-money.junkdrawer.works/blackjack/">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="theme-color" content="#2a1510">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="icon" href="../icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="../icon-180.png">
+  <link rel="preload" href="../fonts/figtree.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="../fonts/playfair.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="../shared/casino.css">
+  <link rel="stylesheet" href="css/blackjack.css">
+</head>
+<body class="table blackjack">
+  <header class="bar"></header>
+  <main>
+    <div class="shoe" id="shoe" aria-hidden="true"><span class="left" id="shoeLeft"></span></div>
+    <p class="say" id="say" aria-live="polite"></p>
+    <section class="dealer" aria-label="The dealer's cards">
+      <div class="row" id="dealerRow"></div>
+      <span class="tot" id="dealerTot" hidden></span>
+    </section>
+    <p class="felt-print rules"><span class="big">Blackjack pays 3 to 2</span><span>Dealer stands on all 17s</span><span>Insurance pays 2 to 1</span></p>
+    <section class="hands" id="hands" aria-label="Your hands"></section>
+    <div class="betting" id="betting">
+      <button type="button" class="spot" id="spot" aria-label="The bet circle: tap to put a chip down"><span class="ring"></span></button>
+      <p class="hint" id="betHint"></p>
+    </div>
+  </main>
+  <div class="dock">
+    <div id="rack"></div>
+    <div class="actions" id="betActions">
+      <button type="button" class="btn" id="clear">Clear</button>
+      <button type="button" class="btn" id="rebet">Rebet</button>
+      <button type="button" class="btn gold" id="deal">Deal</button>
+    </div>
+    <div class="actions" id="insActions" hidden>
+      <button type="button" class="btn" id="noIns">No insurance</button>
+      <button type="button" class="btn gold" id="ins">Insure</button>
+    </div>
+    <div class="actions play" id="playActions" hidden>
+      <button type="button" class="btn" id="hit">Hit</button>
+      <button type="button" class="btn" id="stand">Stand</button>
+      <button type="button" class="btn" id="double">Double</button>
+      <button type="button" class="btn" id="split">Split</button>
+      <button type="button" class="btn" id="surrender">Surrender</button>
+    </div>
+    <div class="actions" id="doneActions" hidden>
+      <button type="button" class="btn" id="newBet">New bet</button>
+      <button type="button" class="btn gold" id="again">Same bet</button>
+    </div>
+    <button type="button" class="book" id="book" hidden>Ask the book</button>
+  </div>
+  <noscript><p class="say">Blackjack needs JavaScript to deal the cards.</p></noscript>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

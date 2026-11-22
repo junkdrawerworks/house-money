@@ -1,0 +1,70 @@
+/* Blackjack: the dealer at the top, the printing across the felt, your hands and the bet circle below. */
+
+.blackjack main { align-items: center; gap: 6px; }
+
+.shoe {
+  position: absolute; top: 10px; right: 12px; width: 44px; height: 54px;
+  border-radius: 6px 6px 10px 10px; background: linear-gradient(#5a3a2a, #2b1810);
+  border: 1px solid rgba(217, 180, 90, .4); box-shadow: 0 3px 8px rgba(0, 0, 0, .4);
+  overflow: hidden;
+}
+.shoe::before { content: ''; position: absolute; left: 6px; right: 6px; top: 6px; height: 16px; background: linear-gradient(var(--burgundy), #4a0f19); border-radius: 2px; }
+.shoe .left { position: absolute; left: 6px; bottom: 6px; height: 4px; background: var(--gold); border-radius: 2px; width: calc(var(--left, 1) * 32px); }
+
+.blackjack .say { padding: 0 52px; }
+
+.dealer, .hand { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.dealer { min-height: calc(68px * 1.4 + 30px); }
+.row { display: flex; justify-content: center; min-height: calc(var(--cw, 68px) * 1.4); }
+.row .card { --cw: var(--size, 68px); }
+.row .card + .card { margin-left: calc(var(--size, 68px) * -.5); }
+.dealer .row .card + .card { margin-left: calc(var(--size, 68px) * -.32); }
+
+.tot {
+  font: 700 .95rem/1 var(--sans); font-variant-numeric: tabular-nums;
+  background: rgba(0, 0, 0, .45); border: 1px solid rgba(255, 255, 255, .15);
+  padding: 4px 10px; border-radius: 99px; min-width: 2.4em; text-align: center;
+}
+.tot.bust { background: #6e1a1a; }
+.tot.bj { background: var(--gold); color: #2a1608; }
+
+.rules { display: flex; flex-direction: column; gap: 2px; margin: 4px 0 8px; }
+.rules .big { font: 700 1.05rem/1.2 var(--serif); letter-spacing: .12em; color: rgba(246, 231, 190, .7); }
+.rules span:not(.big) { font-size: .66rem; }
+
+.hands { display: flex; justify-content: center; gap: 10px; width: 100%; flex-wrap: wrap; min-height: 10px; }
+.hand { position: relative; padding: 8px 6px 6px; border-radius: 14px; border: 2px solid transparent; transition: border-color .2s, opacity .2s; }
+.hand.active { border-color: var(--gold-hi); background: rgba(0, 0, 0, .12); }
+.hands.many .hand:not(.active) { opacity: .85; }
+.hand .bet { position: relative; height: 54px; display: grid; place-items: end center; --chip-s: 30px; }
+.hand .res {
+  position: absolute; top: 34%; left: 50%; transform: translate(-50%, -50%) rotate(-6deg); z-index: 3;
+  font: 800 .95rem/1 var(--sans); letter-spacing: .06em; text-transform: uppercase; white-space: nowrap;
+  padding: 6px 10px; border-radius: 8px; background: rgba(0, 0, 0, .7); border: 2px solid currentColor;
+  animation: stamp .3s cubic-bezier(.3, 1.6, .5, 1);
+}
+.hand .res.win, .hand .res.blackjack { color: var(--win); }
+.hand .res.lose, .hand .res.bust { color: var(--lose); }
+.hand .res.push, .hand .res.surrender { color: #d8d2c4; }
+@keyframes stamp { from { transform: translate(-50%, -50%) rotate(-6deg) scale(1.8); opacity: 0; } }
+
+.betting { display: flex; flex-direction: column; align-items: center; gap: 8px; margin-top: auto; padding-top: 8px; }
+.betting[hidden] { display: none; }
+.spot {
+  position: relative; width: 112px; height: 112px; border-radius: 50%; padding: 0; cursor: pointer;
+  border: 2px solid var(--felt-line); background: rgba(0, 0, 0, .08);
+  display: grid; place-items: center; --chip-s: 46px; touch-action: manipulation;
+}
+.spot .ring { position: absolute; inset: 8px; border-radius: 50%; border: 1px dashed rgba(246, 231, 190, .35); }
+.spot:not(.has)::after { content: 'Bet'; font: 600 .8rem/1 var(--serif); letter-spacing: .2em; text-transform: uppercase; color: var(--felt-line); }
+.spot .stack { margin-bottom: 10px; }
+.betting .hint { margin: 10px 0 0; font-size: .85rem; color: var(--muted); text-align: center; min-height: 1.2em; }
+
+.dock .play .btn { font-size: .92rem; }
+.dock .play .btn.tip { border-color: var(--gold-hi); box-shadow: 0 0 0 2px var(--gold-hi), 0 0 18px rgba(245, 220, 147, .5); }
+.book { border: 0; background: none; color: var(--gold-hi); font-size: .88rem; text-decoration: underline; text-underline-offset: 3px; padding: 2px 8px; cursor: pointer; }
+
+@media (max-width: 380px) {
+  .dock .play .btn { font-size: .82rem; padding: 0 4px; }
+}
+@media (min-height: 820px) { .dealer { margin-top: 10px; } .rules { margin: 16px 0; } }
