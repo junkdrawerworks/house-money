@@ -33,9 +33,12 @@ const table = mountTable({
       <li>Then the pass line wins if the point comes again before a 7, and loses on a 7 (“seven out”). A pass bet
       can’t come down once there’s a point.</li>
       <li><b>Odds</b> behind the pass line pay true odds, with no house edge: 2 to 1 on 4 and 10, 3 to 2 on 5 and 9,
-      6 to 5 on 6 and 8. Bet up to 3× your line bet on 4 and 10, 4× on 5 and 9, 5× on 6 and 8.</li>
+      6 to 5 on 6 and 8. Bet up to 3× your line bet on 4 and 10, 4× on 5 and 9, 5× on 6 and 8. An amount that doesn’t
+      pay in whole chips (5 behind a 5 is owed 7½) pays the whole chips now and keeps the fraction for your next odds
+      win, so nothing is lost.</li>
       <li><b>Don’t pass</b> is the other side: it wins on 2 or 3, ties on 12, loses on 7 or 11, and once there’s a point
-      wins on a 7 before the point. <b>Lay odds</b> behind it (up to 6×) pay 1 to 2, 2 to 3 or 5 to 6.</li>
+      wins on a 7 before the point. <b>Lay odds</b> behind it (up to 6×) pay 1 to 2, 2 to 3 or 5 to 6, with any fraction
+      kept the same way.</li>
     </ul>
     <h3>Come and don’t come</h3>
     <p>Once there’s a point, <b>Come</b> works just like the pass line, starting on the next roll: 7 or 11 wins, craps
@@ -73,7 +76,8 @@ function load() {
     if (x && typeof x === 'object' && x.bets && typeof x.bets === 'object') {
       const bets = {};
       for (const [k, v] of Object.entries(x.bets)) { const n = Math.floor(Number(v)); if (n > 0 && g.NAMES[k]) bets[k] = n; }
-      return { ...g.fresh(), ...x, bets, point: g.POINTS.includes(x.point) ? x.point : 0, undo: [] };
+      const carry = Number.isInteger(x.carry) && x.carry >= 0 && x.carry < g.CARRY ? x.carry : 0;
+      return { ...g.fresh(), ...x, bets, point: g.POINTS.includes(x.point) ? x.point : 0, carry, undo: [] };
     }
   } catch { /* first visit */ }
   return { ...g.fresh(), undo: [] };
@@ -297,7 +301,10 @@ function roll() {
       finish();
       const net = won - lost;
       const sum = won && lost ? ` You win ${cage.fmt(won)} and lose ${cage.fmt(lost)}.` : won ? ` You win ${cage.fmt(won)}.` : lost ? ` You lose ${cage.fmt(lost)}.` : '';
-      table.say(`${r.call}${sum}`, net > 0 ? 'win' : net < 0 ? 'lose' : '');
+      // odds that don't pay whole chips: the fraction is kept, or finishes a chip with what was kept before
+      const frac = r.carry.now > r.carry.was ? ' The fraction of a chip left over is kept for your next odds win.'
+        : r.carry.now < r.carry.was ? ' That includes the fraction kept from before.' : '';
+      table.say(`${r.call}${sum}${frac}`, net > 0 ? 'win' : net < 0 ? 'lose' : '');
       if (won) { sound.chips(4); sound.win(won >= 10 * Math.max(1, lost) && won >= 100 ? 3 : won >= 100 ? 2 : 1); } else if (lost) sound.lose();
     } finally { busy = false; paint(); }
   })();

@@ -173,3 +173,54 @@ test('house edges, exactly', () => {
   near(edge(6, 'passOdds', { pass: 6 }), 0);
   near(edge(4, 'dontOdds', { dontPass: 5 }), 0);
 });
+
+// ---------- odds pay true odds exactly: the fraction of a chip is kept, never lost ----------
+
+test('5 in odds on the 5 pays 7 and keeps the half, and the next pays 8', () => {
+  const s = S(5, { pass: 5, passOdds: 5 });
+  let r = g.roll(s, 2, 3);
+  assert.deepEqual([ev(r, 'passOdds').win, s.carry, r.carry], [7, 15, { was: 0, now: 15 }]);
+  s.point = 5; s.bets.passOdds = 5;
+  r = g.roll(s, 1, 4);
+  assert.deepEqual([ev(r, 'passOdds').win, s.carry], [8, 0]);
+  // laying 5 against the 4 is owed 2½: 2, then 3
+  const d = S(4, { dontPass: 5, dontOdds: 5 });
+  r = g.roll(d, 3, 4);
+  assert.deepEqual([ev(r, 'dontOdds').win, d.carry], [2, 15]);
+  d.point = 4; d.bets.dontOdds = 5; d.bets.dontPass = 5;
+  assert.equal(ev(g.roll(d, 3, 4), 'dontOdds').win, 3);
+  // place bets are still paid down: 5 on the 6 pays 5, nothing kept
+  const p = S(4, { place6: 5 });
+  r = g.roll(p, 3, 3);
+  assert.deepEqual([ev(r, 'place6').win, p.carry], [5, 0]);
+});
+
+// Every odds bet (pass, don't pass, come and don't come odds) on every point, for every amount up to 30 (every
+// remainder an odds price can leave) and every fraction already kept: over the 36 rolls, what's paid now plus what's
+// added to the fraction kept, against what's lost, comes to exactly nothing, in thirtieths of a chip. Not simulated:
+// each roll is played once and weighted by its 1-in-36 chance.
+test('odds on any amount have exactly no house edge, counting the fraction kept', () => {
+  const setups = n => [
+    ['passOdds', amt => S(n, { pass: 5, passOdds: amt })],
+    ['dontOdds', amt => S(n, { dontPass: 5, dontOdds: amt })],
+    [`comeOdds${n}`, amt => S(n === 4 ? 5 : 4, { [`come${n}`]: 5, [`comeOdds${n}`]: amt })],
+    [`dcomeOdds${n}`, amt => S(n === 4 ? 5 : 4, { [`dcome${n}`]: 5, [`dcomeOdds${n}`]: amt })],
+  ];
+  let checked = 0;
+  for (const n of g.POINTS) for (const [spot, make] of setups(n)) for (let amt = 1; amt <= 30; amt++) for (let c = 0; c < g.CARRY; c++) {
+    let sum = 0, decided = 0;
+    for (let a = 1; a <= 6; a++) for (let b = 1; b <= 6; b++) {
+      const s = { ...make(amt), carry: c };
+      const e = g.roll(s, a, b).events.find(x => x.spot === spot);
+      if (!e) continue;
+      decided++;
+      if (e.outcome === 'win') sum += e.win * g.CARRY + (s.carry - c);
+      else if (e.outcome === 'lose') sum -= amt * g.CARRY;
+      else assert.fail(`${spot} ${e.outcome}`);
+    }
+    assert.ok(decided > 0);
+    assert.equal(sum, 0, `${spot} on the ${n}, ${amt} in odds with ${c}/30 kept`);
+    checked++;
+  }
+  assert.equal(checked, 6 * 4 * 30 * 30);
+});

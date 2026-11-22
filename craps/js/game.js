@@ -14,6 +14,10 @@
 //
 // Winning bets that a dealer would leave up stay on the layout (line, place, field, hardways, props); the winnings go
 // to the rack. Odds, and come bets that travelled, come back to the rack with their winnings.
+//
+// Odds pay true odds exactly: an amount that doesn't pay whole chips (5 behind a 5 is owed 7½) pays the whole chips
+// now and keeps the fraction (carry, in thirtieths of a chip, which every odds price divides) toward the next odds win.
+// Place bets are paid down to whole chips, the way a dealer pays them.
 
 export const POINTS = [4, 5, 6, 8, 9, 10];
 export const WAYS = { 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 5, 9: 4, 10: 3, 11: 2, 12: 1 };
@@ -36,6 +40,7 @@ export const PROPS = {
 
 // Paid down to whole chips, the way a dealer pays an odd amount.
 const pay = (stake, [to, fr]) => Math.floor(stake * to / fr);
+export const CARRY = 30;   // the carry's unit: a thirtieth of a chip
 
 export const LINE = ['pass', 'dontPass', 'come', 'dontCome'];
 
@@ -50,7 +55,7 @@ for (const n of POINTS) {
 for (const n of [4, 6, 8, 10]) NAMES[`hard${n}`] = `Hard ${n}`;
 for (const [k, p] of Object.entries(PROPS)) NAMES[k] = p.name;
 
-export const fresh = () => ({ point: 0, bets: {}, history: [], handRolls: 0, pending: 0, felt: 0 });
+export const fresh = () => ({ point: 0, bets: {}, history: [], handRolls: 0, pending: 0, felt: 0, carry: 0 });
 
 export const onFelt = s => Object.values(s.bets).reduce((a, v) => a + (v > 0 ? v : 0), 0);
 
@@ -106,13 +111,18 @@ export function working(s, spot) {
 
 // One roll of the dice. Changes the state and returns what happened:
 //   { total, hard, events: [{ spot, outcome: 'win'|'lose'|'push'|'return'|'move', stake, win, to }],
-//     toRack, wagered, back, call, point: { was, now, made, sevenOut } }
-// toRack: chips going back to the rack. wagered/back: what was decided on this roll, for the records.
+//     toRack, wagered, back, call, point: { was, now, made, sevenOut }, carry: { was, now } }
+// toRack: chips going back to the rack. wagered/back: what was decided on this roll, for the records. carry: the
+// fraction of a chip kept from odds wins, before and after.
 export function roll(s, d1, d2) {
   const t = d1 + d2, hard = d1 === d2;
   const b = s.bets, was = s.point;
   const events = [];
   let toRack = 0, wagered = 0, back = 0;
+  const carryWas = s.carry || 0;
+  let carry = carryWas;
+  // true or lay odds, exactly: the whole chips now, the fraction kept
+  const odds = (stake, [to, fr]) => { const owed = stake * to * (CARRY / fr) + carry; carry = owed % CARRY; return Math.floor(owed / CARRY); };
   const has = k => (b[k] || 0) > 0;
   // a bet that wins: winnings to the rack, and the bet stays up unless `off` (then it comes back too)
   const win = (spot, amount, off) => {
@@ -157,7 +167,7 @@ export function roll(s, d1, d2) {
     if (has(c) || has(co)) {
       if (t === n) {
         if (has(c)) win(c, b[c], true);
-        if (has(co)) { if (was) win(co, pay(b[co], TRUE_ODDS[n]), true); else ret(co); }
+        if (has(co)) { if (was) win(co, odds(b[co], TRUE_ODDS[n]), true); else ret(co); }
       } else if (t === 7) {
         if (has(c)) lose(c);
         if (has(co)) { if (was) lose(co); else ret(co); }
@@ -166,7 +176,7 @@ export function roll(s, d1, d2) {
     if (has(d) || has(dO)) {
       if (t === 7) {
         if (has(d)) win(d, b[d], true);
-        if (has(dO)) win(dO, pay(b[dO], LAY_ODDS[n]), true);
+        if (has(dO)) win(dO, odds(b[dO], LAY_ODDS[n]), true);
       } else if (t === n) {
         if (has(d)) lose(d);
         if (has(dO)) lose(dO);
@@ -204,7 +214,7 @@ export function roll(s, d1, d2) {
   } else if (t === was) {
     made = true;
     if (has('pass')) win('pass', b.pass);
-    if (has('passOdds')) win('passOdds', pay(b.passOdds, TRUE_ODDS[was]), true);
+    if (has('passOdds')) win('passOdds', odds(b.passOdds, TRUE_ODDS[was]), true);
     if (has('dontPass')) lose('dontPass');
     if (has('dontOdds')) lose('dontOdds');
     s.point = 0;
@@ -213,14 +223,16 @@ export function roll(s, d1, d2) {
     if (has('pass')) lose('pass');
     if (has('passOdds')) lose('passOdds');
     if (has('dontPass')) win('dontPass', b.dontPass);
-    if (has('dontOdds')) win('dontOdds', pay(b.dontOdds, LAY_ODDS[was]), true);
+    if (has('dontOdds')) win('dontOdds', odds(b.dontOdds, LAY_ODDS[was]), true);
     s.point = 0;
   }
 
   s.history = [{ d: [d1, d2], t }, ...(s.history || [])].slice(0, 14);
   s.handRolls = sevenOut ? 0 : (s.handRolls || 0) + 1;
   s.felt = onFelt(s);
-  return { total: t, hard, events, toRack, wagered, back, call: call(t, hard, was), point: { was, now: s.point, made, sevenOut } };
+  s.carry = carry;
+  return { total: t, hard, events, toRack, wagered, back, call: call(t, hard, was), point: { was, now: s.point, made, sevenOut },
+    carry: { was: carryWas, now: carry } };
 }
 
 const WORDS = { 2: 'two', 3: 'three', 4: 'four', 5: 'five', 6: 'six', 7: 'seven', 8: 'eight', 9: 'nine', 10: 'ten', 11: 'eleven', 12: 'twelve' };

@@ -514,6 +514,23 @@ if (cageWants('craps')) {
   assert.deepEqual([b.recs.craps?.rounds, b.recs.craps?.wagered, b.recs.craps?.net], [1, 10, 10], 'Craps: Records lost the roll reloaded mid-throw');
   await ctx.close();
 }
+// Craps: 5 in odds behind a 5 with half a chip kept from before (15 thirtieths), the dice rigged to 2 and 3, and a
+// reload mid-throw: the odds pay 8 (7½ and the half kept), once, and nothing is kept after.
+if (cageWants('craps')) {
+  for (const ms of [100, 500]) {
+    const { p, ctx } = await sit('craps/?seen', {
+      cage: { chips: 990, wagered: 10, high: 1000, stakes: 1 },
+      craps: { bets: { pass: 5, passOdds: 5 }, point: 5, history: [], felt: 10, carry: 15 },
+    });
+    await p.evaluate(() => { const q = [1 / 6, 2 / 6]; crypto.getRandomValues = a => { a[0] = Math.floor(q.shift() * 2 ** 32 + 1); return a; }; });
+    await reloadAfter(p, '#roll', ms);
+    await p.waitForTimeout(600);
+    const b = await balanced(p, `Craps, odds with half a chip kept, reloaded ${ms} ms after Roll`);
+    const carry = await p.evaluate(() => JSON.parse(localStorage.getItem('house-money.craps')).carry);
+    assert.deepEqual([b.chips, b.felt, carry, b.recs.craps?.rounds, b.recs.craps?.net], [1008, 5, 0, 1, 13], `Craps: odds with half a chip kept, reloaded ${ms} ms after Roll`);
+    await ctx.close();
+  }
+}
 if (cageWants('video-poker')) {
   // a losing draw, and the page closed while the cards were turning
   const C = (r, s) => ({ r, s });
