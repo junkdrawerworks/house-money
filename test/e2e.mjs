@@ -603,7 +603,14 @@ net = 'down';
 await ctx.setOffline(true);
 await page.reload();
 assert.equal(await page.title(), title, 'the page did not open offline');
+// an address that isn't there, at any depth, opens the not-on-the-floor page from the copy, styled, with nothing broken
+await page.goto(`${base}nope/deeper/`);
+assert.equal((await page.textContent('h1')).trim(), 'No such table', 'offline, an unknown address did not show the 404 page');
+assert.equal(await page.evaluate(() => getComputedStyle(document.body).display), 'grid', 'offline, the 404 page came without its styles');
 await ctx.setOffline(false);
+net = 'up';
+await page.goto(base);
+await page.waitForFunction(() => navigator.serviceWorker?.controller, null, { timeout: 10000 });
 
 // On a connection that's up but not answering, it opens from the copy too, after the worker's few seconds' wait for
 // the network: the page and every file it loads (were any of them left waiting on the network, it wouldn't open).

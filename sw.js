@@ -99,8 +99,12 @@ function network(e, keep = () => true) {
 // A file from the copy, marked like the network's (see askAgainNextTime() below), so a reload once the network is
 // back asks again rather than reusing it.
 const kept = request => caches.match(request, { ignoreSearch: true }).then(r => r && askAgainNextTime(r));
-// With no network: the file from the copy, or for anything it hasn't got, the app's page.
-const offline = request => kept(request).then(r => r || caches.match('index.html'));
+// With no network: the file from the copy. For a page it hasn't got, the not-on-the-floor page (whose links all start
+// from the site's root, so it works at any depth); for any other file it hasn't got, a plain network error, never a
+// page in its place (a script answered with HTML breaks the page that asked for it).
+const offline = request => kept(request)
+  .then(r => r || (request.mode === 'navigate' ? caches.match('404.html') : null))
+  .then(r => r || Response.error());
 
 // GitHub Pages lets browsers keep files for ten minutes, so without this an update can take that long to show up.
 // Ask the server every time instead; a file that hasn't changed comes back as a quick "not modified".
