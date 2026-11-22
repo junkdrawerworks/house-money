@@ -66,9 +66,23 @@ const table = mountTable({
 });
 
 const rack = makeRack($('rack'), { values: [1, 5, 25, 100, 500], key: 'house-money.craps.chip' });
-const bar = document.querySelector('header.bar');
-const setBarH = () => document.body.style.setProperty('--bar-h', `${bar.offsetHeight}px`);
+const bar = document.querySelector('header.bar'), dock = document.querySelector('.dock');
+// the heights of the bar (the pit sticks under it) and of the dock (the pass line comes to rest just above it)
+const setBarH = () => {
+  document.body.style.setProperty('--bar-h', `${bar.offsetHeight}px`);
+  document.body.style.setProperty('--dock-h', `${dock.offsetHeight}px`);
+};
 setBarH(); addEventListener('resize', setBarH);
+
+// On a come-out with nothing on the line, the pass line is brought up to sit just above the dock: on arrival, and after
+// a seven out or a point made. (It's the last thing on the layout, a screen or more down on a phone.)
+const lineEmpty = () => !s.bets.pass && !s.bets.dontPass;
+function toPassLine() {
+  if (s.point || !lineEmpty()) return;
+  setBarH();
+  const still = fast || matchMedia('(prefers-reduced-motion: reduce)').matches;
+  document.querySelector('.line.pass').scrollIntoView({ block: 'end', behavior: still ? 'instant' : 'smooth' });
+}
 
 function load() {
   try {
@@ -157,7 +171,8 @@ function paint() {
   $('clear').disabled = busy || !Object.keys(s.bets).some(k => g.removable(s, k));
   $('roll').disabled = busy || !total;
   const short = g.LINE.filter(k => b[k] && b[k] < T.min);
-  $('onfelt').textContent = !total ? (s.point ? `The point is ${s.point}. Bet Come, place a number, or anything in the middle.` : 'Come-out roll. Start on the pass line.')
+  // (on the come-out with nothing down, the stickman's line says where to start, so this says nothing)
+  $('onfelt').textContent = !total ? (s.point ? `The point is ${s.point}. Bet Come, place a number, or anything in the middle.` : '')
     : short.length ? `${g.NAMES[short[0]]} needs at least ${T.min}.` : `On the layout: ${cage.fmt(total)}`;
   if (short.length) $('roll').disabled = true;
   table.check();
@@ -318,11 +333,17 @@ function roll() {
       paint();
       finish();
       const net = won - lost;
+      // bets that moved or stood off, which nothing else on screen says: "Your come bet goes to the 6."
+      const moved = r.events.map(e => e.outcome === 'move' ? ` Your ${e.spot === 'come' ? 'come' : 'don’t come'} bet goes to the ${r.total}.`
+        : e.outcome === 'push' ? ` ${e.spot === 'dontPass' ? 'Don’t pass' : 'Don’t come'} pushes on the 12.` : '').join('');
+      // a new come-out with nothing on the line: the stickman calls for bets, and the pass line comes into view
+      const comeOut = (r.point.made || r.point.sevenOut) && lineEmpty() ? ' Coming out: bets on the pass line.' : '';
       const sum = won && lost ? ` You win ${cage.fmt(won)} and lose ${cage.fmt(lost)}.` : won ? ` You win ${cage.fmt(won)}.` : lost ? ` You lose ${cage.fmt(lost)}.` : '';
       // odds that don't pay whole chips: the fraction is kept, or finishes a chip with what was kept before
       const frac = r.carry.now > r.carry.was ? ' The fraction of a chip left over is kept for your next odds win.'
         : r.carry.now < r.carry.was ? ' That includes the fraction kept from before.' : '';
-      table.say(`${r.call}${sum}${frac}`, net > 0 ? 'win' : net < 0 ? 'lose' : '');
+      table.say(`${r.call}${moved}${sum}${frac}${comeOut}`, net > 0 ? 'win' : net < 0 ? 'lose' : '');
+      if (comeOut) toPassLine();
       if (won) { sound.chips(4); sound.win(won >= 10 * Math.max(1, lost) && won >= 100 ? 3 : won >= 100 ? 2 : 1); } else if (lost) sound.lose();
     } finally { busy = false; paint(); }
   })();
@@ -355,3 +376,4 @@ if (s.history?.length) {
   diceBox.append(...[d1, d2].map((v, i) => { const d = dieEl(v); d.style.left = `${pit.clientWidth * .4 + i * 46}px`; d.style.top = '54px'; return d; }));
 }
 table.say(s.point ? `The point is ${s.point}.` : 'Coming out. Bets on the pass line.');
+toPassLine();

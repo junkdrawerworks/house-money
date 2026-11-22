@@ -560,6 +560,26 @@ if (cageWants('craps')) {
   assert.deepEqual([b.recs.craps?.rounds, b.recs.craps?.wagered, b.recs.craps?.net], [1, 10, 10], 'Craps: Records lost the roll reloaded mid-throw');
   await ctx.close();
 }
+// Craps, a first visit on a phone: the pass line, the last thing on the layout, is brought up to sit just above the
+// dock, inside the screen, and only the stickman says to start there. A come bet that travels says where it went.
+if (cageWants('craps')) {
+  for (const size of [phone, { viewport: { width: 1280, height: 800 } }]) {
+    const at = `Craps at ${size.viewport.width}x${size.viewport.height}`;
+    const { p, ctx } = await sit('craps/?fast&seen', { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 } }, { size });
+    const [line, dock, h] = await p.evaluate(() => [document.querySelector('.line.pass').getBoundingClientRect().toJSON(), document.querySelector('.dock').getBoundingClientRect().toJSON(), innerHeight]);
+    assert.ok(line.top >= 0 && line.bottom <= dock.top + 1 && dock.bottom <= h + 1, `${at}: the pass line (${Math.round(line.top)} to ${Math.round(line.bottom)}) isn't in view above the dock (from ${Math.round(dock.top)})`);
+    assert.equal((await p.textContent('#say')).trim(), 'Coming out. Bets on the pass line.');
+    assert.equal((await p.textContent('#onfelt')).trim(), '', `${at}: the dock repeats the stickman`);
+    await ctx.close();
+  }
+  const { p, ctx } = await sit('craps/?fast&seen', { cage: { chips: 985, wagered: 15, high: 1000, stakes: 1 }, craps: { bets: { pass: 10, come: 5 }, point: 4, history: [], felt: 15 } });
+  await p.evaluate(() => { const q = [2 / 6, 2 / 6]; crypto.getRandomValues = a => { a[0] = Math.floor(q.shift() * 2 ** 32 + 1); return a; }; });
+  await p.click('#roll');
+  await until(async () => /^Six/.test((await p.textContent('#say')).trim()), 4000, 'Craps: the roll never landed');
+  assert.equal((await p.textContent('#say')).trim(), 'Six, the hard way. Your come bet goes to the 6.');
+  assert.equal((await p.textContent('#onfelt')).trim(), 'On the layout: 15');
+  await ctx.close();
+}
 // Craps: 5 on the 6 is paid down to 5, and the line says what would pay whole; a sixth chip makes it whole and the
 // line goes. 5 in odds behind the 5 is owed 7 and a half, and the line says the half is kept.
 if (cageWants('craps')) {

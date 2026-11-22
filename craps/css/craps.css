@@ -109,6 +109,8 @@
 .slot i { position: absolute; left: 0; right: 0; top: 4px; font: 600 .56rem/1.05 var(--sans); font-style: normal; letter-spacing: .02em; text-transform: uppercase; text-align: center; pointer-events: none; }
 .slot .stack { bottom: 18px; }
 .slot.dc, .slot.cm { border-style: dashed; }
+/* the narrow don't come slots: small enough that DON'T fits between the dashes on a phone */
+.slot.dc i { font-size: .47rem; letter-spacing: -.03em; }
 .slot .stack .amt { font-size: .62rem; padding: 1px 4px; }
 
 .comes { display: grid; grid-template-columns: 1fr 2fr; gap: 8px; }
@@ -138,6 +140,8 @@
 .line .area { min-height: 84px; }
 .line .area .lbl { position: absolute; top: 10px; left: 0; right: 0; }
 .line.pass .area.pass { min-height: 96px; }
+/* brought into view on the come-out, just above the dock */
+.line.pass { scroll-margin-bottom: calc(var(--dock-h, 150px) + 8px); }
 .area.odds { border-style: dashed; }
 
 /* ---------- the dock ---------- */
