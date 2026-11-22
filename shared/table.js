@@ -34,6 +34,7 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
   sheet.setAttribute('aria-label', `${name}: menu`);
   sheet.innerHTML = `
     <div class="sheet-in">
+      <div class="sheet-x"><button type="button" class="x" data-act="close" aria-label="Back to the table"><span aria-hidden="true">×</span></button></div>
       <h2 tabindex="-1">${name}</h2>
       <p class="limits" id="limits"></p>
       <div class="help">${help}</div>
@@ -114,7 +115,8 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
   // opens at the top, on the table's name, rather than scrolled down to the first button
   const open = () => { limitsLine(); sheet.showModal(); sheet.scrollTop = 0; sheet.querySelector('h2').focus(); };
   bar.querySelector('.menu-btn').addEventListener('click', open);
-  sheet.querySelector('[data-act="close"]').addEventListener('click', () => sheet.close());
+  // the × that stays at the top while the sheet scrolls, and the button at the bottom
+  sheet.querySelectorAll('[data-act="close"]').forEach(b => b.addEventListener('click', () => sheet.close()));
   sheet.addEventListener('click', e => { if (e.target === sheet) sheet.close(); });
 
   // The first time you sit down at a table, its menu opens on how to play.

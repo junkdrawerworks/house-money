@@ -81,7 +81,17 @@ for (const t of TABLES) {
   await page.goto(`${base}${t.id}/`);
   await page.waitForSelector('dialog.sheet[open]', { timeout: 5000 }).catch(() => assert.fail(`${t.id}: the menu didn't open on the first visit`));
   assert.equal(await page.textContent('.bar .name'), t.name, `${t.id}: the bar names the table`);
-  await page.click('dialog.sheet [data-act="close"]');
+  // the × at the top stays in sight and in reach with the sheet scrolled to its end, and takes you back to the table
+  const x = await page.evaluate(() => {
+    const d = document.querySelector('dialog.sheet[open]'), b = d.querySelector('.x');
+    d.scrollTop = d.scrollHeight;
+    const r = b.getBoundingClientRect(), v = d.getBoundingClientRect();
+    const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return { label: b.getAttribute('aria-label'), inside: r.top >= v.top && r.bottom <= v.top + 70, hit: b.contains(at), scrolled: d.scrollTop > 0 || d.scrollHeight <= d.clientHeight };
+  });
+  assert.deepEqual(x, { label: 'Back to the table', inside: true, hit: true, scrolled: true }, `${t.id}: the menu's × isn't in reach at the top of the scrolled sheet`);
+  await page.click('dialog.sheet[open] .x');
+  assert.equal(await page.isVisible('dialog.sheet[open]'), false, `${t.id}: the menu's × didn't close it`);
   await sideways(t.name);
 }
 await page.goto(`${base}records/`);
