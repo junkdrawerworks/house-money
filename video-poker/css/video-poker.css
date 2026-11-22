@@ -83,4 +83,15 @@ body.video-poker {
 @media (min-width: 560px) { .cabinet { --cw: 84px; } .paytable { font-size: .8rem; } }
 @media (min-width: 900px) { .cabinet { --cw: 96px; } .paytable { font-size: .88rem; } .topper span { font-size: 1.7rem; } }
 @media (max-width: 360px) { .cabinet { --cw: 54px; padding: 8px 6px 10px; } .paytable { font-size: .6rem; } }
+/* very short (an iPhone SE with Safari's toolbars up): smaller cards and a tighter screen, so the Hold buttons and the
+   meters are above the rack */
+@media (max-height: 600px) and (max-width: 559px) {
+  .video-poker main { padding-top: 6px; }
+  .cabinet { --cw: 50px; padding: 6px 8px 8px; }
+  .topper { margin-bottom: 6px; padding: 4px 6px; }
+  .crt { padding: 6px 8px; }
+  .paytable td { padding: .5px 3px; }
+  .crt .say { margin: 4px 0 2px; }
+  .meters { margin-top: 6px; }
+}
 @media (max-width: 340px) { .cabinet { --cw: 48px; padding: 8px 5px 10px; } .crt { padding: 8px 5px; } .hand { gap: 4px; } .video-poker main { padding-left: 8px; padding-right: 8px; } }

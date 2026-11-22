@@ -31,7 +31,7 @@ body.roulette main { max-width: 1120px; gap: 0; padding-top: 4px; }
 
 .layout {
   --line: rgba(246, 231, 190, .62);
-  position: relative; flex: 1; min-height: max(330px, calc(100dvh - 292px));
+  position: relative; flex: 1 1 0px; min-height: max(330px, calc(100dvh - 292px - var(--chrome-safe)));
   display: grid; gap: 1.5px;
   grid-template-columns: .74fr .74fr 1fr 1fr 1fr;
   grid-template-rows: minmax(0, 1.3fr) repeat(12, minmax(0, 1fr)) minmax(0, 1.05fr);
@@ -135,6 +135,10 @@ body.roulette main { max-width: 1120px; gap: 0; padding-top: 4px; }
   .strip { margin-bottom: 4px; }
   .history li { width: 22px; height: 22px; font-size: .68rem; }
   .history li:first-child { width: 26px; height: 26px; }
+}
+/* very short (an iPhone SE with Safari's toolbars up): the numbers get shorter, so the whole layout is above the rack */
+@media (max-height: 600px) {
+  .layout { min-height: max(250px, calc(100dvh - 292px - var(--chrome-safe))); }
 }
 
 @media (max-width: 360px) {

@@ -240,7 +240,7 @@ const outOfReach = p => p.evaluate(() => {
   return out;
 });
 {
-  const want = ['baccarat', 'cherry-bell'].filter(id => cageWants(id));
+  const want = TABLES.map(t => t.id).filter(id => id !== 'craps' && cageWants(id));
   for (const [w, h, notch] of want.length ? [[360, 640], [375, 553], [375, 667], [390, 664], [390, 844, true]] : []) {
     const { p, ctx } = await sit('records/', { cage: { chips: 3456, wagered: 3000, high: 9345, stakes: 3 } }, { size: { ...phone, viewport: { width: w, height: h } } });
     if (notch) await (await ctx.newCDPSession(p)).send('Emulation.setSafeAreaInsetsOverride', NOTCH);

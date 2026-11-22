@@ -25,6 +25,9 @@
   --serif: 'Playfair', Georgia, 'Times New Roman', serif;
   --sans: 'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --safe-b: env(safe-area-inset-bottom, 0px);
+  /* what a notch and a home bar take from the screen's height (an installed app on an iPhone): for the tables whose
+     layout is sized from 100dvh */
+  --chrome-safe: calc(env(safe-area-inset-top, 0px) + env(safe-area-inset-bottom, 0px));
   color-scheme: dark;
 }
 

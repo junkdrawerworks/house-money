@@ -9,7 +9,7 @@ body.motherlode {
     linear-gradient(#2b221c, #15100c);
 }
 .motherlode main { align-items: center; }
-.shaft { width: 100%; max-width: min(640px, calc((100dvh - 410px) * 1.45)); display: flex; flex-direction: column; align-items: stretch; }
+.shaft { width: 100%; max-width: min(640px, calc((100dvh - 410px - var(--chrome-safe)) * 1.45)); display: flex; flex-direction: column; align-items: stretch; }
 
 .beam.top {
   position: relative; display: flex; align-items: center; justify-content: center; gap: 10px;

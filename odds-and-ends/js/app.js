@@ -209,6 +209,16 @@ addEventListener('resize', () => requestAnimationFrame(tabs));
 
 // the little pay table under the drawer
 $('legend').innerHTML = M.SYMBOLS.map(k => `<li${k === M.WILD ? ' class="wild"' : ''}>${icon(k, 26)}<small>×</small>${M.PAYS[k][3]}</li>`).join('');
+// It steps aside wherever it would run under the dock (a short screen, large text, an iPhone's notch and home bar): the
+// menu has the whole pay table.
+function fitLegend() {
+  const legend = $('legend'), dock = document.querySelector('.dock');
+  legend.hidden = false;
+  if (!legend.offsetHeight) return;   // the short-screen rule in the style sheet has it already
+  legend.hidden = legend.getBoundingClientRect().bottom + scrollY > innerHeight - dock.offsetHeight;
+}
+new ResizeObserver(fitLegend).observe(document.documentElement);
+addEventListener('resize', fitLegend);
 
 // ---------- start ----------
 
