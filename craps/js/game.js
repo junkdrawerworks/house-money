@@ -77,6 +77,11 @@ for (const n of POINTS) {
 for (const n of [4, 6, 8, 10]) NAMES[`hard${n}`] = `Hard ${n}`;
 for (const [k, p] of Object.entries(PROPS)) NAMES[k] = p.name;
 
+// How big a win sounds (sound.win's size), by how it compares with the chips the roll decided (the stakes of the bets
+// that won and lost), as the other tables size theirs: five times over or more 3, the stakes or more 2, less than
+// that 1. A 5-chip hard eight paying 45 is a big one; 100 won on a 500 pass line with odds is not.
+export const winSize = (won, staked) => (won >= staked * 5 ? 3 : won >= staked ? 2 : 1);
+
 export const fresh = () => ({ point: 0, bets: {}, history: [], handRolls: 0, pending: 0, felt: 0, carry: 0 });
 
 export const onFelt = s => Object.values(s.bets).reduce((a, v) => a + (v > 0 ? v : 0), 0);

@@ -189,6 +189,13 @@ test('the help sheet gives the house edges checked above', async () => {
   assert.ok(help.includes(line), `the help sheet should say: ${line}`);
 });
 
+test('a win sounds as big as it is beside the stakes, not in chips', () => {
+  assert.equal(g.winSize(45, 5), 3);      // a 5-chip hard eight at 9 to 1
+  assert.equal(g.winSize(10, 10), 2);     // the pass line, even money
+  assert.equal(g.winSize(100, 500), 1);   // 100 back on 500 decided
+  assert.equal(g.winSize(10, 15), 1);     // the pass line won, the field lost
+});
+
 // ---------- odds pay true odds exactly: the fraction of a chip is kept, never lost ----------
 
 test('5 in odds on the 5 pays 7 and keeps the half, and the next pays 8', () => {

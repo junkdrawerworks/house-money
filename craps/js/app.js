@@ -352,9 +352,10 @@ function roll() {
       await throwDice(d1, d2);
       await wait(150);
       // bets decided: a glow and the winnings over the ones that won, a flash under the ones that lost
-      let won = 0, lost = 0;
+      let won = 0, lost = 0, staked = 0;
       for (const e of r.events) {
         const el = spotEl(e.spot);
+        if (e.outcome === 'win' || e.outcome === 'lose') staked += e.stake;
         if (e.outcome === 'win') { won += e.win; if (el) { el.classList.remove('won'); void el.offsetWidth; el.classList.add('won'); float(el, `+${cage.fmt(e.win)}`); } }
         else if (e.outcome === 'lose') { lost += e.stake; if (el) { el.classList.remove('lost'); void el.offsetWidth; el.classList.add('lost'); } }
       }
@@ -372,7 +373,7 @@ function roll() {
         : r.carry.now < r.carry.was ? ' That includes the fraction kept from before.' : '';
       table.say(`${r.call}${moved}${sum}${frac}${comeOut}`, net > 0 ? 'win' : net < 0 ? 'lose' : '');
       if (comeOut) toPassLine();
-      if (won) { sound.chips(4); sound.win(won >= 10 * Math.max(1, lost) && won >= 100 ? 3 : won >= 100 ? 2 : 1); } else if (lost) sound.lose();
+      if (won) { sound.chips(4); sound.win(g.winSize(won, staked)); } else if (lost) sound.lose();
     } finally { busy = false; paint(); }
   })();
 }
