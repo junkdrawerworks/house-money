@@ -15,6 +15,7 @@ import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import assert from 'node:assert/strict';
 import { TABLES } from '../shared/tables.js';
+import { cageFrom } from '../shared/ledger.js';
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -49,6 +50,22 @@ const base = `http://localhost:${server.address().port}/`;
 const until = async (ok, ms, what) => {
   for (const end = Date.now() + ms; !(await ok());) { assert.ok(Date.now() < end, what); await new Promise(r => setTimeout(r, 100)); }
 };
+
+// The cage and Records are saved one section per device (shared/ledger.js), so a test sets up the stack from its
+// totals ({ chips, wagered, high, stakes }) on a device of its own, and reads them back through the page's own cage
+// and Records.
+const DEV = 'd-0000test';
+const seedCage = c => cageFrom(c, DEV);
+// Records from their totals ({ since, tables: { id: { rounds, wagered, net, best, bestOn, ...counters } } }): the
+// counters that keep the highest rather than add up are named in TOP.
+const TOP = ['longestHand', 'feature', 'biggest'];
+const seedRecords = ({ since, tables }) => ({ v: 1, dev: { [DEV]: { since, tables: Object.fromEntries(Object.entries(tables).map(([id, t]) => {
+  const { rounds, wagered, net, best, bestOn, ...rest } = t, add = {}, top = {};
+  for (const [k, v] of Object.entries(rest)) (TOP.includes(k) ? top : add)[k] = v;
+  return [id, { rounds, wagered, back: wagered + net, best, bestOn, add, top }];
+})) } } });
+const cageOf = p => p.evaluate(() => import('/shared/cage.js').then(m => m.read()));
+const recordsOf = p => p.evaluate(() => import('/shared/records.js').then(m => m.read().tables));
 
 const browser = await pw.chromium.launch();
 const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, hasTouch: true });
@@ -122,17 +139,17 @@ assert.match(await page.textContent('#say'), /You win 100/);
 await page.reload();
 await page.waitForTimeout(300);
 assert.equal(await page.textContent('#purse'), '1,100', 'a reload paid the hand again');
-const rec = await page.evaluate(() => JSON.parse(localStorage.getItem('house-money.records')).tables.blackjack);
+const rec = (await recordsOf(page)).blackjack;
 assert.equal(rec.rounds, 1); assert.equal(rec.net, 100); assert.equal(rec.best, 100);
 
 // Broke: the cage offers another 1,000, and only when there's nothing left out on a table.
-await page.evaluate(() => localStorage.setItem('house-money.cage', JSON.stringify({ chips: 3, wagered: 12000, high: 1100, stakes: 1 })));
+await page.evaluate(c => localStorage.setItem('house-money.cage', JSON.stringify(c)), seedCage({ chips: 3, wagered: 12000, high: 1100, stakes: 1 }));
 await page.goto(base);
 assert.equal(await page.textContent('#tierName'), 'Silver');
 await page.click('#stake');
 assert.equal(await page.textContent('#chips'), '1,003', 'the stake is another 1,000 on top of the 3');
 assert.equal(await page.isHidden('#stake'), true);
-assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('house-money.cage')).stakes), 2);
+assert.equal((await cageOf(page)).stakes, 2);
 
 // ---------- the cage at the tables ----------
 // Each check sits down in a fresh browser with the chips (and any table's saved state) set up first.
@@ -148,10 +165,11 @@ async function sit(path, saved, { ctx = null, size = phone, f = null } = {}) {
   answered(p, `${path}: `);
   if (own || Object.keys(saved).length) {   // a context of the caller's own is set up only when there's something to set
     await p.goto(`${base}records/`);
-    await p.evaluate(saved => {
+    await p.evaluate(([saved, dev]) => {
       localStorage.clear();
+      localStorage.setItem('house-money.device', dev);
       for (const [k, v] of Object.entries(saved)) localStorage.setItem(`house-money.${k}`, JSON.stringify(v));
-    }, saved);
+    }, [{ ...saved, ...(saved.cage ? { cage: seedCage(saved.cage) } : {}), ...(saved.records ? { records: seedRecords(saved.records) } : {}) }, DEV]);
   }
   await p.goto(`${base}${path}`);
   await p.waitForTimeout(400);
@@ -173,7 +191,6 @@ const covered = p => p.evaluate(() => {
 
 // a draw that comes out the same every time: every getRandomValues answer is `f` of the way up
 const steady = f => { crypto.getRandomValues = a => { a.fill(Math.floor(f * 2 ** 32)); return a; }; };
-const cageOf = p => p.evaluate(() => JSON.parse(localStorage.getItem('house-money.cage')));
 const feltOf = (p, id) => p.evaluate(id => JSON.parse(localStorage.getItem(`house-money.${id}`))?.felt, id);
 
 // The player's card on the floor: the bar fills toward the next card, 62% of the way to Silver at 6,200 bet, empty
@@ -405,7 +422,7 @@ if (cageWants('motherlode')) {
   assert.equal((await p.textContent('.cage-note')).trim(), 'Motherlode takes 20 a spin and you have 15. Cherry Bell and Odds & Ends take a chip at a time.', 'Motherlode: no word on why it won’t spin');
   assert.deepEqual(await p.evaluate(() => ['spin', 'betUp'].map(id => document.getElementById(id).disabled)), [true, true], 'Motherlode: spin or + still lit at 15 chips');
   assert.deepEqual(await covered(p), [], 'Motherlode: the note covers the controls');
-  await p.evaluate(() => { localStorage.setItem('house-money.cage', JSON.stringify({ chips: 40, wagered: 985, high: 1000, stakes: 1 })); dispatchEvent(new CustomEvent('house-money:cage')); });
+  await p.evaluate(c => { localStorage.setItem('house-money.cage', JSON.stringify(c)); dispatchEvent(new CustomEvent('house-money:cage')); }, seedCage({ chips: 40, wagered: 985, high: 1000, stakes: 1 }));
   await until(() => p.isHidden('.cage-note'), 2000, 'Motherlode: the note stayed with 40 chips');
   assert.equal(await p.evaluate(() => document.getElementById('betUp').disabled), false, 'Motherlode: + stayed off with 40 chips');
   await ctx.close();
@@ -534,10 +551,10 @@ if (cageWants('video-poker')) {
 // The books: the rack plus every table's felt, less what Records says the tables have won or lost, is 1,000 for every
 // stake the cage has made. Records counts every round once, whenever the page closed.
 const IDS = TABLES.map(t => t.id);
-const books = p => p.evaluate(ids => {
+const books = p => p.evaluate(async ids => {
   const J = k => JSON.parse(localStorage.getItem(k));
-  const c = J('house-money.cage');
-  const recs = J('house-money.records')?.tables || {};
+  const c = (await import('/shared/cage.js')).read();
+  const recs = (await import('/shared/records.js')).read().tables;
   let felt = 0, net = 0;
   for (const id of ids) { felt += J(`house-money.${id}`)?.felt || 0; net += recs[id]?.net || 0; }
   return { chips: c.chips, felt, net, stakes: c.stakes, recs };
@@ -637,7 +654,7 @@ for (const [id, play] of [
   const back = await p.evaluate(id => {
     const s = JSON.parse(localStorage.getItem(`house-money.${id}`));
     const c = JSON.parse(localStorage.getItem('house-money.cage'));
-    s.paid = false; s.felt = s.outcome.wagered; c.chips -= s.outcome.back;
+    s.paid = false; s.felt = s.outcome.wagered; c.dev[localStorage.getItem('house-money.device')].p -= s.outcome.back;
     localStorage.setItem(`house-money.${id}`, JSON.stringify(s));
     localStorage.setItem('house-money.cage', JSON.stringify(c));
     localStorage.removeItem('house-money.records');
@@ -812,9 +829,9 @@ for (const [id, n] of [['cherry-bell', 30], ['odds-and-ends', 20]]) {
   for (let i = 0; i < n; i++) {
     await p.click('#spin');
     await until(() => p.evaluate(() => !document.body.classList.contains('spinning') && !document.getElementById('spin').disabled), 5000, `${id}: spin ${i + 1} never finished`);
-    const [c, felt, net] = await p.evaluate(id => {
+    const [c, felt, net] = await p.evaluate(async id => {
       const J = k => JSON.parse(localStorage.getItem(k));
-      return [J('house-money.cage'), J(`house-money.${id}`).felt, J('house-money.records').tables[id].net];
+      return [(await import('/shared/cage.js')).read(), J(`house-money.${id}`).felt, (await import('/shared/records.js')).table(id).net];
     }, id);
     assert.equal(felt, 0, `${id}: chips left on the felt after spin ${i + 1}`);
     assert.equal(c.chips, 1000 + net, `${id}: the stack and Records disagree after spin ${i + 1}`);
@@ -877,12 +894,12 @@ if (cageWants('video-poker')) {
   // and with the message between the tabs lost: the stored hand has been drawn by another tab since this one read it,
   // so Draw reads the table afresh instead of drawing its own copy
   const one = await sit('video-poker/?fast&seen', { cage: { chips: 995, wagered: 5, high: 1000, stakes: 1 }, 'video-poker': royal });
-  await one.p.evaluate(() => {
+  await one.p.evaluate(c => {
     const s = JSON.parse(localStorage.getItem('house-money.video-poker'));
     Object.assign(s, { phase: 'done', paid: true, felt: 0, result: { id: 'royal', name: 'Royal Flush', pay: 4000 }, rev: 'another.1' });
     localStorage.setItem('house-money.video-poker', JSON.stringify(s));
-    localStorage.setItem('house-money.cage', JSON.stringify({ chips: 4995, wagered: 5, high: 4995, stakes: 1 }));
-  });
+    localStorage.setItem('house-money.cage', JSON.stringify(c));
+  }, seedCage({ chips: 4995, wagered: 5, high: 4995, stakes: 1 }));
   await one.p.click('#deal');
   await one.p.waitForTimeout(800);
   assert.equal((await cageOf(one.p)).chips, 4995, 'Video Poker: a hand another tab had drawn was drawn and paid again');

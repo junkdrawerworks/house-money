@@ -4,7 +4,8 @@
 // The chips aren't money and can't be bought: when the stack runs low with nothing left out on a table, the cage
 // stakes another 1,000 (stake).
 //
-// Shape in localStorage, under KEY:
+// Saved in localStorage under KEY, one section per device, so Google Drive saving can put devices together without
+// losing or double-counting a chip (shared/ledger.js has the shape). read() adds it up:
 //   { chips, wagered, high, stakes }
 //   chips    the stack in your rack
 //   wagered  every chip ever bet (the player's card counts this)
@@ -12,29 +13,26 @@
 //   stakes   how many times the cage has staked you
 
 import { TABLES } from './tables.js';
+import * as L from './ledger.js';
 
 export const KEY = 'house-money.cage';
-export const START = 1000;        // the first stake, and every one after
+export const START = L.START;     // the first stake, and every one after
 export const LOW = 10;            // under this, with nothing out on any table, the cage offers a stake
 
 const whole = v => { const n = Math.floor(Number(v)); return Number.isFinite(n) && n >= 0 ? n : NaN; };
 
-export function read() {
+// The whole ledger, for Drive saving; read() is what the tables use.
+export function doc() {
   let c = null;
   try { c = JSON.parse(localStorage.getItem(KEY)); } catch { /* none yet, or storage is off */ }
-  const ok = c && typeof c === 'object' && !Array.isArray(c);
-  const out = ok ? { ...c } : {};
-  const chips = whole(out.chips);
-  out.chips = Number.isFinite(chips) ? chips : START;
-  out.wagered = whole(out.wagered) || 0;
-  out.high = Math.max(whole(out.high) || 0, out.chips);
-  out.stakes = Number.isFinite(whole(out.stakes)) ? whole(out.stakes) : 1;
-  return out;
+  return L.cleanCage(c);
 }
+export const read = () => L.cageTotals(doc());
 
-function write(c) {
-  c.high = Math.max(c.high || 0, c.chips);
-  try { localStorage.setItem(KEY, JSON.stringify(c)); } catch { /* storage full or off: the table plays on */ }
+// Saves the ledger and tells the page (and its other parts) what the stack holds now.
+export function save(d) {
+  try { localStorage.setItem(KEY, JSON.stringify(d)); } catch { /* storage full or off: the table plays on */ }
+  const c = L.cageTotals(d);
   dispatchEvent(new CustomEvent('house-money:cage', { detail: c }));
   return c;
 }
@@ -44,11 +42,9 @@ function write(c) {
 export function take(n, { wager = true } = {}) {
   const k = whole(n);
   if (!(k > 0)) return null;
-  const c = read();
-  if (c.chips < k) return null;
-  c.chips -= k;
-  if (wager) c.wagered += k;
-  return write(c);
+  const d = doc();
+  if (!L.take(d, L.device(), k, wager)) return null;
+  return save(d);
 }
 
 // Chips back into the rack: a win, or a bet picked back up. A bet picked back up before it played takes its
@@ -56,11 +52,9 @@ export function take(n, { wager = true } = {}) {
 export function pay(n, { unwager = 0 } = {}) {
   const k = whole(n);
   if (!(k > 0)) return read();
-  const c = read();
-  c.chips += k;
-  const u = whole(unwager);
-  if (u > 0) c.wagered = Math.max(0, c.wagered - u);
-  return write(c);
+  const d = doc();
+  L.pay(d, L.device(), k, whole(unwager) || 0);
+  return save(d);
 }
 
 // The chips out on each table's felt: every table saves its own as `felt` under house-money.<id>, and they're still
@@ -84,17 +78,24 @@ export function out(own = null) {
 
 export const feltAll = (own = null) => out(own).reduce((a, t) => a + t.felt, 0);
 
+// Chips another device said it had out on its tables when it last synced with Google Drive (and in the last day):
+// [{ id, name, felt }], and how many devices. Still yours, so the cage waits on them too.
+export function elsewhere() {
+  const e = L.feltElsewhere(doc(), L.device(), Date.now());
+  const list = TABLES.filter(t => e.tables[t.id] > 0).map(t => ({ id: t.id, name: t.name, felt: e.tables[t.id] }));
+  return Object.assign(list, { devices: e.devices });
+}
+
 // The cage stakes you another START when you're down to less than LOW with nothing out on any table, so the stack
 // plus the felt always comes to START for every stake plus what the tables have won or lost. Returns the new cage, or
 // null when you don't qualify. own: as for out().
-export const canStake = (own = null) => read().chips < LOW && feltAll(own) === 0;
+export const canStake = (own = null) => read().chips < LOW && feltAll(own) === 0 && !elsewhere().length;
 
 export function stake(own = null) {
   if (!canStake(own)) return null;
-  const c = read();
-  c.chips += START;
-  c.stakes += 1;
-  return write(c);
+  const d = doc();
+  L.stake(d, L.device(), Date.now());
+  return save(d);
 }
 
 // The player's card: the more you've wagered, the higher the limits at every table.

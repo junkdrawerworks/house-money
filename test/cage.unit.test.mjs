@@ -15,10 +15,12 @@ globalThis.addEventListener = events.addEventListener.bind(events);
 globalThis.dispatchEvent = events.dispatchEvent.bind(events);
 
 const cage = await import('../shared/cage.js');
+const { cageFrom } = await import('../shared/ledger.js');
 const { keeper } = await import('../shared/reels.js');
 const { TABLES } = await import('../shared/tables.js');
 
-const set = c => localStorage.setItem(cage.KEY, JSON.stringify({ wagered: 0, high: 1000, stakes: 1, ...c }));
+// a cage holding these totals (the ledger keeps one section per device: shared/ledger.js)
+const set = c => localStorage.setItem(cage.KEY, JSON.stringify(cageFrom({ wagered: 0, high: 1000, stakes: 1, ...c })));
 const felt = (id, n) => localStorage.setItem(`house-money.${id}`, JSON.stringify({ felt: n }));
 const fresh = () => store.clear();
 
@@ -163,4 +165,19 @@ test('the cage event fires with the chips already counted as out at the machine'
   k.stake(5);
   events.removeEventListener('house-money:cage', hear);
   assert.equal(seen, false, 'the offer would have flashed up as the bet went in');
+});
+
+test('chips another device said it had out hold back the stake too, for a day after it last said so', () => {
+  fresh();
+  const d = JSON.parse(JSON.stringify(cageFrom({ chips: 3, wagered: 997, high: 1000 }, 'd-phone')));
+  d.dev['d-phone'].felt = { at: Date.now() - 3600e3, tables: { craps: 200 } };
+  localStorage.setItem(cage.KEY, JSON.stringify(d));
+  assert.deepEqual(cage.elsewhere().map(t => [t.id, t.felt]), [['craps', 200]]);
+  assert.equal(cage.elsewhere().devices, 1);
+  assert.equal(cage.canStake(), false, '200 on the phone’s craps layout');
+  assert.equal(cage.stake(), null);
+  d.dev['d-phone'].felt.at = Date.now() - 25 * 3600e3;
+  localStorage.setItem(cage.KEY, JSON.stringify(d));
+  assert.equal(cage.elsewhere().length, 0, 'a phone not heard from in a day');
+  assert.equal(cage.canStake(), true);
 });

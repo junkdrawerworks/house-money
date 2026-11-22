@@ -48,3 +48,4 @@ function draw() {
 draw();
 addEventListener('storage', draw);
 addEventListener('house-money:cage', draw);
+addEventListener('house-money:records', draw);

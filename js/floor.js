@@ -82,6 +82,7 @@ function wallet(c) {
 }
 
 cage.watch(wallet);
+addEventListener('house-money:records', stats);
 $('stake').addEventListener('click', () => { if (cage.stake()) sound.chips(8); });
 $('cardBtn').addEventListener('click', () => { $('card').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); $('card').focus({ preventScroll: true }); });
 
