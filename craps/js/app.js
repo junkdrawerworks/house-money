@@ -61,7 +61,9 @@ const table = mountTable({
     that’s allowed to come down. Hold a finger on one bet to take down just that one. Take down leaves a don’t pass up
     once there’s a point, and a don’t come on its number, with their lay odds: they’re at their best there, and can’t
     go back up. Hold a finger on one to take it down.</p>
-    <p>Line and come bets start at ${T.min}. Played on the line with full odds, the house keeps well under one percent.</p>`,
+    <p>Line and come bets start at ${T.min}. Played on the line with full odds, the house keeps well under one percent.
+    On its own the line keeps 1.4% (don’t pass 1.36%); place 6 and 8 keep 1.5%, 5 and 9 4%, 4 and 10 6.7%; the field
+    2.8%; the hardways 9 to 11%; and the one-roll bets in the middle 11 to 17%.</p>`,
   onStake: () => paint(),
   // the stack changed, here or in another tab
   onCage: () => { if (!busy) paint(); },

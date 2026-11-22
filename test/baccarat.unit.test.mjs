@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import * as g from '../baccarat/js/game.js';
 
 const C = (r, s = 's') => ({ r, s });
@@ -60,7 +61,7 @@ test('payouts: banker less 5%, carried in twentieths', () => {
   assert.equal(r.back, 20 + 60);
 });
 
-test('the house edges, worked out exactly for eight decks', () => {
+test('the house edges, worked out exactly for eight decks', async () => {
   // Every way six cards can come off a full shoe, by point value (0 has the tens and pictures: 128 cards; 1–9 have 32).
   const counts = [128, 32, 32, 32, 32, 32, 32, 32, 32, 32];
   const N = 416;
@@ -92,6 +93,12 @@ test('the house edges, worked out exactly for eight decks', () => {
   // A pair is the first two cards of one rank: 13 ranks of 32 cards each.
   const pair = 13 * 32 * 31 / (416 * 415);
   assert.ok(Math.abs((1 - pair * 12) - 0.103614) < 1e-5);
+  // and the help sheet says so, rounded to one place
+  const help = (await readFile(new URL('../baccarat/js/app.js', import.meta.url), 'utf8')).replace(/\s+/g, ' ');
+  for (const [what, x] of [['Banker', banker], ['Player', player], ['Tie', tie], ['either pair', 1 - pair * 12]]) {
+    const said = `${+(x * 100).toFixed(what === 'Tie' || what === 'either pair' ? 1 : 2)}% on ${what}`;
+    assert.ok(help.includes(said), `the help sheet should say ${said}`);
+  }
 });
 
 test('deal, reveal stages, settle', () => {

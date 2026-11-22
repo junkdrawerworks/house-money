@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import * as g from '../craps/js/game.js';
 
 const S = (point, bets) => ({ ...g.fresh(), point, bets: { ...bets } });
@@ -172,6 +173,20 @@ test('house edges, exactly', () => {
   near(edge(0, 'aces'), -5 / 36);
   near(edge(6, 'passOdds', { pass: 6 }), 0);
   near(edge(4, 'dontOdds', { dontPass: 5 }), 0);
+});
+
+// The help sheet's figures are the edges above, rounded: one place (two for don't pass, to tell it from the pass
+// line), and whole numbers for the ranges.
+test('the help sheet gives the house edges checked above', async () => {
+  const pc = (x, d = 1) => `${+(-x * 100).toFixed(d)}%`;
+  const whole = x => Math.round(-x * 100);
+  const props = ['any7', 'anyCraps', 'yo', 'aces'].map(k => edge(0, k));
+  const line = `On its own the line keeps ${pc(edge(0, 'pass'))} (don’t pass ${pc(edge(0, 'dontPass') * 35 / 36, 2)}); place 6 and 8 keep `
+    + `${pc(edge(4, 'place6'))}, 5 and 9 ${pc(edge(4, 'place5'))}, 4 and 10 ${pc(edge(5, 'place4'))}; the field ${pc(edge(4, 'field'))}; `
+    + `the hardways ${whole(edge(4, 'hard8'))} to ${whole(edge(5, 'hard10'))}%; and the one-roll bets in the middle `
+    + `${whole(Math.max(...props))} to ${whole(Math.min(...props))}%.`;
+  const help = (await readFile(new URL('../craps/js/app.js', import.meta.url), 'utf8')).replace(/\s+/g, ' ');
+  assert.ok(help.includes(line), `the help sheet should say: ${line}`);
 });
 
 // ---------- odds pay true odds exactly: the fraction of a chip is kept, never lost ----------
