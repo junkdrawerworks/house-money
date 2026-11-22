@@ -238,16 +238,20 @@ dialog.sheet::backdrop { background: rgba(5, 2, 2, .65); }
 
 /* ---------- the cage's offer ---------- */
 
+/* A banner at the top of the dock: the rack and the buttons stay below it, in reach. */
 .stake-offer {
-  position: fixed; left: 50%; bottom: calc(18px + var(--safe-b)); transform: translateX(-50%); z-index: 30;
-  width: min(420px, calc(100% - 24px));
-  background: linear-gradient(#3a1e14, #241009); border: 2px solid var(--gold); border-radius: 16px;
-  padding: 16px; text-align: center; box-shadow: 0 10px 40px rgba(0, 0, 0, .6);
+  display: flex; align-items: center; gap: 8px 14px; width: 100%; max-width: 560px;
+  background: linear-gradient(#3a1e14, #241009); border: 2px solid var(--gold); border-radius: 14px;
+  padding: 10px 12px; box-shadow: 0 6px 24px rgba(0, 0, 0, .55);
   animation: rise .35s ease-out;
 }
-.stake-offer p { margin: 0 0 12px; }
-.stake-offer .btn { width: 100%; }
-@keyframes rise { from { transform: translate(-50%, 30px); opacity: 0; } }
+.stake-offer p { flex: 1; margin: 0; font-size: .92rem; line-height: 1.35; text-wrap: pretty; }
+.stake-offer .btn { flex: none; min-height: 44px; }
+@media (max-width: 560px) {
+  .stake-offer { flex-direction: column; align-items: stretch; text-align: center; }
+  .stake-offer p { font-size: .88rem; text-wrap: balance; }
+}
+@keyframes rise { from { transform: translateY(12px); opacity: 0; } }
 
 /* +250 rising off a winning bet */
 .float {

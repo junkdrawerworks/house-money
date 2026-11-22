@@ -12,7 +12,7 @@ import * as sound from './sound.js';
 
 const SEEN = 'house-money.seen';
 
-export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () => 0, onStake = () => {} }) {
+export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () => 0, onStake = () => {}, offerIn = null }) {
   const bar = document.querySelector('header.bar') || document.body.insertBefore(document.createElement('header'), document.body.firstChild);
   bar.className = 'bar';
   bar.innerHTML = `
@@ -48,12 +48,17 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
     document.querySelector('main')?.prepend(p); return p;
   })();
 
+  // The cage's offer is a banner at the top of the dock, above the rack and the buttons rather than on top of them, so
+  // every control stays in reach while it's up. A table with no dock says where it goes instead (offerIn: Cherry Bell
+  // puts it on the machine's glass, over the pay table).
   const stakeBox = document.createElement('div');
   stakeBox.className = 'stake-offer';
   stakeBox.hidden = true;
-  stakeBox.innerHTML = `<p>You're out of chips. It's all house money anyway: the cage will stake you another ${cage.fmt(cage.START)}.</p>
-    <button type="button" class="btn gold">Take ${cage.fmt(cage.START)} from the cage</button>`;
-  document.body.appendChild(stakeBox);
+  stakeBox.innerHTML = `<p></p><button type="button" class="btn gold">Take ${cage.fmt(cage.START)} from the cage</button>`;
+  const dock = document.querySelector('.dock');
+  if (offerIn) offerIn.appendChild(stakeBox);
+  else if (dock) dock.prepend(stakeBox);
+  else (document.querySelector('main') || bar).after(stakeBox);
   stakeBox.querySelector('button').addEventListener('click', () => {
     if (cage.stake(felt())) { sound.chips(8); line(`The cage sends over ${cage.fmt(cage.START)} in chips. Good luck.`); onStake(); }
     check();
@@ -115,8 +120,13 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
   }
 
   function check() {
-    stakeBox.hidden = !cage.canStake(felt());
-    document.body.classList.toggle('broke', !stakeBox.hidden);
+    const offer = cage.canStake(felt());
+    if (offer) {
+      const n = cage.read().chips;
+      stakeBox.firstChild.textContent = `${n ? `You’re down to ${cage.fmt(n)} chip${n === 1 ? '' : 's'}.` : 'You’re out of chips.'} It’s all house money anyway: the cage will stake you another ${cage.fmt(cage.START)}.`;
+    }
+    stakeBox.hidden = !offer;
+    document.body.classList.toggle('broke', offer);
   }
   check();
   addEventListener('house-money:cage', () => requestAnimationFrame(check));

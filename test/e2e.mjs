@@ -114,6 +114,54 @@ await page.click('#stake');
 assert.equal(await page.textContent('#chips'), '1,000');
 assert.equal(await page.isHidden('#stake'), true);
 
+// ---------- the cage at the tables ----------
+// Each check sits down in a fresh browser with the chips (and any table's saved state) set up first.
+// ONLY=<table id> runs the ones for that table; ONLY=cage runs them all and skips the rest of the tables.
+const cageWants = (...ids) => !process.env.ONLY || process.env.ONLY === 'cage' || ids.includes(process.env.ONLY);
+const phone = { viewport: { width: 390, height: 844 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true };
+async function sit(path, saved, { ctx = null, size = phone } = {}) {
+  const own = !ctx;
+  ctx ||= await browser.newContext(size);
+  const p = await ctx.newPage();
+  p.on('pageerror', e => problems.push(`${path}: ${e.message}`));
+  if (own) {
+    await p.goto(`${base}records/`);
+    await p.evaluate(saved => {
+      localStorage.clear();
+      for (const [k, v] of Object.entries(saved)) localStorage.setItem(`house-money.${k}`, JSON.stringify(v));
+    }, saved);
+  }
+  await p.goto(`${base}${path}`);
+  await p.waitForTimeout(400);
+  return { p, ctx };
+}
+const offered = p => p.isVisible('.stake-offer');
+// every button and rack chip a player can see, and whether a tap in its middle lands on it (not on the cage's offer)
+const covered = p => p.evaluate(() => {
+  const out = [];
+  for (const el of document.querySelectorAll('.dock button, .dock .chip, .cab button, .coinsize .chip, .stake-offer button')) {
+    if (!el.offsetParent || getComputedStyle(el).visibility === 'hidden') continue;
+    el.scrollIntoView({ block: 'nearest' });
+    const r = el.getBoundingClientRect();
+    const at = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    if (!(at === el || el.contains(at))) out.push(`${el.id || el.className} under ${at?.className || at?.tagName}`);
+  }
+  return out;
+});
+
+// Down to 7 chips at every table: the offer is up, with the count, and every control is still there to tap.
+for (const t of TABLES) {
+  if (!cageWants(t.id)) continue;
+  for (const size of [phone, { viewport: { width: 1280, height: 800 } }, { ...phone, viewport: { width: 360, height: 740 } }]) {
+    const { p, ctx } = await sit(`${t.id}/?fast&seen`, { cage: { chips: 7, wagered: 993, high: 1000, stakes: 1 } }, { size });
+    const at = `${t.name} at ${size.viewport.width}x${size.viewport.height}`;
+    assert.equal(await offered(p), true, `${at}: no stake offered at 7 chips`);
+    assert.equal((await p.textContent('.stake-offer p')).trim(), 'You’re down to 7 chips. It’s all house money anyway: the cage will stake you another 1,000.', `${at}: the offer's words`);
+    assert.deepEqual(await covered(p), [], `${at}: the cage's offer covers the controls`);
+    await ctx.close();
+  }
+}
+
 // Works offline once it has been opened. The server goes down as well as the browser: in some Chromium builds the
 // browser's offline switch alone doesn't stop the service worker's own requests, and this passed with no copy at all.
 await page.waitForFunction(() => navigator.serviceWorker?.controller, null, { timeout: 10000 });
