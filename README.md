@@ -137,7 +137,7 @@ npx http-server -p 8080 -c-1 .
 
 GitHub Pages serves `main` at [house-money.junkdrawer.works](https://house-money.junkdrawer.works/) (the `CNAME` file).
 
-- `npm test` runs the unit tests (every payout, the blackjack book, the slot machines' pay-back, the cage, and what Records counts) and then drives the real pages in Chromium (`test/e2e.mjs`, needs Playwright): every table opening, the cage's stake, rounds reloaded mid-play, two tabs at one table, and the offline copy. `ONLY=blackjack` runs one table's checks and `PARTIAL=1` skips tables with no page yet.
+- `npm test` runs the unit tests (every payout, the blackjack book, the slot machines' pay-back, the cage, and what Records counts) and then drives the real pages in Chromium (`test/e2e.mjs`, needs Playwright): every table opening, the cage's stake, rounds reloaded mid-play, two tabs at one table, and the offline copy. `ONLY=blackjack` runs one table's checks and `PARTIAL=1` skips tables with no page yet. Last, `test/drive.mjs` checks Google Drive saving with two browsers as two devices against a stand-in for Google (`test/fake-google.mjs`, from the junkdrawer kit), looking at what lands in the stand-in's Drive as well as at the pages; `ONLY=3,4` runs some of its checks.
 - `node tools/sw-files.mjs` rewrites the offline copy's file list and fingerprint in `sw.js` after a change; the test fails until it's run.
 - `node tools/screenshots.mjs [table …]` makes the floor's pictures and the README's phone screenshots, `node tools/og.mjs` makes the link preview (`og.png`), and `node tools/make-icons.mjs` makes the icons.
 - `node tools/artifact.mjs` builds the copy that plays in the Artifact viewer, in `dist/artifact/`: links name each folder's `index.html`, and there's no offline copy.
