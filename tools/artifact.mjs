@@ -1,14 +1,17 @@
-// The playable copy for the Artifact viewer:  node tools/artifact.mjs  →  dist/artifact/ (and dist/artifact-files.json)
+// The playable copy for the Artifact viewer:  node tools/artifact.mjs [folder]  →  dist/artifact/ (and dist/artifact-files.json)
+// (folder: build there instead, as test/e2e.mjs does, with its files.json beside it)
 // The same files as the site, with three changes the viewer needs:
-//   - the floor's page loses its document wrapper (the viewer adds its own), keeping its head and its body's class;
+//   - the floor's page loses its document wrapper (the viewer adds its own), keeping its head and its body's class
+//     (set by a script after the body's content, so it finds a body whether or not the viewer wraps the page in one);
 //   - links to a folder ('blackjack/', '../') name its index.html, since the viewer serves files, not folders;
 //   - no offline copy (the viewer has no service workers; the pages already shrug off the refusal).
 import { readFile, writeFile, mkdir, rm, readdir, stat, copyFile } from 'node:fs/promises';
-import { join, dirname, relative, extname } from 'node:path';
+import { join, dirname, relative, extname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const out = join(root, 'dist/artifact');
+const out = process.argv[2] ? resolve(process.argv[2]) : join(root, 'dist/artifact');
+const list = process.argv[2] ? join(out, '..', 'artifact-files.json') : join(root, 'dist/artifact-files.json');
 const SKIP = new Set(['tools', 'test', 'docs', 'node_modules', '.git', 'dist']);
 const KEEP = new Set(['.html', '.js', '.css', '.woff2', '.svg', '.png', '.jpg', '.webmanifest']);
 const NOT = new Set(['og.png', 'icon-512.png', 'icon-512-maskable.png', 'sw.js', '404.html']);
@@ -43,11 +46,11 @@ for (const f of files) {
     if (f === 'index.html') {
       const head = s.match(/<head>([\s\S]*?)<\/head>/)[1];
       const body = s.match(/<body class="([^"]*)">([\s\S]*?)<\/body>/);
-      s = `${head.trim()}\n<script>document.body.className = '${body[1]}';</script>\n${body[2].trim()}\n`;
+      s = `${head.trim()}\n${body[2].trim()}\n<script>document.body.className = '${body[1]}';</script>\n`;
     }
     await writeFile(to, s);
   } else await copyFile(join(root, f), to);
   if (f !== 'index.html') map[f] = relative(root, to);
 }
-await writeFile(join(root, 'dist/artifact-files.json'), JSON.stringify(map, null, 1));
-console.log(`dist/artifact: ${files.length} files`);
+await writeFile(list, JSON.stringify(map, null, 1));
+console.log(`${relative(root, out) || out}: ${files.length} files`);

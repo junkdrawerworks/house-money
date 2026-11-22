@@ -8,11 +8,12 @@
 import { createRequire } from 'node:module';
 import { execSync } from 'node:child_process';
 import { createServer } from 'node:http';
-import { readFile } from 'node:fs/promises';
+import { readFile, mkdtemp, rm } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join, dirname, extname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
+import { tmpdir } from 'node:os';
 import assert from 'node:assert/strict';
 import { TABLES } from '../shared/tables.js';
 import { cageFrom } from '../shared/ledger.js';
@@ -1774,6 +1775,40 @@ if (cageWants('floor', 'records', ...IDS)) {
     }
   }
   await ctx.close();
+}
+
+// The copy for the Artifact viewer (tools/artifact.mjs): built into a folder of its own and served as it is, the floor
+// and every table open with no errors, the floor keeps its look (its body's class) whether or not the viewer wraps the
+// page in a <body>, and no link names a folder ('blackjack/'), which the viewer can't open.
+if (!process.env.ONLY || process.env.ONLY === 'artifact') {
+  const dir = await mkdtemp(join(tmpdir(), 'hm-artifact-'));
+  try {
+    execSync(`node tools/artifact.mjs ${JSON.stringify(join(dir, 'artifact'))}`, { cwd: root, stdio: 'pipe' });
+    const art = join(dir, 'artifact');
+    const copy = createServer(async (req, res) => {
+      const path = decodeURIComponent(new URL(req.url, 'http://x').pathname);
+      try {
+        let body = await readFile(join(art, path === '/wrapped.html' ? 'index.html' : path));
+        // the viewer's way: the page inside a document of its own
+        if (path === '/wrapped.html') body = `<!doctype html><html><head><meta charset="utf-8"></head><body>${body}</body></html>`;
+        res.writeHead(200, { 'content-type': TYPES[extname(path)] || 'text/html' }); res.end(body);
+      } catch { res.writeHead(404); res.end(); }
+    }).listen(0);
+    const at = `http://localhost:${copy.address().port}/`;
+    const actx = await browser.newContext(phone);
+    const p = await actx.newPage();
+    const errs = [];
+    p.on('pageerror', e => errs.push(`${p.url()}: ${e.message}`));
+    for (const page of ['index.html', 'wrapped.html', 'records/index.html', ...TABLES.map(t => `${t.id}/index.html`)]) {
+      await p.goto(`${at}${page}?seen`); await p.waitForTimeout(400);
+      const links = await p.$$eval('a[href]', as => as.map(a => a.getAttribute('href')).filter(h => !/^https?:/.test(h) && h.endsWith('/')));
+      assert.deepEqual(links, [], `the Artifact copy: ${page} links to a folder`);
+      if (page === 'index.html' || page === 'wrapped.html') assert.equal(await p.evaluate(() => document.body.className), 'floor', `the Artifact copy: ${page} lost the floor's look`);
+    }
+    assert.deepEqual(errs, [], 'the Artifact copy has page errors');
+    await actx.close();
+    copy.close();
+  } finally { await rm(dir, { recursive: true, force: true }); }
 }
 
 // Works offline once it has been opened. The server goes down as well as the browser: in some Chromium builds the
