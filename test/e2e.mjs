@@ -1,8 +1,8 @@
 // Uses the app in Chromium through the real page:  node test/e2e.mjs  (needs Playwright)
 // The floor, every table opening clean at phone size, a hand of blackjack played through with the chips counted, the
 // cage's stake at every table, rounds reloaded mid-play and left unpaid (each paid and recorded once, with the books
-// checked after), two tabs at one table, Records' own words, and the offline copy. Any page error, console error,
-// request that leaves the site, or answer of 400 or more from the site fails it.
+// checked after), two tabs at one table, Records' own words, that it installs, and the offline copy of every page.
+// Any page error, console error, request that leaves the site, or answer of 400 or more from the site fails it.
 // ONLY=<table id> runs one table's checks (ONLY=cage the cage's at every table; ONLY=records, ONLY=floor); PARTIAL=1
 // skips tables that don't have a page yet.
 import { createRequire } from 'node:module';
@@ -82,6 +82,20 @@ answered(page);
 await page.goto(base);
 await page.evaluate(() => document.fonts.ready);
 const sideways = async where => assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${where} scrolls sideways on a phone`);
+
+// It installs: Chromium finds nothing in the way of putting it on a home screen, the manifest reads clean, and every
+// icon and long-press shortcut it names is there.
+{
+  await page.waitForFunction(() => navigator.serviceWorker?.controller, null, { timeout: 10000 });
+  const cdp = await ctx.newCDPSession(page);
+  assert.deepEqual((await cdp.send('Page.getInstallabilityErrors')).installabilityErrors, [], 'the floor can\'t be installed');
+  const m = await cdp.send('Page.getAppManifest');
+  assert.deepEqual(m.errors, [], 'the manifest has errors');
+  const manifest = JSON.parse(m.data);
+  const named = [...manifest.icons.map(i => i.src), ...manifest.shortcuts.flatMap(x => [x.url, ...(x.icons || []).map(i => i.src)])];
+  for (const u of new Set(named)) assert.equal((await fetch(new URL(u, base))).status, 200, `the manifest names ${u}, which isn't there`);
+  await cdp.detach();
+}
 
 // The floor: a fresh pocket of 1,000 chips, a Red card, and a tile for every table.
 assert.equal(await page.textContent('#chips'), '1,000');
@@ -1699,6 +1713,13 @@ await ctx.setOffline(true);
 await page.reload();
 assert.equal(await page.title(), title, 'the page did not open offline');
 // an address that isn't there, at any depth, opens the not-on-the-floor page from the copy, styled, with nothing broken
+// every table and Records open from the copy too
+for (const t of TABLES) {
+  await page.goto(`${base}${t.id}/`);
+  assert.equal(await page.textContent('.bar .name'), t.name, `offline, ${t.name} did not open from the copy`);
+}
+await page.goto(`${base}records/`);
+assert.equal((await page.textContent('h1')).trim(), 'Records', 'offline, Records did not open from the copy');
 await page.goto(`${base}nope/deeper/`);
 assert.equal((await page.textContent('h1')).trim(), 'No such table', 'offline, an unknown address did not show the 404 page');
 assert.equal(await page.evaluate(() => getComputedStyle(document.body).display), 'grid', 'offline, the 404 page came without its styles');
