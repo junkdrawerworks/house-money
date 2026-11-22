@@ -77,7 +77,7 @@ test('Motherlode pays back what its help says (lines and lanterns exact, free sp
   const lines = R.lineReturn(ml.REELS, ml.PAYS, { wild: ml.WILD, not: [ml.SCATTER] }).ev;
   const so = R.scatterOdds(ml.REELS, ml.SCATTER);
   const rng = R.seeded(2026);
-  const N = 12000;
+  const N = 50000;
   let scatter = 0, feature = 0, trig = 0;
   so.forEach((p, n) => {
     scatter += p * (ml.SCATTER_PAYS[n] || 0);
@@ -93,7 +93,7 @@ test('Motherlode pays back what its help says (lines and lanterns exact, free sp
   for (let i = 0; i < H; i++) if (ml.play(R.pickStops(ml.REELS, rng)).units > 0) hit++;
   const rtp = lines + scatter + feature;
   console.log(`Motherlode: ${pct(rtp)}% (lines ${pct(lines)}, lanterns ${pct(scatter)}, free spins ${pct(feature)}); 1 spin in ${(H / hit).toFixed(2)} wins; free spins 1 in ${Math.round(1 / trig)}`);
-  assert.ok(Math.abs(rtp * 100 - ml.RETURN.rtp) < 1.2, `return ${pct(rtp)} vs ${ml.RETURN.rtp}`);
+  assert.ok(Math.abs(rtp * 100 - ml.RETURN.rtp) < .4, `return ${pct(rtp)} vs ${ml.RETURN.rtp}`);
   assert.ok(Math.abs(hit / H * 100 - ml.RETURN.hit) < 1);
   assert.equal(Math.round(1 / trig), ml.RETURN.feature);
   assert.ok(rtp > .92 && rtp < .97);
