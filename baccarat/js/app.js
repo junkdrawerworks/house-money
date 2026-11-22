@@ -19,7 +19,8 @@ const $ = id => document.getElementById(id);
 const NAME = { P: 'Player', B: 'Banker', T: 'Tie' };
 
 let s = load();
-const onFelt = () => (s.phase === 'done' ? 0 : g.staked(s.bets));
+// the bets on the layout, until the coup is settled and paid
+const onFelt = () => (s.phase === 'done' && s.paid !== false ? 0 : g.staked(s.bets));
 
 const table = mountTable({
   id: 'baccarat', name: T.name, min: T.min, max: T.max, felt: onFelt,
@@ -313,11 +314,9 @@ async function proceed() {
 async function payout() {
   const o = g.settle(s);
   s.paid = false; save();          // the result is kept before the chips move, so a reload can't pay twice
-  if (o.back > 0) cage.pay(o.back);
-  s.paid = true; save();
+  if (!finish()) return;
   const c = s.coup;
   const net = o.back - o.wagered;
-  records.note('baccarat', { wagered: o.wagered, back: o.back, extra: { [NAME[c.winner].toLowerCase()]: 1, naturals: c.natural ? 1 : 0 } });
   showResult();
   const hi = Math.max(c.pt, c.bt), lo = Math.min(c.pt, c.bt);
   let line = c.winner === 'T' ? `Tie at ${c.pt}.` : `${NAME[c.winner]} wins, ${hi} to ${lo}.`;
@@ -330,6 +329,17 @@ async function payout() {
   if (net > 0) { sound.chips(5); sound.win(net >= o.wagered * 3 ? 3 : net >= o.wagered ? 2 : 1); float($('layout'), `+${cage.fmt(net)}`); }
   else if (net < 0) sound.lose(); else sound.push();
   paintBoard();
+}
+
+// A settled coup's chips to the rack and its line in Records, together and once: a coup just settled, or one settled
+// before the page closed. False when there's nothing to pay.
+function finish() {
+  if (s.phase !== 'done' || !s.outcome || s.paid !== false) return false;
+  const o = s.outcome, c = s.coup;
+  if (o.back > 0) cage.pay(o.back);
+  s.paid = true; save();
+  records.note('baccarat', { wagered: o.wagered, back: o.back, extra: { [NAME[c.winner].toLowerCase()]: 1, naturals: c.natural ? 1 : 0 } });
+  return true;
 }
 
 function showResult() {
@@ -452,7 +462,7 @@ addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(paintBoard,
 // ---------- start: carry on where the last visit left off ----------
 
 (async () => {
-  if (s.phase === 'done' && s.outcome && s.paid === false) { cage.pay(s.outcome.back); s.paid = true; save(); }
+  finish();   // a coup settled but not paid (the page closed in between) is paid and recorded now
   if (s.phase !== 'bet' && s.coup) {
     for (const k of g.out(s)) place(k, { animate: false, down: !s.turned.includes(k) });
   }

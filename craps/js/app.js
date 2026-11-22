@@ -1,7 +1,7 @@
 // Craps on screen: chips onto the layout, the dice thrown against the back wall, and every bet paid or taken.
 // The rules are in game.js; this file moves the chips (shared/cage.js) and saves the table after every move. A roll is
 // decided and saved before the dice fly, with the chips it pays kept aside (pending) until they land, so a reload
-// mid-throw pays exactly once.
+// mid-throw pays exactly once. The roll's line for Records waits beside them (pendingRec) and goes in as they're paid.
 
 import * as g from './game.js';
 import * as cage from '../../shared/cage.js';
@@ -276,6 +276,11 @@ function roll() {
       const handBefore = s.handRolls || 0;
       const r = g.roll(s, d1, d2);
       s.pending = (s.pending || 0) + r.toRack; s.undo = [];
+      s.pendingRec = r.wagered || r.back ? {
+        wagered: r.wagered, back: r.back,
+        extra: { pointsMade: r.point.made ? 1 : 0 },
+        max: { longestHand: r.point.sevenOut ? handBefore + 1 : s.handRolls },
+      } : null;
       save();
       table.say('');
       await throwDice(d1, d2);
@@ -288,22 +293,25 @@ function roll() {
         else if (e.outcome === 'lose') { lost += e.stake; if (el) { el.classList.remove('lost'); void el.offsetWidth; el.classList.add('lost'); } }
       }
       paint();
-      if (s.pending) { const owed = s.pending; s.pending = 0; save(); cage.pay(owed); }
+      finish();
       const net = won - lost;
       const sum = won && lost ? ` You win ${cage.fmt(won)} and lose ${cage.fmt(lost)}.` : won ? ` You win ${cage.fmt(won)}.` : lost ? ` You lose ${cage.fmt(lost)}.` : '';
       table.say(`${r.call}${sum}`, net > 0 ? 'win' : net < 0 ? 'lose' : '');
       if (won) { sound.chips(4); sound.win(won >= 10 * Math.max(1, lost) && won >= 100 ? 3 : won >= 100 ? 2 : 1); } else if (lost) sound.lose();
-      if (r.wagered || r.back) {
-        records.note('craps', {
-          wagered: r.wagered, back: r.back,
-          extra: { pointsMade: r.point.made ? 1 : 0 },
-          max: { longestHand: r.point.sevenOut ? handBefore + 1 : s.handRolls },
-        });
-      }
     } finally { busy = false; paint(); }
   })();
 }
 $('roll').addEventListener('click', roll);
+
+// A roll's winnings to the rack and its line in Records, together and once: dice just landed, or a throw the page
+// closed on.
+function finish() {
+  if (!(s.pending > 0) && !s.pendingRec) return;
+  const owed = s.pending || 0, rec = s.pendingRec;
+  if (owed > 0) cage.pay(owed);
+  s.pending = 0; s.pendingRec = null; save();
+  if (rec) records.note('craps', rec);
+}
 
 addEventListener('keydown', e => {
   if (e.metaKey || e.ctrlKey || e.altKey || document.querySelector('dialog[open]')) return;
@@ -313,7 +321,7 @@ addEventListener('keydown', e => {
 
 // ---------- start: a throw that never finished pays now ----------
 
-if (s.pending > 0) { const owed = s.pending; s.pending = 0; save(); cage.pay(owed); }
+finish();
 save();
 paint();
 if (s.history?.length) {

@@ -16,8 +16,9 @@ const T = byId('video-poker');
 const $ = id => document.getElementById(id);
 
 let s = load();
-// the coins in play: dealt and not drawn, or drawn and not yet paid
-const onFelt = () => (s.phase === 'draw' || (s.phase === 'done' && s.paid === false) ? s.coins * s.coin : 0);
+// the coins in play: dealt and not drawn, or drawn and not yet paid (the coin size can't change till they're paid)
+const inPlay = () => s.phase === 'draw' || (s.phase === 'done' && s.paid === false);
+const onFelt = () => (inPlay() ? s.coins * s.coin : 0);
 
 const table = mountTable({
   id: 'video-poker', name: T.name, min: T.min, max: T.max, felt: onFelt,
@@ -44,7 +45,7 @@ const table = mountTable({
   onCage: () => { if (!busy) paint(); },
 });
 
-const rack = makeRack($('rack'), { values: [1, 5, 25, 100, 500], key: 'house-money.video-poker.chip', onPick: v => { if (s && s.phase !== 'draw') { s.coin = v; save(); paintMeters(); } } });
+const rack = makeRack($('rack'), { values: [1, 5, 25, 100, 500], key: 'house-money.video-poker.chip', onPick: v => { if (s && !inPlay()) { s.coin = v; save(); paintMeters(); } } });
 let busy = false;
 
 function load() {
@@ -123,7 +124,7 @@ function paint() {
   const { max } = table.limits();
   // coin sizes over the table's top bet are off; so are coins you can't cover
   rack.limit(Math.min(max, c.chips));
-  if (s.phase !== 'draw' && s.coin !== rack.value) { s.coin = rack.value; save(); }
+  if (!inPlay() && s.coin !== rack.value) { s.coin = rack.value; save(); }
   $('rack').hidden = false;
   const betting = s.phase !== 'draw';
   $('betOne').disabled = busy || !betting;
@@ -185,7 +186,6 @@ async function draw() {
   busy = true;
   const held = s.held.slice();
   vp.draw(s);
-  const o = { pay: s.result?.pay || 0, wagered: s.coins * s.coin };
   s.paid = false; save();           // the hand is kept before the chips move, so a reload can't pay twice
   slots.forEach(el => el.classList.remove('tip'));
   paint();
@@ -200,9 +200,8 @@ async function draw() {
       await wait(110); turn(els[i], s.hand[i]); sound.card();
     }
     await wait(150);
-    if (o.pay > 0) cage.pay(o.pay);
-    s.paid = true; save();
-    records.note('video-poker', { wagered: o.wagered, back: o.pay, extra: s.result ? { [s.result.id]: 1 } : {} });
+    const o = finish();
+    if (!o) return;
     if (s.result) {
       table.say(`${s.result.name}! Win ${cage.fmt(o.pay)}`, 'win');
       const big = vp.PAYTABLE.findIndex(p => p.id === s.result.id);
@@ -210,6 +209,17 @@ async function draw() {
       float($('hand'), `+${cage.fmt(o.pay)}`);
     } else { table.say('Game over', 'lose'); sound.lose(); }
   } finally { busy = false; paint(); }
+}
+
+// A drawn hand's chips to the rack and its line in Records, together and once: a hand just drawn, or one drawn before
+// the page closed, winning or not. Returns { pay, wagered }, or null when there's nothing to pay.
+function finish() {
+  if (s.phase !== 'done' || s.paid !== false) return null;
+  const o = { pay: s.result?.pay || 0, wagered: s.coins * s.coin };
+  if (o.pay > 0) cage.pay(o.pay);
+  s.paid = true; save();
+  records.note('video-poker', { wagered: o.wagered, back: o.pay, extra: s.result ? { [s.result.id]: 1 } : {} });
+  return o;
 }
 
 $('hint').addEventListener('click', () => {
@@ -231,8 +241,8 @@ addEventListener('keydown', e => {
 // ---------- start: carry on where the last visit left off ----------
 
 buildHand();
-// a hand drawn but not paid (the page closed while the cards turned): kept as paid first, then paid
-if (s.phase === 'done' && s.paid === false) { s.paid = true; save(); if (s.result?.pay > 0) cage.pay(s.result.pay); }
+// a hand drawn but not paid (the page closed while the cards turned) is paid and recorded now
+finish();
 if (s.hand.length === 5) s.hand.forEach((c, i) => setCard(i, c));
 else for (let i = 0; i < 5; i++) setCard(i, { r: 1, s: 's' }, { down: true }); // backs until the first deal
 if (s.phase !== 'draw') rack.pick(rack.value);

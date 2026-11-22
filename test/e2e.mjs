@@ -350,6 +350,14 @@ for (const [id, play] of [
     await p.click('#rack .c100'); await p.click('#spot'); await p.click('#deal');
     await p.waitForSelector('#playActions:not([hidden])'); await p.click('#stand');
   }],
+  ['baccarat', async p => {
+    await p.click('#rack .c100'); await p.click('.spot[data-bet="banker"]'); await p.click('#deal');
+    // turned over rather than squeezed, the third cards too
+    await until(async () => {
+      if (await p.isVisible('#reveal') && await p.isEnabled('#reveal')) await p.click('#reveal').catch(() => {});
+      return p.isVisible('#doneActions');
+    }, 8000, 'Baccarat: the coup never finished');
+  }],
 ]) {
   if (!cageWants(id)) continue;
   // blackjack's shoe deals 19 against the dealer's 17
@@ -375,6 +383,42 @@ for (const [id, play] of [
   const b = await balanced(p, `${id}: an unpaid round reopened`);
   assert.equal(b.felt, 0, `${id}: the unpaid round stayed on the felt`);
   assert.equal(b.recs[id]?.rounds, 1, `${id}: an unpaid round paid ${back} on reopening but Records lost it`);
+  await ctx.close();
+}
+// Video Poker, a reload while the drawn cards turn over: a royal flush (four to it held, the ace of spades to come) and
+// a losing hand, each paid once and recorded once.
+if (cageWants('video-poker')) {
+  const C = (r, s) => ({ r, s });
+  for (const [what, hand, held, deck, chips, net] of [
+    ['a royal flush', [C(10, 's'), C(11, 's'), C(12, 's'), C(13, 's'), C(2, 'h')], [true, true, true, true, false], [C(1, 's')], 4995, 3995],
+    ['a losing hand', [C(2, 'c'), C(4, 'd'), C(7, 'h'), C(9, 's'), C(12, 'c')], [false, false, false, false, false], [C(3, 'h'), C(5, 's'), C(8, 'd'), C(10, 'c'), C(13, 'h')], 995, -5],
+  ]) {
+    for (const ms of [0, 60, 150]) {
+      const { p, ctx } = await sit('video-poker/?seen', {
+        cage: { chips: 995, wagered: 5, high: 1000, stakes: 1 },
+        'video-poker': { phase: 'draw', coin: 1, coins: 5, hand, held, deck, result: null, felt: 5 },
+      });
+      await reloadAfter(p, '#deal', ms);
+      await p.waitForTimeout(600);
+      const b = await balanced(p, `Video Poker, ${what} reloaded ${ms} ms after Draw`);
+      const r = b.recs['video-poker'] || {};
+      assert.deepEqual([b.chips, b.felt, r.rounds, r.wagered, r.net], [chips, 0, 1, 5, net], `Video Poker: ${what} reloaded ${ms} ms after Draw`);
+      await ctx.close();
+    }
+  }
+}
+// Craps: 10 on the pass line, the dice rigged to 3 and 4, and a reload half a second after Roll, the dice in the air.
+if (cageWants('craps')) {
+  const { p, ctx } = await sit('craps/?seen', {
+    cage: { chips: 990, wagered: 10, high: 1000, stakes: 1 },
+    craps: { bets: { pass: 10 }, point: 0, history: [], felt: 10 },
+  });
+  await p.evaluate(() => { const q = [2 / 6, 3 / 6]; crypto.getRandomValues = a => { a[0] = Math.floor(q.shift() * 2 ** 32 + 1); return a; }; });
+  await reloadAfter(p, '#roll', 500);
+  await p.waitForTimeout(600);
+  const b = await balanced(p, 'Craps, reloaded mid-throw');
+  assert.equal(b.chips + b.felt, 1010, 'Craps: the roll was not paid exactly once');
+  assert.deepEqual([b.recs.craps?.rounds, b.recs.craps?.wagered, b.recs.craps?.net], [1, 10, 10], 'Craps: Records lost the roll reloaded mid-throw');
   await ctx.close();
 }
 if (cageWants('video-poker')) {
