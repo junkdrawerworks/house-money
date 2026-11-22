@@ -46,7 +46,7 @@ body.odds-and-ends {
 
 .odds-and-ends .bets { display: flex; gap: 12px; align-items: center; justify-content: center; flex-wrap: wrap; }
 .stepper { display: flex; align-items: center; gap: 6px; }
-.stepper .btn.small { flex: none; width: 36px; padding: 0; font-size: 1.2rem; }
+.stepper .btn.small { flex: none; width: 44px; padding: 0; font-size: 1.2rem; }
 .stepper .val { display: flex; flex-direction: column; align-items: center; min-width: 2.6em; line-height: 1; }
 .stepper .val b { font-size: 1.3rem; font-variant-numeric: tabular-nums; }
 .stepper .val small { font-size: .66rem; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-top: 2px; }

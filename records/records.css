@@ -1,7 +1,7 @@
 /* Records: the floor's totals in a strip, then a card per table. */
 
 .rec-head { max-width: 900px; margin: 0 auto; padding: calc(16px + env(safe-area-inset-top, 0px)) 16px 4px; text-align: center; position: relative; }
-.rec-head .back { position: absolute; left: 16px; top: calc(20px + env(safe-area-inset-top, 0px)); color: var(--muted); text-decoration: none; font-weight: 600; font-size: .95rem; }
+.rec-head .back { position: absolute; left: 10px; top: calc(9px + env(safe-area-inset-top, 0px)); display: inline-flex; align-items: center; gap: .3em; min-height: 44px; padding: 0 6px; color: var(--muted); text-decoration: none; font-weight: 600; font-size: .95rem; }
 .rec-head h1 { margin: 34px 0 4px; font: 400 2.4rem/1 var(--sign); color: var(--gold-hi); text-shadow: 0 0 16px rgba(255, 200, 100, .35); }
 .rec-head p { margin: 0; color: var(--muted); font-size: .9rem; }
 @media (min-width: 600px) { .rec-head h1 { margin-top: 10px; } }
@@ -19,7 +19,7 @@ b.up { color: var(--win); } b.down { color: var(--lose); }
 @media (min-width: 640px) { .rec-list { grid-template-columns: 1fr 1fr; } }
 .rec { background: rgba(20, 8, 8, .75); border: 1px solid rgba(217, 180, 90, .3); border-left: 6px solid var(--c, var(--felt)); border-radius: 14px; padding: 12px 14px; }
 .rec h2 { margin: 0 0 6px; font: 400 1.25rem/1.1 var(--sign); }
-.rec h2 a { color: var(--gold-hi); text-decoration: none; }
+.rec h2 a { display: inline-flex; align-items: center; min-height: 44px; margin: -10px 0; color: var(--gold-hi); text-decoration: none; }
 .rec ul { list-style: none; margin: 0; padding: 0; }
 .rec li { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; border-bottom: 1px solid rgba(217, 180, 90, .12); font-size: .92rem; }
 .rec li span { color: var(--muted); }

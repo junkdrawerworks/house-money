@@ -1754,6 +1754,28 @@ for (const at of ['blackjack', 'roulette', 'cherry-bell', 'motherlode', '']) {
   await ctx.close();
 }
 
+// Tap targets at phone size: the menu button and its ×, the way back, the small buttons and the links on the floor and
+// Records are at least 44 px both ways (Apple's Human Interface Guidelines, Accessibility: "a minimum tappable area of
+// 44x44 pt for all controls"). The ones left smaller on purpose are listed in shared/casino.css.
+if (cageWants('floor', 'records', ...IDS)) {
+  const own = { '': ['.hop', 'a.btn.small', '#sound'], 'records/': ['.rec-head .back', '.rec h2 a'], 'roulette/': ['#peek'], 'baccarat/': ['#squeeze'],
+    'odds-and-ends/': ['#linesDown', '#linesUp'], 'motherlode/': ['#betDown', '#betUp'] };
+  const { p, ctx } = await sit('?seen', { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 } });
+  const small = sel => p.$$eval(sel, els => els.filter(e => e.offsetParent).map(e => { const r = e.getBoundingClientRect(); return [e.getAttribute('aria-label') || e.textContent.trim(), Math.round(r.width), Math.round(r.height)]; }).filter(([, w, h]) => w < 44 || h < 44));
+  for (const path of ['', 'records/', ...IDS.map(id => `${id}/`)]) {
+    if (!cageWants(path.replace('/', '') || 'floor')) continue;
+    await p.goto(`${base}${path}?seen`); await p.waitForTimeout(300);
+    const sels = [...(own[path] || []), ...(IDS.includes(path.replace('/', '')) ? ['.menu-btn', '.bar .back'] : [])];
+    for (const sel of sels) assert.deepEqual(await small(sel), [], `${path || 'the floor'}: ${sel} is smaller than 44 px to tap`);
+    if (sels.includes('.menu-btn')) {
+      await p.click('.menu-btn');
+      assert.deepEqual(await small('dialog.sheet[open] .x'), [], `${path}: the menu's × is smaller than 44 px to tap`);
+      await p.click('dialog.sheet[open] .x');
+    }
+  }
+  await ctx.close();
+}
+
 // Works offline once it has been opened. The server goes down as well as the browser: in some Chromium builds the
 // browser's offline switch alone doesn't stop the service worker's own requests, and this passed with no copy at all.
 await page.waitForFunction(() => navigator.serviceWorker?.controller, null, { timeout: 10000 });

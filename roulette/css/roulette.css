@@ -21,8 +21,9 @@ body.roulette main { max-width: 1120px; gap: 0; padding-top: 4px; }
 .history li:nth-child(n + 9) { opacity: .7; }
 .strip .on { flex: none; font-size: .8rem; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .peek {
-  flex: none; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--gold-dk); padding: 0; cursor: pointer;
-  background: conic-gradient(#b8212b 0 10%, #1a1a1d 0 20%, #b8212b 0 30%, #1a1a1d 0 40%, #11804a 0 45%, #b8212b 0 55%, #1a1a1d 0 65%, #b8212b 0 75%, #1a1a1d 0 85%, #b8212b 0 92%, #1a1a1d 0);
+  /* a 30px wheel in a 44px target: the ring of transparent border is part of the button */
+  flex: none; width: 44px; height: 44px; margin: -7px; border-radius: 50%; border: 7px solid transparent; outline: 1px solid var(--gold-dk); outline-offset: -8px; padding: 0; cursor: pointer;
+  background: padding-box conic-gradient(#b8212b 0 10%, #1a1a1d 0 20%, #b8212b 0 30%, #1a1a1d 0 40%, #11804a 0 45%, #b8212b 0 55%, #1a1a1d 0 65%, #b8212b 0 75%, #1a1a1d 0 85%, #b8212b 0 92%, #1a1a1d 0);
   display: grid; place-items: center;
 }
 .peek span { width: 12px; height: 12px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff3c4, #c9a24c 60%, #6b4a12); }

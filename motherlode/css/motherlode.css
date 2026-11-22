@@ -45,7 +45,7 @@ body.freeplay .frame { background: linear-gradient(90deg, #8a6418, #f2c33a 6%, #
 
 .motherlode .dock .actions { align-items: center; justify-content: space-between; max-width: 460px; }
 .motherlode .stepper { display: flex; align-items: center; gap: 6px; flex: 1 1 0; }
-.motherlode .stepper .btn.small { flex: none; width: 36px; padding: 0; font-size: 1.2rem; }
+.motherlode .stepper .btn.small { flex: none; width: 44px; padding: 0; font-size: 1.2rem; }
 .motherlode .stepper .val { display: flex; flex-direction: column; align-items: center; min-width: 3.2em; line-height: 1; }
 .motherlode .stepper .val b { font-size: 1.25rem; font-variant-numeric: tabular-nums; }
 .motherlode .stepper .val small { font-size: .66rem; color: var(--muted); text-transform: uppercase; letter-spacing: .08em; margin-top: 2px; }
