@@ -6,7 +6,7 @@ import { ART, icon } from './art.js';
 import * as cage from '../../shared/cage.js';
 import * as sound from '../../shared/sound.js';
 import { chipEl } from '../../shared/chips.js';
-import { mountTable, float, hotkey } from '../../shared/table.js';
+import { mountTable, float, hotkey, overLine } from '../../shared/table.js';
 import { byId } from '../../shared/tables.js';
 import { ReelSet, loadArt, pickStops, window as view, evalLines, keeper } from '../../shared/reels.js';
 
@@ -84,6 +84,7 @@ function paint() {
   $('linesUp').disabled = spinning || s.lines >= 5 || (s.lines + 1) * s.lineBet > max;
   $('total').innerHTML = `Bet <b>${cage.fmt(bet())}</b>`;
   $('spin').disabled = spinning || bet() > chips;
+  table.hold(spinning ? '' : overLine(bet(), chips, table.limits().min, 'Play fewer lines or a smaller chip.'));
   tabs();
   table.check();
 }
@@ -200,6 +201,7 @@ $('legend').innerHTML = M.SYMBOLS.map(k => `<li${k === M.WILD ? ' class="wild"' 
     reels.set(s.last.stops);
     if (owed) { $('paid').className = 'paid win'; $('paid').textContent = `Your last spin paid ${cage.fmt(owed)}`; }
   } else reels.set(M.REELS.map(r => (r.strip.indexOf('penny') + r.strip.length - 1) % r.strip.length)); // pennies across the middle
-  paint();
+  // said before the first paint, which says instead why Spin is dimmed when the bet is more than the stack
   table.say(owed ? '' : 'Pick your lines and your bet, then spin.');
+  paint();
 })();

@@ -412,6 +412,38 @@ if (cageWants('motherlode')) {
   await free.ctx.close();
 }
 
+// A slot with a bet more than the stack (but chips enough for a smaller one): Spin dims and the line says why, naming
+// the bet and the chips, and the line goes once the bet fits.
+for (const [id, saved, chips, said, fix] of [
+  ['cherry-bell', { coins: 3, coin: 5 }, 12, 'A 15 bet is more than your 12 chips. Try fewer coins or a smaller coin.', '#betOne'],
+  ['odds-and-ends', { lines: 5, lineBet: 5 }, 12, 'A 25 bet is more than your 12 chips. Play fewer lines or a smaller chip.', '#linesDown'],
+  ['motherlode', { bet: 80, free: null }, 30, 'An 80 bet is more than your 30 chips. Bet less to keep playing.', '#betDown'],
+]) {
+  if (!cageWants(id)) continue;
+  const { p, ctx } = await sit(`${id}/?fast&seen`, { cage: { chips, wagered: 1000, high: 1000, stakes: 1 }, [id]: saved });
+  await p.waitForTimeout(400);
+  assert.equal(await p.isDisabled('#spin'), true, `${id}: Spin lit with the bet over the stack`);
+  assert.equal((await p.textContent('#say')).trim(), said, `${id}: no word on why Spin is dimmed`);
+  for (let i = 0; i < 3 && await p.isDisabled('#spin'); i++) await p.click(fix);
+  assert.equal(await p.isDisabled('#spin'), false, `${id}: Spin still dimmed once the bet was lowered`);
+  assert.equal((await p.textContent('#say')).trim(), '', `${id}: the line stayed once the bet fit`);
+  await ctx.close();
+}
+// Motherlode's Auto: the button says Stop while it runs, and when the chips run short it stops and says so. (30 chips
+// at 20 a spin, and a steady draw that wins nothing.)
+if (cageWants('motherlode')) {
+  const { p, ctx } = await sit('motherlode/?fast&seen', { cage: { chips: 30, wagered: 1000, high: 1000, stakes: 1 }, motherlode: { bet: 20, free: null } }, { f: .275 });
+  await p.waitForTimeout(400);
+  assert.equal((await p.textContent('#auto')).trim(), 'Auto');
+  await p.evaluate(() => { window.__auto = []; new MutationObserver(() => window.__auto.push(document.getElementById('auto').textContent)).observe(document.getElementById('auto'), { childList: true, characterData: true, subtree: true }); });
+  await p.click('#auto');
+  await until(async () => (await p.evaluate(() => window.__auto.at(-1))) === 'Auto', 6000, 'Motherlode: Auto never stopped with 10 chips');
+  assert.deepEqual(await p.evaluate(() => window.__auto.filter((t, i, a) => t !== a[i - 1])), ['Stop', 'Auto'], 'Motherlode: Auto running doesn\'t say a tap stops it');
+  assert.equal((await p.textContent('#say')).trim(), 'Auto stopped: not enough chips for a 20 bet.', 'Motherlode: Auto stopped without a word');
+  assert.equal((await cageOf(p)).chips, 10);
+  await ctx.close();
+}
+
 // Motherlode's free spins, carried on after a reload: the count only goes up, spin by spin, and the line that said how
 // many were left gives way to the count. (No ?fast: every paint while the reels turn is seen.)
 if (cageWants('motherlode')) {

@@ -6,7 +6,7 @@ import { ART, icon } from './art.js';
 import * as cage from '../../shared/cage.js';
 import * as sound from '../../shared/sound.js';
 import { chipEl } from '../../shared/chips.js';
-import { mountTable, float, wait, hotkey, shortcut } from '../../shared/table.js';
+import { mountTable, float, wait, hotkey, shortcut, overLine } from '../../shared/table.js';
 import { byId } from '../../shared/tables.js';
 import { ReelSet, loadArt, pickStops, window as view, keeper } from '../../shared/reels.js';
 
@@ -93,6 +93,7 @@ function paint() {
   $('betOne').disabled = spinning;
   $('betMax').disabled = spinning || s.coin * 3 > chips;
   $('handle').setAttribute('aria-disabled', spinning || bet() > chips);
+  table.hold(spinning ? '' : overLine(bet(), chips, table.limits().min, 'Try fewer coins or a smaller coin.'));
   table.check();
 }
 
@@ -223,7 +224,8 @@ addEventListener('keydown', e => {
     reels.set(s.last.stops);
     if (owed) { lastWin = owed; table.say(`Your last pull paid ${cage.fmt(owed)}.`, 'win'); }
   } else reels.set([0, 0, 0]); // three sevens on the line, the way a machine stands on the showroom floor
+  // said before the first paint, which says instead why Spin is dimmed when the bet is more than the stack
+  if (!owed) table.say('Pick a coin, then pull the handle.');
   paint();
   placeHandle();
-  if (!owed) table.say('Pick a coin, then pull the handle.');
 })();

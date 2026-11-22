@@ -6,7 +6,7 @@ import * as M from './machine.js';
 import { ART, icon } from './art.js';
 import * as cage from '../../shared/cage.js';
 import * as sound from '../../shared/sound.js';
-import { mountTable, float, wait, fast, hotkey } from '../../shared/table.js';
+import { mountTable, float, wait, fast, hotkey, overLine, article } from '../../shared/table.js';
 import { byId } from '../../shared/tables.js';
 import { ReelSet, loadArt, pickStops, keeper } from '../../shared/reels.js';
 import * as seat from '../../shared/seat.js';
@@ -41,7 +41,7 @@ const table = mountTable({
       <li><b>In the free spins the pickaxes stick.</b> Every pickaxe that lands stays where it is, wild, until the free
       spins are over, so they pile up. The free spins play at the bet that lit them, and they carry on where they left
       off if you leave.</li>
-      <li><b>Auto</b> keeps spinning until you stop it, the chips run short, or a big win comes in.</li>
+      <li><b>Auto</b> keeps spinning until you stop it (the button says Stop while it runs), the chips run short, or a big win comes in.</li>
     </ul>
     <h3>The long run</h3>
     <p>Motherlode pays back about ${M.RETURN.rtp.toFixed(1)}% of what goes in, more than a quarter of that from the free
@@ -74,7 +74,10 @@ function paint() {
   $('betUp').disabled = spinning || inFree || i >= allowed.length - 1 || allowed[i + 1] > chips;
   $('spin').disabled = spinning || (!inFree && s.bet > chips);
   $('spin').querySelector('span').textContent = inFree ? 'Free' : 'Spin';
-  $('auto').setAttribute('aria-pressed', auto);
+  // while Auto runs, the button says what a tap on it does now
+  $('auto').textContent = auto ? 'Stop' : 'Auto';
+  $('auto').classList.toggle('on', auto);
+  table.hold(spinning || inFree ? '' : overLine(s.bet, chips, 20, 'Bet less to keep playing.'));
   $('free').hidden = !inFree;
   document.body.classList.toggle('freeplay', inFree);
   if (inFree) {
@@ -146,7 +149,7 @@ async function spin() {
   if (s.free || (auto && cage.read().chips >= s.bet)) {
     await wait(s.free ? (started ? 1400 : 700) : 450);
     if (!spinning && (s.free || auto)) spin();
-  } else if (auto) { auto = false; paint(); }
+  } else if (auto) { auto = false; paint(); table.say(`Auto stopped: not enough chips for ${article(s.bet)} ${cage.fmt(s.bet)} bet.`); }
 }
 
 async function show(r, win, bet, { started, ended, free }) {
@@ -297,6 +300,8 @@ $('legend').innerHTML = [
   if (s.free) hold = s.free.sticky;
   if (s.last?.stops) reels.set(s.last.stops);
   else reels.set(M.REELS.map(r => r.strip.indexOf('nugget')));
+  // said before the first paint, which says instead why Spin is dimmed when the bet is more than the stack
+  if (!s.free && !owed) table.say('Set your bet and spin. Three lanterns light up free spins.');
   paint();
   if (owed) { $('paid').className = 'paid win'; $('paid').textContent = `Your last spin paid ${cage.fmt(owed)}`; }
   if (s.free) {
@@ -304,5 +309,5 @@ $('legend').innerHTML = [
     countLine = true;
     await wait(1200);
     spin();
-  } else if (!owed) table.say('Set your bet and spin. Three lanterns light up free spins.');
+  }
 })();

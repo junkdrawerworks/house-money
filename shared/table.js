@@ -8,6 +8,8 @@
 //   inPlay: true while a round plays on without needing chips from the rack (Motherlode's free spins)
 //   onCage: the stack changed, in this tab or another one (repaint the rack and the buttons)
 //   t.say('Dealer has 20.')       a line from the dealer
+//   t.hold('A 25 bet is…')        a line that stands while it's true: said once, and taken back with hold('') unless
+//                                 something else has been said since
 //   t.limits()                    { min, max } on your card
 //   t.check()                     shows or hides the stake offer (call after a round settles)
 //   netLine(20, 10, 'on the spin') "Down 10 on the spin." for a result line
@@ -135,6 +137,12 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
     say.textContent = text;
     say.className = `say ${kind}`.trim();
   }
+  let held = '';
+  function hold(text = '') {
+    if (text === held) return;
+    if (text) line(text); else if (held && say.textContent === held) line('');
+    held = text;
+  }
 
   // Runs once the code that called it has finished, so a bet that's just been taken is counted on the felt (a table
   // takes the chips, then deals and saves) and the offer never flashes up in between.
@@ -193,7 +201,7 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
   // the offline copy, for anyone who comes straight to a table without passing the floor
   if ('serviceWorker' in navigator && isSecureContext) navigator.serviceWorker.register('../sw.js', { scope: '../' }).catch(() => {});
 
-  return { say: line, limits, check, open, sheet };
+  return { say: line, hold, limits, check, open, sheet };
 }
 
 // The tables as links, in words: "Craps", "Roulette and Craps", "Roulette, Craps and Baccarat". up: the way to the
@@ -205,6 +213,18 @@ export const names = (list, up = '../') => {
 // Where the chips are while the cage holds back its stake: "15 still out on Craps." (list: from cage.out())
 export const outLine = (list, up = '../') =>
   `${cage.fmt(list.reduce((a, t) => a + t.felt, 0))} still out on ${names(list, up)}. The cage stakes you when nothing’s left out.`;
+
+// 'a' or 'an' before an amount, the way it's read out: an 8, an 80, an 11, an 18,000; a 25, a 110.
+export const article = n => (/^8|^1[18](,\d{3})*$/.test(cage.fmt(n)) ? 'an' : 'a');
+
+// A slot's Spin dims when the bet is more than the stack (after a losing spin at a high bet, say), and this says why:
+// "A 25 bet is more than your 12 chips. Play fewer lines or a smaller chip." '' when the bet fits, or when the stack
+// won't cover even the smallest bet (the cage's note says so then). fix: what to do about it.
+export function overLine(bet, chips, min, fix) {
+  if (bet <= chips || chips < min) return '';
+  const a = article(bet);
+  return `${a[0].toUpperCase()}${a.slice(1)} ${cage.fmt(bet)} bet is more than your ${cage.fmt(chips)} chip${chips === 1 ? '' : 's'}. ${fix}`;
+}
 
 // What a round came to, for the end of a result line where some bets came back and others didn't, so it can't read
 // like a push: "Down 10 on the spin.", "Up 15.", "Even." (wagered: chips bet; back: chips that came back, stakes
