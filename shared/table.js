@@ -123,7 +123,15 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
     say.className = `say ${kind}`.trim();
   }
 
+  // Runs once the code that called it has finished, so a bet that's just been taken is counted on the felt (a table
+  // takes the chips, then deals and saves) and the offer never flashes up in between.
+  let checking = false;
   function check() {
+    if (checking) return;
+    checking = true;
+    queueMicrotask(() => { checking = false; recheck(); });
+  }
+  function recheck() {
     const offer = cage.canStake(here());
     if (offer) {
       const n = cage.read().chips;
@@ -133,7 +141,7 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
     document.body.classList.toggle('broke', offer);
   }
   check();
-  addEventListener('house-money:cage', () => requestAnimationFrame(check));
+  addEventListener('house-money:cage', check);
 
   // the offline copy, for anyone who comes straight to a table without passing the floor
   if ('serviceWorker' in navigator && isSecureContext) navigator.serviceWorker.register('../sw.js', { scope: '../' }).catch(() => {});

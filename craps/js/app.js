@@ -16,11 +16,13 @@ const T = byId('craps');
 const $ = id => document.getElementById(id);
 
 let s = load();
+// felt: the bets on the layout, and winnings decided but not yet in the rack (pending)
+const onFelt = () => g.onFelt(s) + (s.pending || 0);
 let busy = false;
 
 const table = mountTable({
   id: 'craps', name: T.name, min: T.min, max: T.max,
-  felt: () => g.onFelt(s),
+  felt: onFelt,
   help: `
     <p>You’re the shooter. Put chips on the layout and press Roll. The first roll of a hand is the <b>come-out</b>.</p>
     <h3>The pass line</h3>
@@ -73,7 +75,7 @@ function load() {
   } catch { /* first visit */ }
   return { ...g.fresh(), undo: [] };
 }
-function save() { s.felt = g.onFelt(s); try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* full or off */ } }
+function save() { s.felt = onFelt(); try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* full or off */ } }
 
 // ---------- the pieces ----------
 
@@ -284,7 +286,7 @@ function roll() {
         else if (e.outcome === 'lose') { lost += e.stake; if (el) { el.classList.remove('lost'); void el.offsetWidth; el.classList.add('lost'); } }
       }
       paint();
-      if (s.pending) { cage.pay(s.pending); s.pending = 0; save(); }
+      if (s.pending) { const owed = s.pending; s.pending = 0; save(); cage.pay(owed); }
       const net = won - lost;
       const sum = won && lost ? ` You win ${cage.fmt(won)} and lose ${cage.fmt(lost)}.` : won ? ` You win ${cage.fmt(won)}.` : lost ? ` You lose ${cage.fmt(lost)}.` : '';
       table.say(`${r.call}${sum}`, net > 0 ? 'win' : net < 0 ? 'lose' : '');
@@ -310,7 +312,7 @@ addEventListener('house-money:cage', () => { if (!busy) paint(); });
 
 // ---------- start: a throw that never finished pays now ----------
 
-if (s.pending > 0) { cage.pay(s.pending); s.pending = 0; }
+if (s.pending > 0) { const owed = s.pending; s.pending = 0; save(); cage.pay(owed); }
 save();
 paint();
 if (s.history?.length) {

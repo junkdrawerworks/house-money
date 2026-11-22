@@ -189,6 +189,125 @@ if (cageWants('roulette')) {
   await ctx.close();
 }
 
+// Chips still in play are out on the felt until they're paid: no offer while a slot's reels turn or a video poker
+// draw is turning over, even when what's left in the rack is under 10. (No ?fast here: the reels take their time.)
+// whether the offer is up, each moment busy (a function run in the page) says the round is still in play
+const watchOffer = async (p, busy, ms) => {
+  const seen = [];
+  for (const end = Date.now() + ms; Date.now() < end;) {
+    const [still, up] = await p.evaluate(busy => [new Function(`return ${busy}`)()(), !document.querySelector('.stake-offer').hidden], busy);
+    if (!still) break;
+    seen.push(up);
+    await p.waitForTimeout(40);
+  }
+  return seen;
+};
+if (cageWants('cherry-bell')) {
+  // 12 chips, 3 coins: 9 left during the spin, and a steady draw of a half comes up empty
+  const { p, ctx } = await sit('cherry-bell/?seen', { cage: { chips: 12, wagered: 988, high: 1000, stakes: 1 }, 'cherry-bell': { coins: 3, coin: 1 } }, { f: .5 });
+  await p.waitForTimeout(800);
+  assert.equal(await offered(p), false, 'Cherry Bell: an offer at 12 chips');
+  await p.click('#spin');
+  const seen = await watchOffer(p, "() => document.body.classList.contains('spinning')", 8000);
+  assert.ok(seen.length > 5, 'Cherry Bell: the spin was too quick to watch');
+  assert.ok(seen.every(v => !v), 'Cherry Bell: the offer came up while the reels were turning');
+  await until(() => offered(p), 3000, 'Cherry Bell: no offer once the spin lost, with 9 left');
+  assert.equal(await feltOf(p, 'cherry-bell'), 0, 'Cherry Bell: the spin left chips on the felt');
+  await ctx.close();
+}
+if (cageWants('video-poker')) {
+  // 12 chips, 5 coins of 1 dealt: 7 left. Hold nothing and draw five more junk cards.
+  const C = (r, s) => ({ r, s });
+  const junk = [C(2, 'c'), C(4, 'd'), C(7, 'h'), C(9, 's'), C(12, 'c')];
+  const { p, ctx } = await sit('video-poker/?seen', {
+    cage: { chips: 7, wagered: 993, high: 1000, stakes: 1 },
+    'video-poker': { phase: 'draw', coin: 1, coins: 5, hand: junk, held: [false, false, false, false, false],
+      deck: [C(3, 'h'), C(5, 's'), C(8, 'd'), C(10, 'c'), C(13, 'h')], result: null, felt: 5 },
+  });
+  assert.equal(await offered(p), false, 'Video Poker: an offer with a hand dealt');
+  await p.click('#deal');
+  const seen = await watchOffer(p, "() => JSON.parse(localStorage.getItem('house-money.video-poker')).paid !== true", 5000);
+  assert.ok(seen.length > 3, 'Video Poker: the draw was too quick to watch');
+  assert.ok(seen.every(v => !v), 'Video Poker: the offer came up while the draw was turning over');
+  await until(() => offered(p), 3000, 'Video Poker: no offer once the hand lost, with 7 left');
+  assert.equal(await feltOf(p, 'video-poker'), 0, 'Video Poker: the hand left chips on the felt');
+  await ctx.close();
+}
+
+// A reload in the middle of a round settles it, and the felt comes back to nothing (or to the bets left up at craps).
+if (cageWants('blackjack')) {
+  // a natural, A and K against 9 and 7, and the page closed before the payout
+  const shoe = Array(150).fill({ r: 2, s: 'c' }).concat([{ r: 7, s: 'c' }, { r: 13, s: 'h' }, { r: 9, s: 'd' }, { r: 1, s: 's' }]);
+  const { p, ctx } = await sit('blackjack/?seen', {
+    cage: { chips: 100, wagered: 900, high: 1000, stakes: 1 },
+    blackjack: { shoe, phase: 'bet', bet: 0, last: 0, hands: [], active: 0, dealer: [], hole: true, insurance: 0, felt: 0 },
+  });
+  await p.click('#rack .c100'); await p.click('#spot'); await p.click('#deal');
+  await p.waitForTimeout(80);
+  await p.reload();
+  await until(async () => (await cageOf(p)).chips === 250, 4000, 'Blackjack: the natural was not paid after a reload');
+  await p.waitForTimeout(300);
+  assert.equal((await cageOf(p)).chips, 250, 'Blackjack: paid twice');
+  assert.equal(await feltOf(p, 'blackjack'), 0, 'Blackjack: the hand stayed on the felt after a reload');
+  await ctx.close();
+}
+if (cageWants('video-poker')) {
+  // a losing draw, and the page closed while the cards were turning
+  const C = (r, s) => ({ r, s });
+  const { p, ctx } = await sit('video-poker/?seen', {
+    cage: { chips: 7, wagered: 993, high: 1000, stakes: 1 },
+    'video-poker': { phase: 'draw', coin: 1, coins: 5, hand: [C(2, 'c'), C(4, 'd'), C(7, 'h'), C(9, 's'), C(12, 'c')],
+      held: [false, false, false, false, false], deck: [C(3, 'h'), C(5, 's'), C(8, 'd'), C(10, 'c'), C(13, 'h')], result: null, felt: 5 },
+  });
+  await p.click('#deal'); await p.waitForTimeout(60);
+  await p.reload(); await p.waitForTimeout(400);
+  assert.equal(await feltOf(p, 'video-poker'), 0, 'Video Poker: a lost hand stayed on the felt after a reload');
+  assert.equal(await offered(p), true, 'Video Poker: no offer after a reload with 7 left and nothing out');
+  await ctx.close();
+}
+if (cageWants('craps')) {
+  // 10 on the pass line, a 7 on the come-out (the dice draw 3 and 4), and a reload while they're in the air
+  const { p, ctx } = await sit('craps/?seen', {
+    cage: { chips: 990, wagered: 10, high: 1000, stakes: 1 },
+    craps: { bets: { pass: 10 }, point: 0, history: [], felt: 10 },
+  });
+  await p.evaluate(() => { const q = [2 / 6, 3 / 6]; crypto.getRandomValues = a => { a[0] = Math.floor(q.shift() * 2 ** 32 + 1); return a; }; });
+  await p.click('#roll'); await p.waitForTimeout(200);
+  assert.equal(await feltOf(p, 'craps'), 20, 'Craps: the win waiting for the rack is not counted on the felt');
+  await p.reload(); await p.waitForTimeout(400);
+  const c = await cageOf(p);
+  assert.deepEqual([c.chips, await feltOf(p, 'craps')], [1000, 10], 'Craps: the pass line win and the bet left up');
+  await ctx.close();
+}
+if (cageWants('cherry-bell')) {
+  // the page closed mid-spin: the spin is paid on the next visit and nothing stays out
+  const { p, ctx } = await sit('cherry-bell/?seen', { cage: { chips: 500, wagered: 500, high: 1000, stakes: 1 } });
+  await p.waitForTimeout(600);
+  await p.click('#spin'); await p.waitForTimeout(150);
+  assert.ok(await feltOf(p, 'cherry-bell') > 0, 'Cherry Bell: the spin is not counted on the felt while it turns');
+  await p.reload(); await p.waitForTimeout(1000);
+  assert.equal(await feltOf(p, 'cherry-bell'), 0, 'Cherry Bell: the spin stayed on the felt after a reload');
+  await ctx.close();
+}
+
+// Many rounds in a row: after every one the felt is empty and the stack is exactly 1,000 plus what Records says.
+for (const [id, n] of [['cherry-bell', 30], ['odds-and-ends', 20]]) {
+  if (!cageWants(id)) continue;
+  const { p, ctx } = await sit(`${id}/?fast&seen`, { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 } });
+  await p.waitForTimeout(600);
+  for (let i = 0; i < n; i++) {
+    await p.click('#spin');
+    await until(() => p.evaluate(() => !document.body.classList.contains('spinning') && !document.getElementById('spin').disabled), 5000, `${id}: spin ${i + 1} never finished`);
+    const [c, felt, net] = await p.evaluate(id => {
+      const J = k => JSON.parse(localStorage.getItem(k));
+      return [J('house-money.cage'), J(`house-money.${id}`).felt, J('house-money.records').tables[id].net];
+    }, id);
+    assert.equal(felt, 0, `${id}: chips left on the felt after spin ${i + 1}`);
+    assert.equal(c.chips, 1000 + net, `${id}: the stack and Records disagree after spin ${i + 1}`);
+  }
+  await ctx.close();
+}
+
 // 500 out on the craps layout with 3 in the rack: those chips are still yours, so the cage offers nothing anywhere.
 for (const at of ['blackjack', 'roulette', 'cherry-bell', 'motherlode', '']) {
   if (!cageWants('craps', at || 'floor')) continue;

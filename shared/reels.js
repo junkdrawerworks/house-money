@@ -335,14 +335,17 @@ export function spread(counts, seed = 1, apart = {}) {
 // The state a machine keeps under house-money.<id>: its own settings, plus `last`, the spin most recently played.
 // A spin is worked out and saved (unpaid) before the reels move, and paid when they stop; a spin still unpaid when
 // the page opens (it closed mid-spin) is paid then. So a reload never pays twice and never loses a win.
-// `felt` is always 0: a slot takes its bet at the pull and pays at the stop, so nothing waits on the machine.
+// `felt` is the bet in a spin not yet paid: it's still out on the machine, so the cage won't stake you over it, and
+// the floor and other tabs read it from here. felt() is the same, live, counting a bet from the moment it's taken.
 export function keeper(id, defaults = {}) {
   const KEY = `house-money.${id}`;
   let s = {};
   try { s = JSON.parse(localStorage.getItem(KEY)) || {}; } catch { /* first visit */ }
   if (typeof s !== 'object' || Array.isArray(s)) s = {};
   const state = { ...defaults, ...s };
-  const save = () => { state.felt = 0; try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* full or off */ } };
+  let holding = 0;   // a bet taken for a spin that hasn't begun yet (the few lines between stake and begin)
+  const felt = () => holding + (state.last && !state.last.paid ? state.last.wagered || 0 : 0);
+  const save = () => { state.felt = felt(); try { localStorage.setItem(KEY, JSON.stringify(state)); } catch { /* full or off */ } };
   // pays the last spin if it hasn't been; returns what it paid
   const settle = () => {
     const l = state.last;
@@ -354,8 +357,14 @@ export function keeper(id, defaults = {}) {
     return l.win || 0;
   };
   // the bet off the stack for a new spin (free spins pass 0); false if there aren't enough chips
-  const stake = n => (n > 0 ? !!cage.take(n) : true);
+  const stake = n => {
+    if (!(n > 0)) return true;
+    holding = n;          // counted as out before the cage tells anyone the chips have gone
+    if (cage.take(n)) return true;
+    holding = 0;
+    return false;
+  };
   // records a spin before the reels move
-  const begin = spin => { state.last = { ...spin, paid: false }; save(); };
-  return { state, save, settle, stake, begin };
+  const begin = spin => { holding = 0; state.last = { ...spin, paid: false }; save(); };
+  return { state, save, settle, stake, begin, felt };
 }

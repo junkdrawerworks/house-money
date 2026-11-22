@@ -57,8 +57,12 @@ function load() {
   } catch { /* first visit */ }
   return g.fresh();
 }
-function onFelt() { return s.bet + (s.phase !== 'bet' && s.phase !== 'done' ? s.hands.reduce((a, h) => a + h.bet, 0) + s.insurance : 0); }
-// felt: the chips out on the table right now, which the floor counts as yours
+// felt: the chips out on the table right now, which the cage counts as yours: the bet in the circle, and the hands
+// in play until the round is settled and paid
+function onFelt() {
+  const over = s.phase === 'bet' || (s.phase === 'done' && s.outcome && s.paid !== false);
+  return s.bet + (over ? 0 : s.hands.reduce((a, h) => a + h.bet, 0) + s.insurance);
+}
 function save() { s.felt = onFelt(); try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* full or off */ } }
 
 // ---------- drawing the table ----------
@@ -350,7 +354,7 @@ addEventListener('resize', () => paintCards());
   await show();
   if (s.phase === 'play') prompt();
   else if (s.phase === 'insurance') table.say('The dealer shows an ace. Insurance?');
-  else if (s.phase === 'dealer') step(after);
+  else if (s.phase === 'dealer' || (s.phase === 'done' && !s.outcome)) step(after); // a natural dealt, not yet settled
   else if (s.phase === 'done') table.say('Same bet again, or a new one?');
   else table.say(s.bet ? '' : 'Place your bet.');
 })();

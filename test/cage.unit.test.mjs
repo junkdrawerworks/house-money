@@ -1,5 +1,5 @@
 // The cage: chips off the stack and back, the stake when you run dry (and only with nothing left out on any table),
-// and the player's card. Runs against a stand-in for the browser's localStorage.
+// the player's card, and the slot machines' chips in play. Runs against a stand-in for the browser's localStorage.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -15,6 +15,7 @@ globalThis.addEventListener = events.addEventListener.bind(events);
 globalThis.dispatchEvent = events.dispatchEvent.bind(events);
 
 const cage = await import('../shared/cage.js');
+const { keeper } = await import('../shared/reels.js');
 const { TABLES } = await import('../shared/tables.js');
 
 const set = c => localStorage.setItem(cage.KEY, JSON.stringify({ wagered: 0, high: 1000, stakes: 1, ...c }));
@@ -123,4 +124,43 @@ test('the player\'s card: the tiers turn over exactly at 10,000, 50,000 and 250,
   fresh();
   set({ chips: 100, wagered: 50000 });
   assert.equal(cage.maxBet(500), 2500);
+});
+
+test('a slot machine counts the chips in a spin as out on the felt until the spin is paid', () => {
+  fresh();
+  set({ chips: 12 });
+  const k = keeper('cherry-bell', { coins: 3, coin: 1 });
+  assert.equal(k.felt(), 0);
+  assert.equal(k.stake(3), true);
+  assert.equal(cage.canStake({ id: 'cherry-bell', felt: k.felt() }), false, 'the cage waits on the spin');
+  k.begin({ stops: [1, 2, 3], win: 0, wagered: 3 });
+  assert.equal(k.felt(), 3);
+  assert.equal(JSON.parse(localStorage.getItem('house-money.cherry-bell')).felt, 3, 'and says so to the floor and other tabs');
+  assert.equal(cage.canStake(), false);
+  k.settle();
+  assert.equal(k.felt(), 0);
+  assert.equal(JSON.parse(localStorage.getItem('house-money.cherry-bell')).felt, 0);
+  assert.equal(cage.canStake(), true, '9 chips and nothing out: now the cage offers');
+  // a pull the stack can't cover holds nothing
+  set({ chips: 2 });
+  assert.equal(k.stake(3), false);
+  assert.equal(k.felt(), 0);
+  // a free spin bets nothing
+  assert.equal(k.stake(0), true);
+  k.begin({ stops: [0, 0, 0], win: 40, wagered: 0 });
+  assert.equal(k.felt(), 0);
+  k.settle();
+  assert.equal(cage.read().chips, 42);
+});
+
+test('the cage event fires with the chips already counted as out at the machine', () => {
+  fresh();
+  set({ chips: 12 });
+  const k = keeper('odds-and-ends', {});
+  let seen = null;
+  const hear = () => { seen = cage.canStake({ id: 'odds-and-ends', felt: k.felt() }); };
+  addEventListener('house-money:cage', hear);
+  k.stake(5);
+  events.removeEventListener('house-money:cage', hear);
+  assert.equal(seen, false, 'the offer would have flashed up as the bet went in');
 });

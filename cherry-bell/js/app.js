@@ -26,7 +26,7 @@ const rowsHtml = M.TABLE.map((t, i) => {
 });
 
 const table = mountTable({
-  id: M.ID, name: T.name, min: T.min, max: T.max, felt: () => 0, offerIn: document.querySelector('.glass'),
+  id: M.ID, name: T.name, min: T.min, max: T.max, felt: keep.felt, offerIn: document.querySelector('.glass'),
   help: `
     <p>An old three-reel fruit machine with one pay line, across the middle. Pick a coin size, put in one to three
     coins, and pull the handle (or press Spin). The reels stop left to right.</p>

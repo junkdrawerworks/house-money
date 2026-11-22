@@ -22,7 +22,7 @@ const s = keep.state;
 
 const lowNames = ['A', 'K', 'Q', 'J', 'ten'];
 const table = mountTable({
-  id: M.ID, name: T.name, min: 20, max: T.max, felt: () => 0,
+  id: M.ID, name: T.name, min: 20, max: T.max, felt: keep.felt,
   help: `
     <p>Five reels, three rows and twenty lines, all of them always in play, down a gold mine. Your bet is spread across
     the twenty lines, so it goes up in twenties, and each line pays a share of it.</p>

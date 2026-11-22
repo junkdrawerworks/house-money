@@ -16,7 +16,8 @@ const T = byId('video-poker');
 const $ = id => document.getElementById(id);
 
 let s = load();
-const onFelt = () => (s.phase === 'draw' ? s.coins * s.coin : 0);
+// the coins in play: dealt and not drawn, or drawn and not yet paid
+const onFelt = () => (s.phase === 'draw' || (s.phase === 'done' && s.paid === false) ? s.coins * s.coin : 0);
 
 const table = mountTable({
   id: 'video-poker', name: T.name, min: T.min, max: T.max, felt: onFelt,
@@ -229,7 +230,8 @@ addEventListener('house-money:cage', () => { if (!busy) paint(); });
 // ---------- start: carry on where the last visit left off ----------
 
 buildHand();
-if (s.phase === 'done' && s.result && s.paid === false) { cage.pay(s.result.pay); s.paid = true; save(); }
+// a hand drawn but not paid (the page closed while the cards turned): kept as paid first, then paid
+if (s.phase === 'done' && s.paid === false) { s.paid = true; save(); if (s.result?.pay > 0) cage.pay(s.result.pay); }
 if (s.hand.length === 5) s.hand.forEach((c, i) => setCard(i, c));
 else for (let i = 0; i < 5; i++) setCard(i, { r: 1, s: 's' }, { down: true }); // backs until the first deal
 if (s.phase !== 'draw') rack.pick(rack.value);
