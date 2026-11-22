@@ -248,6 +248,25 @@ if (cageWants('motherlode')) {
   await free.ctx.close();
 }
 
+// Motherlode's free spins, carried on after a reload: the count only goes up, spin by spin, and the line that said how
+// many were left gives way to the count. (No ?fast: every paint while the reels turn is seen.)
+if (cageWants('motherlode')) {
+  const { p, ctx } = await sit('motherlode/?seen', { cage: { chips: 500, wagered: 0, high: 1000, stakes: 1 },
+    motherlode: { bet: 20, free: { left: 8, total: 8, sticky: [], won: 0, bet: 20 }, last: { stops: [0, 0, 0, 0, 0], sticky: [], win: 0, wagered: 20, paid: true } } });
+  await p.evaluate(() => {
+    window.__counts = [document.getElementById('freeCount').textContent];
+    new MutationObserver(() => window.__counts.push(document.getElementById('freeCount').textContent))
+      .observe(document.getElementById('freeCount'), { childList: true, characterData: true, subtree: true });
+  });
+  await until(() => p.evaluate(() => JSON.parse(localStorage.getItem('house-money.motherlode')).free?.left <= 5), 20000, 'Motherlode: three free spins never played');
+  const said = await p.textContent('#say');
+  const counts = (await p.evaluate(() => window.__counts)).map(t => +/Free spin (\d+) of 8/.exec(t)[1]);
+  assert.ok(counts.every((n, i) => !i || n >= counts[i - 1]), `Motherlode: the free-spin count went down: ${counts.join(', ')}`);
+  assert.ok(counts.includes(3), `Motherlode: the count never reached spin 3: ${counts.join(', ')}`);
+  assert.doesNotMatch(said, /Back down the mine/, 'Motherlode: the line from the reload stayed up through the free spins');
+  await ctx.close();
+}
+
 // Chips still in play are out on the felt until they're paid: no offer while a slot's reels turn or a video poker
 // draw is turning over, even when what's left in the rack is under 10. (No ?fast here: the reels take their time.)
 // whether the offer is up, each moment busy (a function run in the page) says the round is still in play

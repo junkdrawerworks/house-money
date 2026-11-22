@@ -54,6 +54,11 @@ let reels, spinning = false, auto = false, shown = { wins: [], at: -1, lit: [] }
 let hold = [];   // the pickaxes stuck to the glass, drawn over the reels
 
 const lineBet = () => (s.free ? s.free.bet : s.bet) / M.LINE_COUNT;
+// The free spin playing now, or the next one between spins: a spin is painted as it starts, before it's taken off
+// what's left, and again after.
+const freeNo = () => Math.min(s.free.total, s.free.total - s.free.left + 1);
+// The line says which free spin it is until something else happens (after a reload, it says how many are left).
+let countLine = false;
 
 function paint() {
   const { max } = table.limits();
@@ -71,7 +76,7 @@ function paint() {
   $('free').hidden = !inFree;
   document.body.classList.toggle('freeplay', inFree);
   if (inFree) {
-    $('freeCount').textContent = `Free spin ${Math.min(s.free.total, s.free.total - s.free.left + (spinning ? 0 : 1))} of ${s.free.total}`;
+    $('freeCount').textContent = `Free spin ${freeNo()} of ${s.free.total}`;
     $('freeWon').textContent = `Won ${cage.fmt(s.free.won)}`;
   }
   table.check();
@@ -102,6 +107,7 @@ async function spin() {
   shown = { wins: [], at: -1, lit: [] }; fresh = []; clearInterval(cycle);
   $('paid').innerHTML = '&nbsp;'; $('paid').className = 'paid';
   if (!free) table.say('');
+  else if (countLine) table.say(`Free spin ${freeNo()} of ${s.free.total}.`);
   paint();
 
   const sticky = free ? s.free.sticky : [];
@@ -154,6 +160,7 @@ async function show(r, win, bet, { started, ended, free }) {
       cycle = setInterval(() => { shown.at = (shown.at + 1) % shown.wins.length; reels.draw(); }, 1300);
     }
   } else $('paid').innerHTML = '&nbsp;';
+  if (started || (free && fresh.length) || ended) countLine = false;
   if (started) table.say(`${r.lit.length} lanterns! ${started} free spins, and the pickaxes stick.`, 'win');
   else if (free && fresh.length) table.say(fresh.length === 1 ? 'A pickaxe sticks.' : `${fresh.length} pickaxes stick.`);
   else if (!free && win > 0 && r.wins.length) table.say(r.wins.length === 1 ? `${lineWord(r.wins[0])} pay ${cage.fmt(win)}.` : `${r.wins.length} lines pay ${cage.fmt(win)}.`, 'win');
@@ -292,6 +299,7 @@ $('legend').innerHTML = [
   if (owed) { $('paid').className = 'paid win'; $('paid').textContent = `Your last spin paid ${cage.fmt(owed)}`; }
   if (s.free) {
     table.say(`Back down the mine: ${s.free.left} free spin${s.free.left === 1 ? '' : 's'} left.`, 'win');
+    countLine = true;
     await wait(1200);
     spin();
   } else if (!owed) table.say('Set your bet and spin. Three lanterns light up free spins.');
