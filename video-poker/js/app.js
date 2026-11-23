@@ -252,8 +252,9 @@ async function draw() {
     if (s.result) {
       table.say(`${s.result.name}! Win ${cage.fmt(o.pay)}`, 'win');
       const rows = G().paytable, big = rows.findIndex(p => p.id === s.result.id);
-      // a royal flush (a natural one at Deuces Wild): the big card, once the hand is paid and saved
-      if (s.result.id === 'royal') await bigWin({ amount: o.pay, title: 'Royal flush!', x: o.pay / o.wagered, note: `${s.coins} coin${s.coins === 1 ? '' : 's'} of ${cage.fmt(s.coin)}`, top: true });
+      // a royal flush (a natural one at Deuces Wild), and four deuces: the big card, once the hand is paid and saved
+      const card = { royal: 'Royal flush!', 'four-deuces': 'Four deuces!' }[s.result.id];
+      if (card) await bigWin({ amount: o.pay, title: card, x: o.pay / o.wagered, note: `${s.coins} coin${s.coins === 1 ? '' : 's'} of ${cage.fmt(s.coin)}`, top: s.result.id === 'royal' });
       else { sound.chips(Math.min(10, 3 + (rows.length - 1 - big))); sound.win(big <= 2 ? 3 : big <= 5 ? 2 : 1); }
       float($('hand'), `+${cage.fmt(o.pay)}`);
     } else { table.say('Game over', 'lose'); sound.lose(); }

@@ -1269,7 +1269,7 @@ if (cageWants('odds-and-ends') || cageWants('cherry-bell')) {
 }
 
 // The big moment for the top prizes: Cherry Bell's three sevens on three coins, three lucky pennies on a line at Odds &
-// Ends, and a royal flush, each with its own title. The card comes up only once the round is paid and saved, so a
+// Ends, a royal flush, and four deuces at Deuces Wild, each with its own title. The card comes up only once the round is paid and saved, so a
 // reload under it pays nothing more. Ten times the bet or more at Cherry Bell chases the marquee's bulbs too.
 {
   const C = (r, s) => ({ r, s });
@@ -1284,6 +1284,7 @@ if (cageWants('odds-and-ends') || cageWants('cherry-bell')) {
     ['cherry-bell', { 'cherry-bell': { coins: 3, coin: 1 } }, 0, null, '#spin', 'Jackpot!', 1997],
     ['odds-and-ends', { 'odds-and-ends': { lines: 1, lineBet: 1 } }, null, pennies, '#spin', 'Lucky pennies!', 1249],
     ['video-poker', { cage: { chips: 995, wagered: 5, high: 1000, stakes: 1 }, 'video-poker': { phase: 'draw', coin: 1, coins: 5, hand: [C(10, 'h'), C(11, 'h'), C(12, 'h'), C(13, 'h'), C(1, 'h')], held: [true, true, true, true, true], deck: [], result: null, felt: 5 } }, null, null, '#deal', 'Royal flush!', 4995],
+    ['video-poker', { cage: { chips: 995, wagered: 5, high: 1000, stakes: 1 }, 'video-poker': { phase: 'draw', game: 'deuces', coin: 1, coins: 5, hand: [C(2, 'c'), C(2, 'd'), C(2, 'h'), C(2, 's'), C(9, 'c')], held: [true, true, true, true, true], deck: [], result: null, felt: 5 } }, null, null, '#deal', 'Four deuces!', 1995],
   ]) {
     if (!cageWants(id)) continue;
     const { p, ctx } = await sit(`${id}/?seen`, { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 }, ...saved }, { f });

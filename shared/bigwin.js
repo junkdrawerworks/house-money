@@ -1,6 +1,6 @@
 // The big moment: a card over the table that counts up to what came in, with coins raining for a big one. Motherlode's
-// big wins and its free spins' closing card, Cherry Bell's top prize, three lucky pennies at Odds & Ends and a royal
-// flush. A table calls it only once the round is settled and saved, so a reload during the card has nothing to pay.
+// big wins and its free spins' closing card, Cherry Bell's top prize, three lucky pennies at Odds & Ends, and a royal
+// flush and four deuces at Video Poker. A table calls it only once the round is settled and saved, so a reload during the card has nothing to pay.
 //
 //   await bigWin({ amount: 1000, title: 'Huge win', x: 50 })
 //   amount  what came in, counted up to
