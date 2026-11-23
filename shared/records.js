@@ -98,8 +98,26 @@ export function sittingAdd(x, id, { wagered = 0, back = 0 }, now) {
   s.at = now;
   return s;
 }
-// This sitting at table id: { rounds, wagered, net }.
+// This sitting at table id: { rounds, wagered, net }. Nothing, after Start over (here, or on another device).
 export function sitting(id) {
-  const t = sittingOf(getSitting(), Date.now()).tables[id];
+  const x = getSitting(), reset = doc().reset;
+  const t = reset && count(x?.at) <= reset.at ? null : sittingOf(x, Date.now()).tables[id];
   return t ? { rounds: t.rounds, wagered: t.wagered, net: t.back - t.wagered } : { rounds: 0, wagered: 0, net: 0 };
+}
+
+// ---------- Start over ----------
+// Every chip, the player's card, every record and milestone and this sitting go back to the start: 1,000 chips, a Red
+// card, nothing played. Sound, Quick play, the how-to-play sheets seen and each table's own choices stay. With Google
+// Drive saving on, the reset marker it leaves (shared/ledger.js) takes every other device back to the start at its next
+// sync. Not while chips are out on a table (here, or another device's) or free spins wait: then it does nothing and
+// returns false.
+export const FLOOR_CARD = 'house-money.floor-card';
+export const canStartOver = () => !cage.out().length && !cage.waiting().length && !cage.elsewhere().length;
+export function startOver() {
+  if (!canStartOver()) return false;
+  const fresh = L.startOver(L.device(), Date.now());
+  try { localStorage.removeItem(SITTING); localStorage.removeItem(FLOOR_CARD); } catch { /* storage off */ }
+  cage.save(fresh.cage);
+  save(fresh.records);
+  return true;
 }

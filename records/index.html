@@ -31,6 +31,15 @@
     <section class="ms" id="ms" aria-labelledby="msH"></section>
     <p class="note" id="kept">Everything here stays in this browser. Nothing is sent anywhere.</p>
     <p class="note" id="toDrive" hidden><a href="../#drive">Save to Google Drive on the floor.</a></p>
+    <section class="over" aria-label="Start over">
+      <button type="button" class="btn ghost small" id="startOver">Start over</button>
+      <div class="over-ask" id="overAsk" hidden>
+        <p id="overWhat"></p>
+        <div class="over-btns"><button type="button" class="btn gold small" id="overYes">Start over</button>
+          <button type="button" class="btn ghost small" id="overNo">Keep everything</button></div>
+      </div>
+      <p class="note" id="overDone" aria-live="polite"></p>
+    </section>
   </main>
   <footer class="jd-foot">
     <a href="https://junkdrawer.works/">Part of junkdrawer.works</a>

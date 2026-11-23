@@ -341,3 +341,38 @@ test('milestones put together: every one earned on either copy, on the earlier d
   // a file from before milestones has none
   assert.deepEqual(L.cleanRecords({ v: 1, dev: {} }).ms, {});
 });
+
+test('Start over: the copy with the later marker is kept whole, in either order, and play after it adds up as usual', () => {
+  // a phone and a laptop that have played and synced
+  const phone = { cage: L.cleanCage(null), records: L.cleanRecords(null) };
+  assert.ok(L.take(phone.cage, 'P', 300)); L.note(phone.records, 'P', 'craps', { wagered: 300, back: 0 }, '2026-11-20');
+  phone.records.ms.royal = '2026-11-20';
+  const laptop = { cage: L.mergeCage(phone.cage, null), records: L.mergeRecords(phone.records, null) };
+  assert.ok(L.take(laptop.cage, 'L', 100)); L.pay(laptop.cage, 'L', 400); L.note(laptop.records, 'L', 'roulette', { wagered: 100, back: 400 }, '2026-11-21');
+  // the phone starts over; the laptop, not yet told, plays on
+  const fresh = L.startOver('P', 5000);
+  assert.deepEqual(L.cageTotals(fresh.cage), { chips: 1000, wagered: 0, high: 1000, stakes: 1 });
+  assert.deepEqual([fresh.records.dev, fresh.records.ms, fresh.cage.told], [{}, {}, 0]);
+  assert.ok(L.take(laptop.cage, 'L', 50));
+  for (const [x, y] of [[fresh, laptop], [laptop, fresh]]) {
+    const c = L.mergeCage(x.cage, y.cage), r = L.mergeRecords(x.records, y.records);
+    assert.equal(L.canon(c), L.canon(fresh.cage), 'the old cage came back');
+    assert.equal(L.canon(r), L.canon(fresh.records), 'the old Records came back');
+  }
+  // a file from Drive keeps the marker
+  assert.deepEqual(L.cleanBody(JSON.parse(JSON.stringify({ app: 'house-money', ...fresh }))).cage.reset, { at: 5000, by: 'P' });
+  // after it, both play on the same marker and put together as usual
+  const p2 = { cage: structuredClone(fresh.cage), records: structuredClone(fresh.records) };
+  const l2 = { cage: L.mergeCage(laptop.cage, fresh.cage), records: L.mergeRecords(laptop.records, fresh.records) };
+  assert.ok(L.take(p2.cage, 'P', 10)); L.note(p2.records, 'P', 'blackjack', { wagered: 10, back: 0 }, '2026-11-22');
+  assert.ok(L.take(l2.cage, 'L', 20)); L.pay(l2.cage, 'L', 40); L.note(l2.records, 'L', 'blackjack', { wagered: 20, back: 40 }, '2026-11-22');
+  const c = L.mergeCage(p2.cage, l2.cage), r = L.mergeRecords(l2.records, p2.records);
+  assert.equal(L.cageTotals(c).chips, 1010);
+  assert.equal(L.recordsTotals(r).tables.blackjack.rounds, 2);
+  assert.deepEqual(c.reset, { at: 5000, by: 'P' });
+  assert.equal(L.canon(L.mergeCage(c, l2.cage)), L.canon(c));
+  // a later Start over wins over an earlier one; the device breaks a tie
+  const b = L.startOver('L', 6000), a2 = L.startOver('A', 6000);
+  assert.deepEqual(L.mergeCage(fresh.cage, b.cage).reset, { at: 6000, by: 'L' });
+  assert.deepEqual(L.mergeCage(b.cage, a2.cage).reset, L.mergeCage(a2.cage, b.cage).reset);
+});

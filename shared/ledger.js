@@ -17,13 +17,19 @@
 //   forgiven  what the cage covered when two devices bet the same chips while apart (see mergeCage)
 //   told   the highest player's card a table has announced (0 Red, 1 Silver, 2 Gold, 3 Black), so it's said once,
 //          whichever tab or device gets there; it only goes up, so of two copies the larger is the newer
+//   reset  Start over's marker, { at, by }, or null (below)
 //
 // Records, under house-money.records:
 //   { v: 1, dev: { <device>: { since, tables: { blackjack: { rounds, wagered, back, best, bestOn, add, top } } } },
 //     ms: { royal: '2026-11-30' } }
 //   back is every chip paid back to the rack (up or down = back − wagered); add holds a table's own counters, summed
 //   across devices ({ blackjacks: 3 }), and top the ones that keep the highest ({ longestHand: 9 }). ms: the
-//   milestones earned (shared/milestones.js), each with the day it was first earned on any device.
+//   milestones earned (shared/milestones.js), each with the day it was first earned on any device. reset: as the cage's.
+//
+// Start over (on Records) puts a reset marker in both, { at, by }: when it was done and on which device. Two copies with
+// different markers aren't put together: the one with the later marker is kept whole and the other dropped, so the old
+// totals of a device that hadn't heard yet can't come back. That includes anything it played after the reset and before
+// it next synced. Copies with the same marker (or none) are put together as above.
 //
 // What it guarantees: Records and the chips bet on the player's card come out exact whatever order devices sync in
 // and however many syncs go missing. The stack comes out exact whenever each device syncs as it opens and as it's
@@ -51,6 +57,18 @@ const keys = (a, b) => [...new Set([...Object.keys(a), ...Object.keys(b)])].sort
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const day = v => (typeof v === 'string' && DAY.test(v) ? v : null);
 const earlier = (a, b) => (!a ? b : !b ? a : a <= b ? a : b);
+
+// Start over's marker: { at, by }, or null for a ledger never started over. later(a, b): of two copies, the one with the
+// later marker (the device id breaks a tie), or null when their markers are the same.
+function cleanReset(x) {
+  const at = whole(obj(x).at), by = String(obj(x).by || '');
+  return at ? { at, by } : null;
+}
+const stamp = r => (r ? `${String(r.at).padStart(16, '0')} ${r.by}` : '');
+function later(a, b) {
+  const x = stamp(a.reset), y = stamp(b.reset);
+  return x === y ? null : x > y ? a : b;
+}
 
 // The same object as JSON with every key in order, so two copies with the same contents compare equal.
 export function canon(x) {
@@ -99,7 +117,7 @@ export function cleanCage(x) {
     if (!/^\d+$/.test(n) || +n < 2) continue;
     stakes[+n] = { amount: whole(obj(s).amount), by: String(obj(s).by || ''), at: whole(obj(s).at) };
   }
-  return floor({ v: V, dev, stakes, forgiven: whole(x.forgiven), told: Math.min(3, whole(x.told)) });
+  return floor({ v: V, dev, stakes, forgiven: whole(x.forgiven), told: Math.min(3, whole(x.told)), reset: cleanReset(x.reset) });
 }
 
 // What the cage holds: { chips, wagered, high, stakes } (stakes counts the first 1,000 too).
@@ -125,6 +143,8 @@ function floor(d) {
 // if the stack would be below 0, the cage covers it.
 export function mergeCage(a, b) {
   a = cleanCage(a); b = cleanCage(b);
+  const won = later(a, b);
+  if (won) return structuredClone(won);   // started over since: the older copy is dropped
   const dev = {};
   for (const id of keys(a.dev, b.dev)) {
     const x = a.dev[id], y = b.dev[id];
@@ -144,7 +164,7 @@ export function mergeCage(a, b) {
       : x.amount !== y.amount ? (x.amount > y.amount ? x : y)
         : canon(x) <= canon(y) ? x : y);
   }
-  return floor({ v: V, dev, stakes, forgiven: Math.max(a.forgiven, b.forgiven), told: Math.max(a.told, b.told) });
+  return floor({ v: V, dev, stakes, forgiven: Math.max(a.forgiven, b.forgiven), told: Math.max(a.told, b.told), reset: a.reset });
 }
 
 const section = (d, id) => (d.dev[id] ||= zero());
@@ -233,13 +253,15 @@ export function cleanRecords(x) {
     for (const [tb, t] of entries(obj(s).tables)) tables[tb] = cleanTable(t);
     dev[id] = { since: day(obj(s).since), tables };
   }
-  return { v: V, dev, ms: cleanMs(obj(x).ms) };
+  return { v: V, dev, ms: cleanMs(obj(x).ms), reset: cleanReset(obj(x).reset) };
 }
 // Two copies of Records, put together: each device's counters at their larger value, its biggest win from the copy
 // with the larger one (the earlier day on a tie), and the earlier day it started counting; the milestones of both,
 // each on the earlier day.
 export function mergeRecords(a, b) {
   a = cleanRecords(a); b = cleanRecords(b);
+  const won = later(a, b);
+  if (won) return structuredClone(won);   // started over since: the older copy is dropped
   const dev = {};
   for (const id of keys(a.dev, b.dev)) {
     const x = a.dev[id], y = b.dev[id];
@@ -258,7 +280,14 @@ export function mergeRecords(a, b) {
   }
   const ms = {};
   for (const k of keys(a.ms, b.ms)) ms[k] = earlier(a.ms[k], b.ms[k]);
-  return { v: V, dev, ms };
+  return { v: V, dev, ms, reset: a.reset };
+}
+
+// Start over, on device id at time `at` (ms): a fresh cage (1,000 chips, a Red card, nothing announced) and empty
+// Records, each with the marker that tells other devices' copies to give way.
+export function startOver(id, at) {
+  const reset = { at: whole(at), by: String(id) };
+  return { cage: cleanCage({ reset }), records: cleanRecords({ reset }) };
 }
 // What Records shows: { since, tables: { blackjack: { rounds, wagered, net, best, bestOn, ...add, ...top } } }, every
 // device's counters summed (top counters and the biggest win at their highest), counting since the earliest day.

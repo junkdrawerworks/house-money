@@ -555,6 +555,36 @@ if (wants(17)) {
   await P.ctx.close(); await Q.ctx.close();
 }
 
+// ================= 18. Start over on one device =================
+// A phone and a laptop that have both played and synced. The phone starts over on Records; once it has synced, the
+// laptop's next sync takes it back to the start too (1,000 chips, nothing in Records, no milestones), rather than
+// putting its old totals back, and the file holds the reset marker. Play after it adds up on both as usual.
+if (wants(18)) {
+  const g = fakeGoogle();
+  const P = await device(g), Q = await device(g);
+  await turnOn(P.p); await turnOn(Q.p);
+  await play(P.p, [[100, 0], [50, 200]]); await synced(P.p);
+  await play(Q.p, [[200, 600]]); await synced(Q.p); await synced(P.p);
+  await shows(P.p, 1450, '18: the phone before'); await shows(Q.p, 1450, '18: the laptop before');
+  const rec = await page(P.ctx, 'records/');
+  await rec.click('#startOver');
+  assert.match(await rec.textContent('#overWhat'), / On every device that saves to your Google Drive too\./, '18: Start over doesn\'t say it reaches the other devices');
+  await rec.click('#overYes');
+  await rec.close();
+  await shows(P.p, 1000, '18: the phone after Start over');
+  await synced(P.p);
+  assert.equal(inDrive(g).chips, 1000, '18: the file still holds the old stack');
+  assert.equal(body(g).cage.reset?.by, await devId(P.p), '18: the file has no reset marker');
+  await synced(Q.p);
+  await shows(Q.p, 1000, '18: the laptop after the phone started over');
+  assert.deepEqual(await recs(Q.p), {}, '18: the laptop kept its Records');
+  assert.equal((await totals(Q.p)).wagered, 0, '18: the laptop kept its player\'s card');
+  await play(Q.p, [[25, 75]]); await synced(Q.p); await synced(P.p);
+  await shows(P.p, 1050, '18: the phone after the laptop played on'); await shows(Q.p, 1050, '18: the laptop after it played on');
+  assert.equal(roundsInDrive(g, 'blackjack'), 1, '18: Records in Drive after Start over');
+  await P.ctx.close(); await Q.ctx.close();
+}
+
 assert.deepEqual(problems, [], 'problems while using it');
 await browser.close();
 server.close();

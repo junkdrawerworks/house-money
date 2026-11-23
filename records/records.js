@@ -1,10 +1,10 @@
 // Records: the whole floor's totals, then each table's rounds (in its own word: hands, rolls, spins), chips bet, net
-// and biggest win, how this sitting has gone there, and its own counters; then the milestones.
+// and biggest win, how this sitting has gone there, and its own counters; then the milestones, and Start over.
 
 import * as cage from '../shared/cage.js';
 import * as records from '../shared/records.js';
 import { TABLES, units } from '../shared/tables.js';
-import { outWords, upDown } from '../shared/table.js';
+import { outWords, upDown, outLine, waitLine, elsewhereLine } from '../shared/table.js';
 import { drive } from '../shared/sync.js';
 import { MILESTONES } from '../shared/milestones.js';
 
@@ -54,6 +54,34 @@ function draw() {
 }
 
 draw();
+
+// Start over, at the foot: the first tap says what goes, and a second starts over. Not while chips are out on a table
+// or free spins wait (shared/records.js), and then it says where they are instead.
+function overAsk() {
+  const ok = records.canStartOver();
+  $('overYes').hidden = !ok;
+  $('overNo').textContent = ok ? 'Keep everything' : 'Close';
+  if (!ok) {
+    const away = cage.out(), free = cage.waiting(), there = cage.elsewhere();
+    const where = [away.length ? outLine(away, '../', { stake: false }) : '', free.length ? waitLine(free, '../') : '',
+      there.length ? elsewhereLine(there, away.length > 0 || free.length > 0) : ''].filter(Boolean).join(' ');
+    $('overWhat').innerHTML = `Not while chips are in play. ${where} Play them out or pick them up first.`;
+    return;
+  }
+  const c = cage.read(), card = cage.tier(c.wagered).name, ms = Object.keys(records.milestones()).length;
+  $('overWhat').textContent = `Your ${fmt(c.chips)} chip${c.chips === 1 ? '' : 's'}, your ${card} card and every record${ms ? ' and milestone' : ''} go back to the start: ${fmt(cage.START)} chips, a Red card, nothing played.${drive.isOn() ? ' On every device that saves to your Google Drive too.' : ''} Sound, Quick play and the how-to-play sheets stay as they are.`;
+}
+const asking = on => { $('overAsk').hidden = !on; $('startOver').hidden = on; if (on) { overAsk(); $('overDone').textContent = ''; } };
+$('startOver').addEventListener('click', () => { asking(true); ($('overYes').hidden ? $('overNo') : $('overYes')).focus(); });
+$('overNo').addEventListener('click', () => { asking(false); $('startOver').focus(); });
+$('overYes').addEventListener('click', () => {
+  if (!records.startOver()) { overAsk(); return; }
+  asking(false);
+  $('overDone').textContent = `A fresh start: ${fmt(cage.START)} chips and a Red card.`;
+  $('startOver').focus();
+});
+const again = () => { draw(); if (!$('overAsk').hidden) overAsk(); };
+
 // With Google Drive saving on, Records count every device that saves there, and say where they're kept. Off, at the
 // project's own address, a line points to the floor's card that turns it on (nowhere else can it be turned on).
 function driveLines() {
@@ -64,6 +92,6 @@ function driveLines() {
 }
 driveLines();
 drive.watch(driveLines);
-addEventListener('storage', draw);
-addEventListener('house-money:cage', draw);
-addEventListener('house-money:records', draw);
+addEventListener('storage', again);
+addEventListener('house-money:cage', again);
+addEventListener('house-money:records', again);

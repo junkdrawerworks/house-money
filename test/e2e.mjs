@@ -2166,6 +2166,43 @@ if (cageWants('records')) {
   await ctx.close();
 }
 
+// Start over, at the foot of Records: the first tap says what goes (4,210 chips, a Gold card, every record and
+// milestone), Keep everything leaves it all, and Start over goes back to 1,000 chips, a Red card and nothing played,
+// this sitting and the floor's card included, keeping the sound, the sheets seen and each table's chip. With 200 out
+// on the craps layout it won't, and says where they are.
+if (cageWants('records')) {
+  {
+    const { p, ctx } = await sit('records/', { cage: { chips: 4210, wagered: 52000, high: 12000, stakes: 3 },
+      records: { since: '2026-11-01', tables: { blackjack: { rounds: 212, wagered: 52000, net: 1210, best: 750, bestOn: '2026-11-20', blackjacks: 9 } }, ms: { royal: '2026-11-20' } },
+      sitting: { at: Date.now() - 60e3, tables: { blackjack: { rounds: 3, wagered: 30, back: 0 } } }, 'floor-card': 2, seen: { blackjack: 1 }, sound: false, denom: { blackjack: 25 } });
+    assert.equal(await p.isVisible('#overAsk'), false, 'Records: Start over asks before it\'s tapped');
+    await p.click('#startOver');
+    assert.equal(await p.textContent('#overWhat'), 'Your 4,210 chips, your Gold card and every record and milestone go back to the start: 1,000 chips, a Red card, nothing played. Sound, Quick play and the how-to-play sheets stay as they are.', 'Records: what Start over says goes');
+    await p.click('#overNo');
+    assert.equal((await cageOf(p)).chips, 4210, 'Records: Keep everything changed the chips');
+    await p.click('#startOver'); await p.click('#overYes');
+    assert.deepEqual(await cageOf(p), { chips: 1000, wagered: 0, high: 1000, stakes: 1 }, 'Records: Start over left the chips');
+    assert.deepEqual(await recordsOf(p), {}, 'Records: Start over left a record');
+    const kept = await p.evaluate(() => Object.fromEntries(['seen', 'sound', 'denom', 'sitting', 'floor-card', 'device'].map(k => [k, localStorage.getItem(`house-money.${k}`)])));
+    assert.deepEqual(kept, { seen: '{"blackjack":1}', sound: 'false', denom: '{"blackjack":25}', sitting: null, 'floor-card': null, device: DEV }, 'Records: what Start over keeps and clears');
+    assert.equal(await p.textContent('#overDone'), 'A fresh start: 1,000 chips and a Red card.');
+    assert.match((await p.textContent('#totals')).replace(/\s+/g, ' '), /^ ?1,000chips now 1,000the most you’ve held 0up or down, all tables Nothingbet yet Redplayer’s card 0stakes from the cage ?$/, 'Records: the totals after Start over');
+    assert.equal(await p.locator('.rec .none').count(), TABLES.length, 'Records: a table still has rounds after Start over');
+    assert.equal(await p.locator('#ms li.got').count(), 0, 'Records: a milestone is still earned after Start over');
+    await p.goto(`${base}blackjack/?seen`); await p.waitForTimeout(300);
+    assert.equal(await p.textContent('#purse'), '1,000', 'Blackjack: the stack after Start over');
+    await ctx.close();
+  }
+  {
+    const { p, ctx } = await sit('records/', { cage: { chips: 800 }, craps: { felt: 200, bets: { pass: 200 } } });
+    await p.click('#startOver');
+    assert.equal(await p.textContent('#overWhat'), 'Not while chips are in play. 200 still out on Craps. Play them out or pick them up first.', 'Records: Start over with chips out');
+    assert.equal(await p.isVisible('#overYes'), false, 'Records: Start over can go ahead with chips out');
+    assert.equal((await cageOf(p)).chips, 800);
+    await ctx.close();
+  }
+}
+
 // Chips left on a table are still yours, and the floor and Records say where: 200 on the pass line and 100 on the field
 // at craps, left there. The tiles say what's waiting at each table: the craps layout, a blackjack hand dealt and
 // Motherlode's free spins.

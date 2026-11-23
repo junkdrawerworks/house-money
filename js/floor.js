@@ -64,7 +64,7 @@ function stats() {
 }
 
 // A new player's card says so on the floor, once: on the first visit to the floor after the card goes up (this
-// device keeps the highest card it has shown).
+// device keeps the highest card it has shown, and the card it has now after Start over).
 const SHOWN = 'house-money.floor-card';
 let newCard = null;
 {
@@ -72,6 +72,8 @@ let newCard = null;
   try { was = Number(localStorage.getItem(SHOWN)) || 0; } catch { /* storage off */ }
   const i = cage.tierIndex();
   if (i > was) { newCard = cage.TIERS[i]; try { localStorage.setItem(SHOWN, String(i)); } catch { /* storage off */ } }
+  // started over (here, or on another device that saves to Google Drive): the card goes up from Red again
+  else if (i < was) { try { localStorage.setItem(SHOWN, String(i)); } catch { /* storage off */ } }
 }
 
 function wallet(c) {
