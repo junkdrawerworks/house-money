@@ -10,8 +10,8 @@
 //   place4…place10            place bets (off on the come-out)
 //   field                     one roll: 3, 4, 9, 10, 11 even money, 2 double, 12 triple
 //   hard4…hard10              the hardways (off on the come-out)
-// Place bets, hardways and come odds can be called working on the come-out too (roll's working: the menu's switch).
 //   any7, anyCraps, yo, aces, aceDeuce, boxcars    one-roll bets in the middle
+// Place bets, hardways and come odds can be called working on the come-out too (roll's working: the menu's switch).
 //
 // Winning bets that a dealer would leave up stay on the layout (line, place, field, hardways, props); the winnings go
 // to the rack. Odds, and come bets that travelled, come back to the rack with their winnings.
