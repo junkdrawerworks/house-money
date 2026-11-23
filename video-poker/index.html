@@ -4,9 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Video Poker · House Money</title>
-  <meta name="description" content="Video Poker at House Money: Jacks or Better on a full-pay machine. Hold the cards you want, draw for the rest, and bet five coins for the 4,000-coin royal. Play chips only.">
+  <meta name="description" content="Video Poker at House Money: Jacks or Better, Bonus Poker or Deuces Wild, picked on the marquee. Hold the cards you want, draw for the rest, and bet five coins for the 4,000-coin royal. Play chips only.">
   <meta property="og:title" content="Video Poker · House Money">
-  <meta property="og:description" content="Jacks or Better on a full-pay machine.">
+  <meta property="og:description" content="Jacks or Better, Bonus Poker or Deuces Wild.">
   <meta property="og:image" content="https://house-money.junkdrawer.works/og.png">
   <meta property="og:url" content="https://house-money.junkdrawer.works/video-poker/">
   <meta name="twitter:card" content="summary_large_image">
@@ -23,8 +23,14 @@
   <header class="bar"></header>
   <main>
     <div class="cabinet">
-      <p class="topper"><span>Jacks or Better</span></p>
+      <div class="topper">
+        <button type="button" class="game-btn" id="gameBtn" aria-expanded="false" aria-controls="games"><span id="gameName">Jacks or Better</span><i aria-hidden="true"></i></button>
+      </div>
       <div class="crt">
+        <div class="games" id="games" hidden>
+          <p class="games-head">Pick a game</p>
+          <div class="games-list" id="gamesList" role="group" aria-label="Games"></div>
+        </div>
         <table class="paytable" id="paytable" aria-label="The pay table, in coins">
           <tbody id="payRows"></tbody>
         </table>

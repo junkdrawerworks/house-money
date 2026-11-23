@@ -1476,6 +1476,47 @@ if (cageWants('video-poker')) {
     await ctx.close();
   }
 }
+// Video Poker's three games: the marquee opens the list on the screen, a pick changes the pay table and the help and is
+// remembered, the marquee won't change games mid-hand, and a hand pays by its own game's table (four of a kind with a
+// deuce pays 4 a coin at Deuces Wild; four aces 80 at Bonus Poker, counted in Records as a four of a kind).
+if (cageWants('video-poker')) {
+  const C = (r, s) => ({ r, s });
+  const { p, ctx } = await sit('video-poker/?fast&seen', { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 } });
+  const rows = () => p.$$eval('#payRows tr', trs => trs.map(tr => tr.children[0].textContent));
+  assert.deepEqual([(await rows()).length, (await rows())[0], await p.textContent('#gameName')], [9, 'Royal Flush', 'Jacks or Better'], 'Video Poker: Jacks or Better to start');
+  await p.click('#gameBtn');
+  assert.equal(await p.isVisible('#games'), true, 'Video Poker: the marquee didn\'t open the list of games');
+  assert.deepEqual(await p.$$eval('#gamesList .pick b', bs => bs.map(b => b.textContent)), ['Jacks or Better', 'Bonus Poker', 'Deuces Wild']);
+  assert.equal(await p.getAttribute('#gamesList [data-game="jacks"]', 'aria-pressed'), 'true');
+  await p.click('#gamesList [data-game="deuces"]');
+  assert.equal(await p.isVisible('#games'), false, 'Video Poker: the list stayed open after a pick');
+  assert.deepEqual([await p.textContent('#gameName'), (await rows()).length, (await rows())[1]], ['Deuces Wild', 10, 'Four Deuces'], 'Video Poker: the pick didn\'t change the game');
+  assert.match(await p.$eval('.sheet .help', el => el.textContent), /Not So Ugly Ducks[\s\S]*99\.73%/, 'Video Poker: the help sheet is still on Jacks or Better');
+  await p.reload(); await p.waitForTimeout(400);
+  assert.equal(await p.textContent('#gameName'), 'Deuces Wild', 'Video Poker: the game wasn\'t remembered');
+  // mid-hand: a deuce and two nines held, a nine to come
+  await p.evaluate(h => localStorage.setItem('house-money.video-poker', JSON.stringify(h)), { phase: 'draw', game: 'deuces', coin: 1, coins: 5,
+    hand: [C(2, 'c'), C(9, 'd'), C(9, 'h'), C(4, 's'), C(13, 'd')], held: [true, true, true, false, false], deck: [C(9, 's'), C(3, 'h')], result: null, felt: 5 });
+  await p.evaluate(() => import('/shared/cage.js').then(m => m.take(5)));
+  await p.reload(); await p.waitForTimeout(400);
+  assert.equal(await p.isDisabled('#gameBtn'), true, 'Video Poker: the game could change mid-hand');
+  await p.click('#deal');
+  await until(async () => (await p.evaluate(() => JSON.parse(localStorage.getItem('house-money.video-poker')).paid)) === true, 3000, 'Video Poker: the draw never finished');
+  let b = await balanced(p, 'Video Poker, four of a kind at Deuces Wild');
+  assert.deepEqual([b.chips, b.recs['video-poker'].four], [1015, undefined], 'Video Poker: four of a kind with a deuce pays 20 for five coins, and isn\'t counted');
+  assert.equal(await p.isDisabled('#gameBtn'), false, 'Video Poker: the marquee stayed off after the hand');
+  // Bonus Poker: three aces held, the fourth to come
+  await p.click('#gameBtn'); await p.click('#gamesList [data-game="bonus"]');
+  await p.evaluate(h => localStorage.setItem('house-money.video-poker', JSON.stringify(h)), { phase: 'draw', game: 'bonus', coin: 1, coins: 5,
+    hand: [C(1, 'c'), C(1, 'd'), C(1, 'h'), C(4, 's'), C(13, 'd')], held: [true, true, true, false, false], deck: [C(1, 's'), C(3, 'h')], result: null, felt: 5 });
+  await p.evaluate(() => import('/shared/cage.js').then(m => m.take(5)));
+  await p.reload(); await p.waitForTimeout(400);
+  await p.click('#deal');
+  await until(async () => (await p.evaluate(() => JSON.parse(localStorage.getItem('house-money.video-poker')).paid)) === true, 3000, 'Video Poker: the Bonus Poker draw never finished');
+  b = await balanced(p, 'Video Poker, four aces at Bonus Poker');
+  assert.deepEqual([b.chips, b.recs['video-poker'].four, (await p.textContent('#say')).startsWith('Four Aces! Win 400')], [1410, 1, true], 'Video Poker: four aces at Bonus Poker');
+  await ctx.close();
+}
 // Craps: 10 on the pass line, the dice rigged to 3 and 4, and a reload half a second after Roll, the dice in the air.
 if (cageWants('craps')) {
   const { p, ctx } = await sit('craps/?seen', {

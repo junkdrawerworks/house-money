@@ -18,7 +18,9 @@ export const EXTRA = {
   roulette: { straightHits: 'Straight-up hits', zeros: 'Zeros' },
   craps: { pointsMade: 'Points made', longestHand: 'Longest hand (rolls)' },
   baccarat: { player: 'Player wins', banker: 'Banker wins', tie: 'Ties', naturals: 'Naturals' },
-  'video-poker': { royal: 'Royal flushes', 'straight-flush': 'Straight flushes', four: 'Four of a kind', 'full-house': 'Full houses' },
+  // straight flushes, fours of a kind and full houses at Jacks or Better and Bonus Poker (with deuces wild they're everyday hands)
+  'video-poker': { royal: 'Royal flushes', 'straight-flush': 'Straight flushes', four: 'Four of a kind', 'full-house': 'Full houses',
+    'four-deuces': 'Four deuces', 'wild-royal': 'Wild royal flushes', five: 'Five of a kind' },
   'cherry-bell': { jackpots: 'Jackpots' },
   'odds-and-ends': { jackpots: 'Jackpots' },
   motherlode: { features: 'Free-spin features', feature: 'Most won in free spins' },

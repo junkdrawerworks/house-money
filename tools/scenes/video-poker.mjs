@@ -12,6 +12,8 @@ export async function go(page, base) {
     localStorage.setItem('house-money.device', 'd-shots');
     localStorage.setItem('house-money.cage', JSON.stringify((await import('/shared/ledger.js')).cageFrom({ chips: 1840, wagered: 9600, high: 2600, stakes: 1 }, 'd-shots')));
     localStorage.setItem('house-money.video-poker.chip', '5');
+    // four of a kind earned before, so the line is just the win, without the milestone
+    localStorage.setItem('house-money.records', JSON.stringify({ v: 1, ms: { four: '2026-11-01' }, dev: {} }));
     localStorage.setItem('house-money.video-poker', JSON.stringify({
       phase: 'draw', coins: 5, coin: 5, hand, deck, held: [true, true, false, true, false], result: null, felt: 25,
     }));

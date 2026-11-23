@@ -22,7 +22,7 @@ export const TABLES = [
   // up to five coins a hand, each up to the limit
   { id: 'video-poker', name: 'Video Poker', min: 1, max: 100, unit: 'hand', coins: VP_COINS,
     top: lim => 5 * biggest(VP_COINS, lim), coinsLine: lim => `five coins of up to ${biggest(VP_COINS, lim).toLocaleString('en-US')}`,
-    what: 'Jacks or Better on a full-pay machine. Hold the cards you want, draw for the rest, and bet five coins for the royal.' },
+    what: 'Jacks or Better, Bonus Poker or Deuces Wild, picked on the marquee. Hold the cards you want, draw for the rest, and bet five coins for the royal.' },
   // up to three coins a spin, all three together within the limit
   { id: 'cherry-bell', name: 'Cherry Bell', min: 1, max: 100, slot: true, unit: 'spin', coins: CB_COINS,
     top: lim => 3 * biggest(CB_COINS, lim / 3),

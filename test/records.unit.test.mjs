@@ -6,7 +6,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { EXTRA, sittingAdd, sittingOf, AWAY } from '../shared/records.js';
 import { TABLES, units } from '../shared/tables.js';
-import { PAYTABLE } from '../video-poker/js/poker.js';
+import { GAMES, counters } from '../video-poker/js/poker.js';
 import { evalLine } from '../shared/reels.js';
 import * as oe from '../odds-and-ends/js/machine.js';
 
@@ -31,7 +31,7 @@ async function written(id) {
 // Keys built from a value rather than written out: Video Poker counts every winning hand by its pay table id, and
 // Baccarat each coup's winner.
 const COMPUTED = {
-  'video-poker': PAYTABLE.map(p => p.id),
+  'video-poker': GAMES.flatMap(g => g.paytable.flatMap(p => Object.keys(counters(p.id, g.id)))),
   baccarat: ['player', 'banker', 'tie'],
 };
 // Written but left off the Records page on purpose.

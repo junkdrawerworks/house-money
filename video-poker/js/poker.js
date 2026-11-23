@@ -130,7 +130,7 @@ function jacksCard(cards, made) {
   const names = { royal: 'royal flush', 'straight-flush': 'straight flush', four: 'four of a kind', 'full-house': 'full house', flush: 'flush', straight: 'straight' };
   if (['royal', 'straight-flush', 'four'].includes(made)) return out(made === 'four' ? lights(cards, 'four') : ALL, `Keep the ${names[made]}.`);
   let x = find(cards, 4, idx => suited(idx) && idx.every(i => royalRanks(cards[i])));
-  if (x) return out(x, 'Four to a royal flush beats anything but a made royal, straight flush or four of a kind.');
+  if (x) return out(x, 'Four to a royal flush, even over a flush or straight.');
   if (['full-house', 'flush'].includes(made)) return out(ALL, `Keep the ${names[made]}.`);
   if (made === 'three') return out(lights(cards, 'three'), 'Keep the three of a kind and draw two.');
   if (made === 'straight') return out(ALL, 'Keep the straight.');
@@ -143,14 +143,14 @@ function jacksCard(cards, made) {
   x = find(cards, 4, idx => suited(idx));
   if (x) return out(x, 'Four to a flush.');
   x = find(cards, 4, idx => straight4(idx) && idx.every(i => cards[i].r >= 10 && cards[i].r <= 13));
-  if (x) return out(x, 'Ten, jack, queen and king: four to a straight that can fill at both ends.');
+  if (x) return out(x, 'Ten, jack, queen, king: four to a straight.');
   const counts = countRanks(cards);
   const low = cards.map((c, i) => (counts.get(c.r) === 2 ? i : -1)).filter(i => i >= 0);
   if (low.length === 2) return out(low, 'Keep the low pair: it beats any straight draw.');
   x = find(cards, 4, idx => straight4(idx) && outside(idx));
   if (x) return out(x, 'Four to an open-ended straight.');
   x = find(cards, 3, idx => sf3(idx) && sfType(idx) === 1);
-  if (x) return out(x, 'Three to a straight flush, with as many high cards as gaps.');
+  if (x) return out(x, 'Three to a straight flush, a high card per gap.');
   const pair = (test, why) => { const y = find(cards, 2, idx => idx.every(i => isHigh(cards[i])) && test(idx)); return y && out(y, why); };
   let p = pair(idx => suited(idx) && has(idx, [11, 12]), 'Jack and queen of one suit.');
   if (p) return p;
@@ -208,20 +208,20 @@ function deucesCard(cards, made) {
   if (['wild-royal', 'five'].includes(made)) return out(ALL, `Keep the ${made === 'five' ? 'five of a kind' : 'wild royal flush'}.`);
   if (w === 3) return out(d, 'Keep the three deuces and draw two.');
   let x = w === 0 && find(cards, 4, royalDraw);
-  if (x) return out(x, 'Four to a royal flush: worth more than a straight flush.');
+  if (x) return out(x, 'Four to a royal, even over a straight flush.');
   if (made === 'straight-flush') return out(ALL, 'Keep the straight flush.');
   if (made === 'four') return out(set(), 'Keep the four of a kind and draw one.');
   x = withDeuces(4 - w, royalDraw);
   if (x) return out(x, 'Four to a royal flush, deuces and all.');
   if (w === 2) {
     x = withDeuces(2, good);
-    if (x) return out(x, 'Four to a straight flush: the deuces and two suited cards, in a row from 4-5 up or one apart from 5-7 up.');
+    if (x) return out(x, 'Four to a straight flush, from 4-5 or 5-7 up.');
     return out(d, 'Keep the two deuces and draw three.');
   }
   if (w === 1) {
     if (['full-house', 'flush'].includes(made)) return out(ALL, `Keep the ${made.replace('-', ' ')}.`);
     x = withDeuces(3, idx => sfDraw(idx) && (gaps(idx) === 0 || (gaps(idx) === 1 && lowest(idx) >= 4)));
-    if (x) return out(x, 'Four to a straight flush with no more than one card missing in the middle.');
+    if (x) return out(x, 'Four to a straight flush, at most one gap.');
     if (made === 'three') return out(set(), 'Keep the three of a kind.');
     if (made === 'straight') return out(ALL, 'Keep the straight.');
     x = withDeuces(3, sfDraw);
@@ -229,7 +229,7 @@ function deucesCard(cards, made) {
     x = withDeuces(2, idx => royalDraw(idx) && !idx.some(i => cards[i].r === 1));
     if (x) return out(x, 'Three to a royal flush.');
     x = withDeuces(2, good);
-    if (x) return out(x, 'Three to a straight flush: the deuce and two suited cards, in a row from 4-5 up or one apart from 5-7 up.');
+    if (x) return out(x, 'Three to a straight flush, from 4-5 or 5-7 up.');
     x = withDeuces(2, royalDraw);
     if (x) return out(x, 'Three to a royal flush.');
     return out(d, 'Keep the deuce and draw four.');
@@ -248,7 +248,7 @@ function deucesCard(cards, made) {
   const flush4 = find(cards, 4, suited);
   if (flush4) return out(flush4, 'Four to a flush: worth more than a pair here.');
   x = find(cards, 3, idx => sfDraw(idx) && gaps(idx) === 0 && lowest(idx) >= 5, tight);
-  if (x) return out(x, 'Three in a row to a straight flush, five or higher: worth more than a pair.');
+  if (x) return out(x, 'Three in a row to a straight flush, 5 or up.');
   if (pairs.length) return out(pairs, 'Keep the pair.');
   x = find(cards, 3, idx => sfDraw(idx) && gaps(idx) <= 1 && lowest(idx) >= 3, tight);
   if (x) return out(x, 'Three to a straight flush.');
@@ -286,8 +286,8 @@ export const GAMES = [
       { id: 'royal', name: 'Royal Flush', pays: ROYAL },
       { id: 'four-aces', name: 'Four Aces', per: 80, count: 'four' },
       { id: 'straight-flush', name: 'Straight Flush', per: 50 },
-      { id: 'four-low', name: 'Four 2s, 3s or 4s', per: 40, count: 'four' },
-      { id: 'four', name: 'Four 5s to Kings', per: 25 },
+      { id: 'four-low', name: 'Four 2–4', per: 40, count: 'four' },
+      { id: 'four', name: 'Four 5–K', per: 25 },
       { id: 'full-house', name: 'Full House', per: 8 },
       { id: 'flush', name: 'Flush', per: 5 },
       { id: 'straight', name: 'Straight', per: 4 },

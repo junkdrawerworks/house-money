@@ -1,4 +1,4 @@
-// Video Poker on screen: the coin size and coins, the deal, the holds, the draw and the pay.
+// Video Poker on screen: the game on the marquee, the coin size and coins, the deal, the holds, the draw and the pay.
 // The rules are in poker.js. The draw comes off the same shuffled deck as the deal, saved with it, so a reload shows
 // the same cards and a hand is never paid twice.
 
@@ -18,15 +18,35 @@ const T = byId('video-poker');
 const $ = id => document.getElementById(id);
 
 let s = load();
+const G = () => vp.game(s.game);
 // the coins in play: dealt and not drawn, or drawn and not yet paid (the coin size can't change till they're paid)
 const inPlay = () => s.phase === 'draw' || (s.phase === 'done' && s.paid === false);
 const onFelt = () => (inPlay() ? s.coins * s.coin : 0);
 
-const table = mountTable({
-  id: 'video-poker', name: T.name, min: T.min, max: T.max, felt: onFelt,
-  help: `
+const pct = x => `${(100 * x).toFixed(2)}%`;
+const PAYS = {
+  jacks: `<p>This is a full-pay machine (nine for a full house, six for a flush), the best Jacks or Better there is.
+    Everything pays the same per coin whether you play one coin or five, except the royal flush: 250 a coin up to four
+    coins, and 4,000 for five. So play five when you can.</p>`,
+  bonus: `<p>Bonus Poker pays like Jacks or Better, except four of a kind: 80 a coin for four aces, 40 for four 2s, 3s or
+    4s, and 25 for the rest. A full house pays 8 and a flush 5 (the 8/5 machine). Everything pays the same per coin
+    whether you play one coin or five, except the royal flush: 250 a coin up to four coins, and 4,000 for five.</p>`,
+  deuces: `<p>Every 2 is wild: it stands for whatever card makes the hand best. A natural royal flush (no deuces in it)
+    pays 250 a coin, or 4,000 for five coins. Four deuces pay 200 a coin, a royal flush made with deuces 25, five of a
+    kind 16 and a straight flush 10; four of a kind and a full house 4, a flush 3, a straight 2 and three of a kind 1.
+    A pair or two pair pays nothing. This is the pay table known as Not So Ugly Ducks.</p>`,
+};
+const WINS = {
+  jacks: 'Anything from a pair of jacks up pays.',
+  bonus: 'Anything from a pair of jacks up pays, and four aces or four 2s, 3s or 4s pay extra.',
+  deuces: 'The four 2s are wild, and three of a kind is the lowest hand that pays.',
+};
+const helpFor = g => `
     <p>Five cards, one draw. Keep the cards you like, replace the rest, and the machine pays on what you end up with.
-    Anything from a pair of jacks up pays.</p>
+    ${WINS[g.id]}</p>
+    <h3>Three games</h3>
+    <p>Tap the red sign at the top for <b>Jacks or Better</b>, <b>Bonus Poker</b> or <b>Deuces Wild</b>. The machine
+    remembers your game, and it changes between hands, never during one.</p>
     <h3>Playing</h3>
     <ul>
       <li>Pick a <b>coin</b> size from the rack, and how many coins to play with <b>Bet one</b> (one to five).
@@ -34,15 +54,20 @@ const table = mountTable({
       <li><b>Deal</b>, then tap the cards you want to keep (or the Hold button under each). Tap again to let one go.</li>
       <li><b>Draw</b> replaces every card you didn’t hold.</li>
     </ul>
-    <h3>The pay table</h3>
-    <p>This is a full-pay machine (nine for a full house, six for a flush), the best Jacks or Better there is.
-    Everything pays the same per coin whether you play one coin or five, except the royal flush: 250 a coin up to four
-    coins, and 4,000 for five. So play five when you can.</p>
+    <h3>The pay table: ${g.name}</h3>
+    ${PAYS[g.id]}
     <h3>The strategy card</h3>
-    <p>The link under the buttons lights up the cards the standard strategy card would hold, and says which line of it
-    applies. Played that way, the machine gives back about 99.5% of what goes in over the long run.</p>
+    <p>The link under the buttons lights up the cards this game’s strategy card would hold, and says which line of it
+    applies (${g.wild ? '' : 'high cards are jacks, queens, kings and aces; '}a gap is a card missing from the middle of a
+    straight${g.wild ? ', and 4-5 or 5-7 up means two cards in a row from 4-5 upward, or one apart from 5-7 upward' : ''}).
+    Played perfectly, ${g.name} here pays back ${pct(g.back)} of what goes in over the long run. The strategy card is
+    simpler, and played its way the machine pays back ${pct(g.card)}.</p>
     <p>A new 52-card deck is shuffled for every hand.</p>
-    <p>The keyboard works too: 1 to 5 hold, and Enter deals and draws.</p>`,
+    <p>The keyboard works too: 1 to 5 hold, and Enter deals and draws.</p>`;
+
+const table = mountTable({
+  id: 'video-poker', name: T.name, min: T.min, max: T.max, felt: onFelt,
+  help: helpFor(G()),
   onStake: () => paint(),
   // the stack changed, here or in another tab
   onCage: () => { if (!busy) paint(); },
@@ -54,7 +79,7 @@ let busy = false;
 function load() {
   try {
     const x = JSON.parse(localStorage.getItem(KEY));
-    if (x && Array.isArray(x.hand) && typeof x.phase === 'string') return x;
+    if (x && Array.isArray(x.hand) && typeof x.phase === 'string') return { ...x, game: vp.game(x.game).id };
   } catch { /* first visit */ }
   return vp.fresh();
 }
@@ -64,8 +89,10 @@ function save() { s.felt = onFelt(); seat.write(KEY, s); }
 
 function paintPaytable() {
   const rows = $('payRows');
-  if (!rows.children.length) {
-    for (const p of vp.PAYTABLE) {
+  if (rows.dataset.game !== s.game) {
+    rows.dataset.game = s.game;
+    rows.replaceChildren();
+    for (const p of G().paytable) {
       const tr = document.createElement('tr');
       tr.dataset.id = p.id;
       tr.innerHTML = `<td>${p.name}</td>${p.pays.map(n => `<td>${n.toLocaleString('en-US')}</td>`).join('')}`;
@@ -120,7 +147,7 @@ function named(i) {
 function show(i, el) { turn(el, s.hand[i]); named(i); }
 
 function paintHolds() {
-  const lit = s.phase === 'done' && s.result ? vp.makers(s.hand, s.result.id) : [];
+  const lit = s.phase === 'done' && s.result ? vp.makers(s.hand, s.result.id, s.game) : [];
   slots.forEach((el, i) => {
     el.classList.toggle('on', s.phase === 'draw' && s.held[i]);
     el.querySelector('.hold').disabled = busy || s.phase !== 'draw';
@@ -150,6 +177,7 @@ function paint() {
   $('deal').textContent = s.phase === 'draw' ? 'Draw' : 'Deal';
   $('deal').disabled = busy || (betting && s.coins * s.coin > c.chips);
   $('hint').hidden = s.phase !== 'draw';
+  paintGame();
   paintMeters();
   paintHolds();
   table.check();
@@ -184,6 +212,7 @@ function clearShown() {
 
 async function deal() {
   if (busy || s.phase === 'draw' || seat.guard()) return;
+  showGames(false);
   const bet = s.coins * s.coin;
   if (bet > table.limits().max * 5) return;
   if (!cage.take(bet)) { table.say('Not enough chips: bet fewer coins or a smaller coin.'); return; }
@@ -194,7 +223,7 @@ async function deal() {
   try {
     const els = s.hand.map((c, i) => setCard(i, c, { down: true }));
     for (let i = 0; i < 5; i++) { await wait(90); show(i, els[i]); sound.card(); }
-    const best = vp.evaluate(s.hand);
+    const best = vp.evaluate(s.hand, s.game);
     table.say(best ? `${best.name}` : 'Hold the cards you want');
   } finally { busy = false; paint(); }
 }
@@ -222,10 +251,10 @@ async function draw() {
     if (!o) return;
     if (s.result) {
       table.say(`${s.result.name}! Win ${cage.fmt(o.pay)}`, 'win');
-      const big = vp.PAYTABLE.findIndex(p => p.id === s.result.id);
-      // a royal flush: the big card, once the hand is paid and saved
+      const rows = G().paytable, big = rows.findIndex(p => p.id === s.result.id);
+      // a royal flush (a natural one at Deuces Wild): the big card, once the hand is paid and saved
       if (s.result.id === 'royal') await bigWin({ amount: o.pay, title: 'Royal flush!', x: o.pay / o.wagered, note: `${s.coins} coin${s.coins === 1 ? '' : 's'} of ${cage.fmt(s.coin)}`, top: true });
-      else { sound.chips(Math.min(10, 3 + (8 - big))); sound.win(big <= 2 ? 3 : big <= 5 ? 2 : 1); }
+      else { sound.chips(Math.min(10, 3 + (rows.length - 1 - big))); sound.win(big <= 2 ? 3 : big <= 5 ? 2 : 1); }
       float($('hand'), `+${cage.fmt(o.pay)}`);
     } else { table.say('Game over', 'lose'); sound.lose(); }
   } finally { busy = false; paint(); }
@@ -238,16 +267,56 @@ function finish() {
   const o = { pay: s.result?.pay || 0, wagered: s.coins * s.coin };
   if (o.pay > 0) cage.pay(o.pay);
   s.paid = true; save();
-  records.note('video-poker', { wagered: o.wagered, back: o.pay, extra: s.result ? { [s.result.id]: 1 } : {} });
+  records.note('video-poker', { wagered: o.wagered, back: o.pay, extra: s.result ? vp.counters(s.result.id, s.game) : {} });
   return o;
 }
 
 $('hint').addEventListener('click', () => {
   if (s.phase !== 'draw' || busy) return;
-  const a = vp.advise(s.hand);
+  const a = vp.advise(s.hand, s.game);
   slots.forEach((el, i) => el.classList.toggle('tip', a.held[i]));
   table.say(a.why);
 });
+
+// ---------- the games: the marquee opens the list on the screen, between hands ----------
+
+for (const g of vp.GAMES) {
+  const b = document.createElement('button');
+  b.type = 'button'; b.className = 'pick'; b.dataset.game = g.id;
+  b.innerHTML = `<b>${g.name}</b><em>Pays back ${pct(g.back)}</em><span>${g.blurb}</span>`;
+  b.addEventListener('click', () => pickGame(g.id));
+  $('gamesList').appendChild(b);
+}
+const gamesOpen = () => !$('games').hidden;
+function showGames(on) {
+  if (on === gamesOpen()) return;
+  $('games').hidden = !on;
+  $('gameBtn').setAttribute('aria-expanded', on);
+  if (on) $('gamesList').querySelector('[aria-pressed="true"]')?.focus();
+}
+function paintGame() {
+  const g = G();
+  $('gameName').textContent = g.name;
+  $('gameBtn').setAttribute('aria-label', inPlay() ? `${g.name}. The game changes once this hand is over.` : `${g.name}: change game`);
+  $('gameBtn').disabled = busy || inPlay();
+  if (inPlay()) showGames(false);
+  for (const b of $('gamesList').children) b.setAttribute('aria-pressed', b.dataset.game === g.id);
+}
+function pickGame(id) {
+  if (busy || inPlay()) return;
+  const was = s.game;
+  s.game = vp.game(id).id;
+  showGames(false);
+  $('gameBtn').focus();
+  if (s.game === was) return;
+  if (s.phase === 'done') { s.phase = 'bet'; s.result = null; }
+  save(); sound.tap();
+  table.sheet.querySelector('.help').innerHTML = helpFor(G());
+  paint();
+  table.say(`${G().name}. ${G().blurb}`);
+}
+$('gameBtn').addEventListener('click', () => { if (!busy && !inPlay()) showGames(!gamesOpen()); });
+addEventListener('keydown', e => { if (e.key === 'Escape' && gamesOpen()) { showGames(false); $('gameBtn').focus(); } });
 
 addEventListener('keydown', e => {
   if (!shortcut(e)) return;
