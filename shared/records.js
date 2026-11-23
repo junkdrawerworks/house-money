@@ -120,7 +120,10 @@ export const FLOOR_CARD = 'house-money.floor-card';
 export const canStartOver = () => !cage.out().length && !cage.waiting().length && !cage.elsewhere().length;
 export function startOver() {
   if (!canStartOver()) return false;
-  const fresh = L.startOver(L.device(), Date.now());
+  // later than any Start over this device has heard of, even one from a device whose clock runs ahead, so it can't lose
+  // to an older one at the next sync
+  const at = Math.max(Date.now(), ...[cage.doc().reset, doc().reset].map(r => (r?.at || 0) + 1));
+  const fresh = L.startOver(L.device(), at);
   try { localStorage.removeItem(SITTING); localStorage.removeItem(FLOOR_CARD); } catch { /* storage off */ }
   cage.save(fresh.cage);
   save(fresh.records);

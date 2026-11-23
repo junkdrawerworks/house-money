@@ -2203,6 +2203,23 @@ if (cageWants('records')) {
   }
 }
 
+// Start over after one brought in from a device whose clock ran a day ahead: the new marker is later than that one, so
+// it isn't undone at the next sync.
+if (cageWants('records')) {
+  const { p, ctx } = await sit('records/', { cage: { chips: 700 } });
+  const ahead = await p.evaluate(() => {
+    const at = Date.now() + 864e5;
+    for (const k of ['house-money.cage', 'house-money.records']) { const x = JSON.parse(localStorage.getItem(k)); x.reset = { at, by: 'd-other' }; localStorage.setItem(k, JSON.stringify(x)); }
+    return at;
+  });
+  await p.reload();
+  await p.click('#startOver'); await p.click('#overYes');
+  const marks = await p.evaluate(() => ['house-money.cage', 'house-money.records'].map(k => JSON.parse(localStorage.getItem(k)).reset));
+  assert.deepEqual(marks, [{ at: ahead + 1, by: DEV }, { at: ahead + 1, by: DEV }], 'Records: Start over\'s marker isn\'t later than the one it follows');
+  assert.equal((await cageOf(p)).chips, 1000);
+  await ctx.close();
+}
+
 // Start over on another device, brought in through Google Drive (Records' reset marker, half a minute ago) while this
 // device's sitting from before it (3 rounds a minute ago) is still in its hour: the menu has no sitting, and the next
 // hand starts a new one rather than adding on to the old.
