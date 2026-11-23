@@ -85,8 +85,10 @@
 /* a number's slot: the Off pill sits at the top, under the print, clear of the stack and its amount; a come or don't
    come bet with odds stands taller, its odds stacked above the bet with room for both amounts */
 .slot.is-off::after { top: 27px; right: 50%; transform: translateX(50%); }
-.slot .stack.odds { bottom: 74px; }
-.slot:has(> .stack.odds) { min-height: 136px; }
+@media (min-width: 640px) {
+  .slot .stack.odds { bottom: 74px; }
+  .slot:has(> .stack.odds) { min-height: 136px; }
+}
 .slot .stack.odds.off .chip { opacity: .5; }
 .slot .stack.odds.off .amt { background: #121214; color: #f2f2f2; }
 .slot .stack.odds.off .amt b { font: 800 .58rem/1 var(--sans); letter-spacing: .08em; text-transform: uppercase; }
@@ -113,8 +115,9 @@
 .slot i { position: absolute; left: 0; right: 0; top: 4px; font: 600 .56rem/1.05 var(--sans); font-style: normal; letter-spacing: .02em; text-transform: uppercase; text-align: center; pointer-events: none; }
 .slot .stack { bottom: 18px; }
 .slot.dc, .slot.cm { border-style: dashed; }
-/* the narrow don't come slots: small enough that DON'T fits between the dashes on a phone */
+/* the narrow don't come slots on a wider screen: small enough that DON'T fits between the dashes */
 .slot.dc i { font-size: .47rem; letter-spacing: -.03em; }
+.slot i .wide { display: none; }
 .slot .stack .amt { font-size: .62rem; padding: 1px 4px; }
 
 .comes { display: grid; grid-template-columns: 1fr 2fr; gap: 8px; }
@@ -159,9 +162,26 @@
   .center .prop.wide { grid-column: span 4; }
   .pit { height: 150px; }
 }
-@media (max-width: 359px) {
-  .box { grid-template-columns: 1fr 1.3fr 1fr; padding: 5px 3px 4px; }
-  .slot i { font-size: .5rem; }
+/* On a phone the come and don't come boxes in each number are bands across it, the don't come above the place bet and
+   the come below, each at least 44 px tall with its name on one line. A bet's chips sit in its band as they do in the
+   strips on a wider screen; a come bet with odds has them side by side, the odds on the left. */
+@media (max-width: 639px) {
+  .box { grid-template-columns: 1fr; grid-template-rows: auto auto 1fr auto; gap: 4px; padding: 6px 5px 5px; }
+  .slot i, .slot.dc i { font-size: .56rem; letter-spacing: .04em; white-space: nowrap; }
+  .slot i .wide { display: inline; }
+  .slot.place { min-height: 72px; }
+  .slot.dc, .slot.cm { min-height: 44px; }
+  .slot.dc i, .slot.cm i { top: 50%; transform: translateY(-50%); }
+  /* with chips in it, a band makes room for them under its name */
+  .slot.dc:has(> .stack), .slot.cm:has(> .stack) { min-height: 66px; }
+  .slot.dc:has(> .stack) i, .slot.cm:has(> .stack) i { top: 5px; transform: none; }
+  .slot.dc .stack, .slot.cm .stack { height: calc(var(--chip-s) * (1 + (min(var(--n, 1), 3) - 1) * .13)); }
+  .slot.dc .stack .chip:nth-child(n+4), .slot.cm .stack .chip:nth-child(n+4) { display: none; }
+  .slot:has(> .stack.odds) > .stack { left: 72%; }
+  .slot:has(> .stack.odds) > .stack.odds { left: 28%; }
+  /* the Off pill on a place bet sits beside its chips, at the left, with the chips moved over to make room */
+  .slot.is-off::after { top: auto; bottom: 22px; left: 4px; right: auto; transform: none; }
+  .slot.is-off > .stack { left: calc(50% + 10px); }
 }
 
 /* a wide screen: the whole layout at once, in two columns */

@@ -1502,12 +1502,15 @@ if (cageWants('craps')) {
     const slots = await p.evaluate(() => [...document.querySelectorAll('.numbers .slot')].filter(el => el.querySelector('.stack')).map(el => {
       const box = r => { const b = r.getBoundingClientRect(); return { l: b.left, r: b.right, t: b.top, b: b.bottom }; };
       const parts = [...el.querySelectorAll(':scope > .stack')].flatMap(st => [
-        { what: 'chips', ...box({ getBoundingClientRect: () => { const cs = [...st.querySelectorAll('.chip')].map(c => c.getBoundingClientRect()); return { left: Math.min(...cs.map(c => c.left)), right: Math.max(...cs.map(c => c.right)), top: Math.min(...cs.map(c => c.top)), bottom: Math.max(...cs.map(c => c.bottom)) }; } }) },
+        { what: 'chips', ...box({ getBoundingClientRect: () => { const cs = [...st.querySelectorAll('.chip')].map(c => c.getBoundingClientRect()).filter(c => c.width > 0); return { left: Math.min(...cs.map(c => c.left)), right: Math.max(...cs.map(c => c.right)), top: Math.min(...cs.map(c => c.top)), bottom: Math.max(...cs.map(c => c.bottom)) }; } }) },
         { what: `amount ${st.querySelector('.amt').textContent}`, ...box(st.querySelector('.amt')), shown: getComputedStyle(st.querySelector('.amt')).visibility !== 'hidden' },
       ]);
       if (el.classList.contains('is-off')) {
+        // the pill is centred under the print on a wider screen (translated by half its width), and at the left on a phone
         const a = getComputedStyle(el, '::after'), r = el.getBoundingClientRect(), w = parseFloat(a.width), h = parseFloat(a.height);
-        parts.push({ what: 'the Off pill', l: r.left + r.width / 2 - w / 2, r: r.left + r.width / 2 + w / 2, t: r.top + parseFloat(a.top), b: r.top + parseFloat(a.top) + h });
+        const l = a.transform === 'none' ? r.left + el.clientLeft + parseFloat(a.left) : r.left + r.width / 2 - w / 2;
+        const t = r.top + el.clientTop + parseFloat(a.top);
+        parts.push({ what: 'the Off pill', l, r: l + w, t, b: t + h });
       }
       return { spot: el.dataset.spot, off: el.classList.contains('is-off'), oddsOff: !!el.querySelector('.stack.odds.off'), parts };
     }));
@@ -1519,8 +1522,23 @@ if (cageWants('craps')) {
     const by = Object.fromEntries(slots.map(x => [x.spot, [x.off, x.oddsOff]]));
     assert.deepEqual(by, { dcome5: [false, false], place5: [true, false], come5: [false, true], place6: [true, false], place8: [true, false], come8: [false, true] }, `Craps at ${width}: what's marked off on the come-out`);
     assert.equal(await p.getAttribute('[data-spot="come8"]', 'aria-label'), 'Come on 8, 10 on it, 50 odds, off on the come-out');
+    // on a phone the come and don't come boxes are bands across each number, above and below the place bet, at least
+    // 44 px tall, with their names on one line inside them
+    const bands = await p.evaluate(() => [...document.querySelectorAll('.numbers .box')].map(box => {
+      const [dc, pl, cm] = ['.dc', '.place', '.cm'].map(q => box.querySelector(q)), R = e => e.getBoundingClientRect();
+      const lbl = e => { const i = e.querySelector('i'), r = R(i), w = i.getClientRects().length; return { one: w === 1 && r.height < 16, inside: r.left >= R(e).left && r.right <= R(e).right }; };
+      return { n: box.dataset.n, order: R(dc).bottom <= R(pl).top && R(pl).bottom <= R(cm).top, full: [dc, cm].every(e => R(e).width >= R(pl).width - 1),
+        tall: [dc, cm].every(e => R(e).height >= 44), labels: [dc, pl, cm].every(e => { const x = lbl(e); return x.one && x.inside; }), dc: dc.querySelector('i').textContent };
+    }));
+    for (const x of bands) assert.deepEqual(x, { n: x.n, order: true, full: true, tall: true, labels: true, dc: 'Don’t come' }, `Craps at ${width}: the come and don't come bands on the ${x.n}`);
     await ctx.close();
   }
+  // on a laptop they stay strips either side of the place bet
+  const { p, ctx } = await sit('craps/?seen', {}, { size: { viewport: { width: 1280, height: 800 } } });
+  const strips = await p.evaluate(() => { const b = document.querySelector('.box[data-n="4"]'), R = q => b.querySelector(q).getBoundingClientRect();
+    return [R('.dc').right <= R('.place').left, R('.place').right <= R('.cm').left, getComputedStyle(b.querySelector('.dc .wide')).display]; });
+  assert.deepEqual(strips, [true, true, 'none'], 'Craps on a laptop: the come and don\'t come strips moved');
+  await ctx.close();
 }
 // Craps, Take down with a point on: the 4 is the point, with 10 on don't pass, 60 in lay odds and 12 on each of the 6
 // and 8. Take down picks up only the place bets and says the don't pass stays up, and a reload keeps it that way; a
