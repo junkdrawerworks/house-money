@@ -19,7 +19,8 @@
 import * as cage from './cage.js';
 import * as sound from './sound.js';
 import * as quick from './quick.js';
-import { TABLES, topBet } from './tables.js';
+import * as records from './records.js';
+import { TABLES, topBet, units } from './tables.js';
 import { sit } from './seat.js';
 import { drive } from './sync.js';
 
@@ -44,6 +45,7 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
       <div class="sheet-x"><button type="button" class="x" data-act="close" aria-label="Back to the table"><span aria-hidden="true">×</span></button></div>
       <h2 tabindex="-1">${name}</h2>
       <p class="limits" id="limits"></p>
+      <p class="record" hidden></p>
       <div class="help">${help}</div>
       <p class="drive-line" hidden></p>
       <div class="sheet-btns">
@@ -130,6 +132,17 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
     sheet.querySelector('#limits').textContent = `Bets ${cage.fmt(min)} to ${cage.fmt(top())}${how} on your ${t.name} card.`;
   }
 
+  // This table's line from Records, under the limits: "Here so far: 212 hands, up 340, best win 750 (Nov 20)." Not
+  // there before the first round here.
+  function recordLine() {
+    const x = records.table(id), el = sheet.querySelector('.record');
+    el.hidden = !x.rounds;
+    if (!x.rounds) return;
+    const net = x.net > 0 ? `up ${cage.fmt(x.net)}` : x.net < 0 ? `down ${cage.fmt(-x.net)}` : 'even';
+    el.textContent = `Here so far: ${units(me, x.rounds)}, ${net}${x.best > 0 ? `, best win ${cage.fmt(x.best)}${x.bestOn ? ` (${shortDay(x.bestOn)})` : ''}` : ''}.`;
+  }
+  addEventListener('house-money:records', () => { if (sheet.open) recordLine(); });
+
   const soundBtn = sheet.querySelector('[data-act="sound"]');
   const soundLabel = () => { soundBtn.textContent = `Sound: ${sound.enabled() ? 'on' : 'off'}`; soundBtn.setAttribute('aria-pressed', sound.enabled()); };
   soundLabel();
@@ -169,7 +182,7 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
   sheet.querySelector('[data-act="sync"]').addEventListener('click', () => drive.now());
 
   // opens at the top, on the table's name, rather than scrolled down to the first button
-  const open = () => { limitsLine(); driveBits(); sheet.showModal(); sheet.scrollTop = 0; sheet.querySelector('h2').focus(); };
+  const open = () => { limitsLine(); recordLine(); driveBits(); sheet.showModal(); sheet.scrollTop = 0; sheet.querySelector('h2').focus(); };
   bar.querySelector('.menu-btn').addEventListener('click', open);
   // the × that stays at the top while the sheet scrolls, and the button at the bottom
   sheet.querySelectorAll('[data-act="close"]').forEach(b => b.addEventListener('click', () => sheet.close()));
@@ -293,6 +306,9 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
 
   return { say: line, call, hold, limits, check, open, sheet };
 }
+
+// A day as Records keeps it (YYYY-MM-DD), short: "Nov 20".
+export const shortDay = iso => { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); };
 
 // The tables as links, in words: "Craps", "Roulette and Craps", "Roulette, Craps and Baccarat". up: the way to the
 // floor's folder from the page ('../' at a table, '' on the floor).

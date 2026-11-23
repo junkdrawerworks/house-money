@@ -571,6 +571,29 @@ if (cageWants('blackjack', 'floor')) {
   assert.equal(await p.locator('#tierLine .tier-new').count(), 0, 'the floor says the card is new on every visit');
   await ctx.close();
 }
+// Each table's menu has its line from Records under the limits: Video Poker after 212 hands, and Blackjack, not played
+// yet, without one until a hand is played there (one 25 hand won), and then with it.
+if (cageWants('blackjack', 'video-poker', 'records')) {
+  const C = (r, s = 'c') => ({ r, s });
+  const shoe = Array(150).fill(C(2)).concat([C(10), C(7, 'h'), C(9, 'd'), C(10, 'h')].reverse());
+  const { p, ctx } = await sit('video-poker/?fast&seen', { cage: { chips: 1000 },
+    records: { since: '2026-11-01', tables: { 'video-poker': { rounds: 212, wagered: 1060, net: 340, best: 750, bestOn: '2026-11-20' } } },
+    blackjack: { shoe, phase: 'bet', bet: 0, last: 0, hands: [], active: 0, dealer: [], hole: true, insurance: 0, felt: 0, carry: 0 } });
+  const menuLine = async () => {
+    await p.click('.menu-btn');
+    const r = await p.evaluate(() => { const el = document.querySelector('dialog.sheet[open] .record'); return el.hidden ? null : el.textContent; });
+    await p.click('dialog.sheet[open] .x');
+    return r;
+  };
+  assert.equal(await menuLine(), 'Here so far: 212 hands, up 340, best win 750 (Nov 20).', 'Video Poker: the menu\'s line from Records');
+  await p.goto(`${base}blackjack/?fast&seen`); await p.waitForTimeout(300);
+  assert.equal(await menuLine(), null, 'Blackjack: the menu has a line from Records before anything is played there');
+  await p.click('#rack .c25'); await p.click('#spot'); await p.click('#deal');
+  await p.waitForSelector('#stand:not([disabled])'); await p.click('#stand');
+  await p.waitForSelector('#doneActions:not([hidden])');
+  assert.match(await menuLine(), /^Here so far: 1 round, up 25, best win 25 \([A-Z][a-z]{2} \d{1,2}\)\.$/, 'Blackjack: the menu\'s line after a hand');
+  await ctx.close();
+}
 // Ask the book with 100 bet and 40 left in the rack: hard 11 against a 6 would double, but Double is greyed out, so
 // the book lights Hit and says why.
 if (cageWants('blackjack')) {
