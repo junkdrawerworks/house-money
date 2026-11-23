@@ -480,55 +480,63 @@ if (cageWants('roulette')) {
   await ctx.close();
 }
 
-// Quick play at the slot machines: the first spin is half as long as well as the gap between reels, and each reel lands
-// just when it's meant to, left to right, so a spin lands in about a second: 0.85 s at Odds & Ends, 1.0 s at Motherlode,
-// 1.1 s at Cherry Bell (before, about 2.2, 2.6 and 2.2 s, up to a whole turn of a reel later than planned). Motherlode's
-// free spins keep their first spin whole. Each machine's own reels, spun from many places to many stops.
-const SLOTS = { 'odds-and-ends': { speed: 24, first: .55, stagger: .28 }, motherlode: { speed: 26, first: .55, stagger: .22 }, 'cherry-bell': { speed: 20, first: .7, stagger: .42 } };
-if (cageWants(...Object.keys(SLOTS))) {
+// The slot machines' reels land left to right, each just when it's meant to, with Quick play on or off: otherwise a reel
+// spins on to its stop's next time round, up to a whole turn of the reel later than planned, and can land after the reel
+// to its right (with Quick play off, out of turn in most spins at Motherlode). Off, a spin lands in about 2.2 s at Odds &
+// Ends, 2.7 s at Motherlode and 2.4 s at Cherry Bell, every time, and a teased reel (one that might make a big win) lands
+// 1.1 s after the reel to its left would have. Quick play halves the gap between reels and shortens the first spin, so a
+// spin lands in about a second: 0.85 s at Odds & Ends, 1.0 s at Motherlode, 1.1 s at Cherry Bell. Motherlode's free
+// spins keep their first spin whole under Quick play. Each machine's own reels, spun from many places to many stops.
+const SLOTS = { 'odds-and-ends': { speed: 24, first: 1.34, quickFirst: .275, stagger: .28 }, motherlode: { speed: 26, first: 1.52, quickFirst: .275, stagger: .22 }, 'cherry-bell': { speed: 20, first: 1.26, quickFirst: .35, stagger: .42 } };
+for (const on of [true, false]) {
+  if (!cageWants(...Object.keys(SLOTS))) break;
+  const mode = on ? 'under Quick play' : 'with Quick play off';
   const ctx = await browser.newContext(phone);
-  await ctx.addInitScript(() => localStorage.setItem('house-money.quick', 'on'));
+  await ctx.addInitScript(on => localStorage.setItem('house-money.quick', on ? 'on' : 'off'), on);
   for (const [id, m] of Object.entries(SLOTS)) {
     if (!cageWants(id)) continue;
     const { p } = await sit(`${id}/?seen`, { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 } }, { ctx });
-    const res = await p.evaluate(async ([id, m]) => {
+    const n = (await import(`../${id}/js/machine.js`)).REELS.length, q = on ? .5 : 1;
+    const res = await p.evaluate(async ([id, m, n]) => {
       const { ReelSet } = await import('/shared/reels.js'), M = await import(`/${id}/js/machine.js`);
       const host = document.createElement('div'), cv = document.createElement('canvas');
       host.style.cssText = 'position:fixed;left:0;top:0;width:300px;height:200px'; host.append(cv); document.body.append(host);
       const rs = new ReelSet(cv, { reels: M.REELS, rows: M.ROWS, anchor: M.ANCHOR, art: () => {}, speed: m.speed });
       const out = [];
-      for (let i = 0; i < 8; i++) {
+      for (let i = 0; i < 10; i++) {
         const L = c => M.REELS[c].strip.length;
         rs.set(M.REELS.map((_, c) => (3 * i + 5 * c) % L(c)));
-        const stops = M.REELS.map((_, c) => (11 * i + 17 * c + 7) % L(c)), at = [], full = i === 7, t0 = performance.now();
-        await rs.spin(stops, { first: m.first, stagger: m.stagger, full, onStop: c => at.push([c, (performance.now() - t0) / 1000]) });
-        out.push({ full, order: at.map(([c]) => c), first: at[0][1], last: at.at(-1)[1], where: rs.pos.every((x, c) => x === stops[c]) });
+        // spin 7 is a free spin, spins 8 and 9 tease the last reel (and at five reels, the last two)
+        const full = i === 7, tease = i < 8 ? [] : i === 8 || n < 5 ? [n - 1] : [n - 2, n - 1];
+        const stops = M.REELS.map((_, c) => (11 * i + 17 * c + 7) % L(c)), at = [], t0 = performance.now();
+        await rs.spin(stops, { first: m.first, quickFirst: m.quickFirst, stagger: m.stagger, full, tease, onStop: c => at.push([c, (performance.now() - t0) / 1000]) });
+        out.push({ full, tease, order: at.map(([c]) => c), at: at.map(([, t]) => t), where: rs.pos.every((x, c) => x === stops[c]) });
       }
       host.remove();
       return out;
-    }, [id, m]);
-    const n = (await import(`../${id}/js/machine.js`)).REELS.length, planned = m.first / 2 + (n - 1) * m.stagger / 2 + .3;
-    for (const r of res.filter(r => !r.full)) {
-      assert.deepEqual(r.order, [...Array(n).keys()], `${id}: under Quick play the reels landed out of turn`);
+    }, [id, m, n]);
+    const first = r => (on && !r.full ? m.quickFirst : m.first);
+    const when = (r, c) => first(r) + c * m.stagger * q + r.tease.filter(t => t <= c).length * 1.1 * q + .3;
+    for (const r of res) {
+      assert.deepEqual(r.order, [...Array(n).keys()], `${id}: ${mode} the reels landed out of turn (${r.order})`);
       assert.ok(r.where, `${id}: a reel landed off its stop`);
-      assert.ok(r.last >= planned - .02 && r.last < planned + .35, `${id}: a spin under Quick play landed in ${r.last.toFixed(2)} s, not about ${planned.toFixed(2)}`);
+      r.at.forEach((t, c) => assert.ok(t >= when(r, c) - .02 && t < when(r, c) + .3,
+        `${id}: ${mode} reel ${c + 1} of a${r.full ? ' free' : r.tease.length ? ' teased' : ''} spin landed at ${t.toFixed(2)} s, not ${when(r, c).toFixed(2)}`));
     }
-    // a free spin's first reel turns its whole first spin, as before
-    const free = res.find(r => r.full);
-    assert.ok(free.where && free.first >= m.first + .3 - .02, `${id}: the first reel of a free spin landed at ${free.first.toFixed(2)} s under Quick play`);
-    // and the machine itself: Spin to paid in about a second
+    // and the machine itself: Spin to paid on time
+    const planned = when({ full: false, tease: [] }, n - 1);
     const t0 = await p.evaluate(() => performance.now());
     await p.click('#spin');
-    await until(() => p.evaluate(id => JSON.parse(localStorage.getItem(`house-money.${id}`))?.last?.paid === true, id), 5000, `${id}: the spin never landed`);
+    await until(() => p.evaluate(id => JSON.parse(localStorage.getItem(`house-money.${id}`))?.last?.paid === true, id), 8000, `${id}: the spin never landed`);
     const took = await p.evaluate(t0 => performance.now() - t0, t0);
-    // a tease (two sevens or bars at Cherry Bell, two lanterns at Motherlode) holds the last reels back 0.55 s more each
+    // a tease (two sevens or bars at Cherry Bell, two lanterns at Motherlode) holds the last reels back 1.1 s more each (half under Quick play)
     const teases = await p.evaluate(async id => {
       const last = JSON.parse(localStorage.getItem(`house-money.${id}`)).last, M = await import(`/${id}/js/machine.js`);
       if (id === 'motherlode') { const lit = M.play(last.stops, last.sticky || []).lit; return [2, 3, 4].filter(c => lit.filter(([lc]) => lc < c).length >= 2).length; }
       if (id === 'cherry-bell') { const { window } = await import('/shared/reels.js'); const line = window(M.REELS, last.stops, M.ROWS, M.ANCHOR).map(col => col[1]); return line[0] === line[1] && (line[0] === 'seven' || line[0] === 'bar') ? 1 : 0; }
       return 0;
     }, id);
-    assert.ok(took < (planned + .5 + teases * .55) * 1000, `${id}: a spin under Quick play took ${Math.round(took)} ms from Spin to paid`);
+    assert.ok(took >= (planned - .05) * 1000 && took < (planned + .5 + teases * 1.1 * q) * 1000, `${id}: a spin ${mode} took ${Math.round(took)} ms from Spin to paid, not about ${Math.round(planned * 1000)}`);
     await p.close();
   }
   await ctx.close();

@@ -272,22 +272,22 @@ export class ReelSet {
     if (this.decorate) { ctx.save(); this.decorate(ctx, this); ctx.restore(); }
   }
 
-  // Spins every reel to its stop. A reel listed in `hold` stays put. onStop(c) as each one lands. `full` keeps the
-  // first spin its whole length under Quick play (Motherlode's free spins).
-  spin(stops, { onStop = () => {}, first = 0.75, stagger = 0.32, hold = [], tease = [], full = false } = {}) {
+  // Spins every reel to its stop. A reel listed in `hold` stays put. onStop(c) as each one lands. `first` is how long
+  // the first reel spins before it lands, `quickFirst` the same under Quick play (half of `first` unless given), and
+  // `full` keeps the first spin its whole length under Quick play (Motherlode's free spins).
+  spin(stops, { onStop = () => {}, first = 0.75, quickFirst = first / 2, stagger = 0.32, hold = [], tease = [], full = false } = {}) {
     const n = this.reels.length;
     if (FAST || reduced()) {
       this.set(stops);
       for (let c = 0; c < n; c++) if (!hold.includes(c)) onStop(c);
       return Promise.resolve();
     }
-    // Quick play: the reels stop half as far apart, and a tease is half as long. The first spin is half as long too
-    // (not a free spin's), and then each reel lands just when it's meant to: otherwise it would spin on to its stop's
-    // next time round, up to a whole turn of the reel later, which is most of the wait. The difference is made up in
-    // one jump once the reel is a blur.
+    // Quick play: the reels stop half as far apart, a tease is half as long, and the first spin is shorter (not a free
+    // spin's). Either way each reel lands just when it's meant to, left to right: otherwise it would spin on to its
+    // stop's next time round, up to a whole turn of the reel later, and could land after the reel to its right. The
+    // difference is made up in one jump once the reel is a blur.
     const q = quick.enabled() ? .5 : 1;
-    const exact = q < 1 && !full;
-    if (exact) first *= q;
+    if (q < 1 && !full) first = quickFirst;
     const V = this.speed, ACC = 0.12, LAND = 0.3;
     const DB = V * LAND / 4.7;           // the landing's length, so its first speed matches the spin's
     const plan = this.reels.map((reel, c) => {
@@ -296,16 +296,10 @@ export class ReelSet {
       const start = this.pos[c];
       const extra = tease.filter(t => t <= c).length * 1.1 * q;   // a reel that might make a big win spins on a moment longer (and the ones after it wait)
       const want = first + c * stagger * q + extra;
-      // the landing starts DB cells short of the stop; the steady spin before it lasts at least `want` (exactly
-      // `want` under Quick play, with the reel jumped on by `jump` cells as it comes up to speed)
-      if (exact) {
-        const jump = mod(start - stops[c] - DB - V * (want - ACC / 2), L);
-        return { start, target: stops[c], d: V * (want - ACC / 2) + jump, t1: want, jump, L, done: false };
-      }
-      let d = mod(start - stops[c] - DB, L);
-      while ((d + V * ACC / 2) / V < want) d += L;
-      const t1 = (d + V * ACC / 2) / V;
-      return { start, target: stops[c], d, t1, jump: 0, L, done: false };
+      // the landing starts DB cells short of the stop; the steady spin before it lasts exactly `want`, with the reel
+      // jumped on by `jump` cells as it comes up to speed
+      const jump = mod(start - stops[c] - DB - V * (want - ACC / 2), L);
+      return { start, target: stops[c], d: V * (want - ACC / 2) + jump, t1: want, jump, L, done: false };
     });
     this.running = true;
     this.plan = plan;

@@ -131,7 +131,7 @@ async function pull() {
   // two sevens or bars showing: the last reel spins on a moment longer
   const line = grid.map(col => col[1]);
   const tease = (line[0] === line[1] && (line[0] === 'seven' || line[0] === 'bar')) ? [2] : [];
-  await reels.spin(stops, { first: .7, stagger: .42, tease, onStop: () => sound.thunk() });
+  await reels.spin(stops, { first: 1.26, quickFirst: .35, stagger: .42, tease, onStop: () => sound.thunk() });
   keep.settle();
   spinning = false; document.body.classList.remove('spinning');
   await finish(r, win);

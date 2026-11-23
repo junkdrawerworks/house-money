@@ -131,7 +131,7 @@ async function spin() {
   const win = wins.reduce((a, w) => a + w.pay, 0) * s.lineBet;
   keep.begin({ stops, lines: s.lines, lineBet: s.lineBet, win, wagered: b, wins: wins.map(w => ({ line: w.line, sym: w.sym, pay: w.pay })),
     extra: wins.some(w => w.sym === M.WILD && w.count === 3) ? { jackpots: 1 } : {}, max: { biggest: win } });
-  const turning = reels.spin(stops, { first: .55, stagger: .28, onStop: () => sound.thunk() });
+  const turning = reels.spin(stops, { first: 1.34, quickFirst: .275, stagger: .28, onStop: () => sound.thunk() });
   paint();   // Spin is lit again while they turn: a tap lands them
   await turning;
   keep.settle();
