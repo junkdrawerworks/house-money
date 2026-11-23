@@ -2,6 +2,8 @@
 // The rules are in game.js; this file moves the chips (shared/cage.js) and saves the table after every move. A roll is
 // decided and saved before the dice fly, with the chips it pays kept aside (pending) until they land, so a reload
 // mid-throw pays exactly once. The roll's line for Records waits beside them (pendingRec) and goes in as they're paid.
+// A bet counts as bet on the player's card the way Records counts it: each time a roll decides it (a winning bet left
+// up counts again on the next roll that decides it), not as its chips go down, and never when it comes back unplayed.
 
 import * as g from './game.js';
 import * as cage from '../../shared/cage.js';
@@ -210,7 +212,7 @@ function put(el) {
   const { ok, why, room } = g.can(s, k, table.limits().max);
   if (!ok) { table.say(why); return; }
   const n = Math.min(rack.value, room);
-  if (!cage.take(n)) { table.say('Not enough chips for that one.'); return; }
+  if (!cage.take(n, { wager: false })) { table.say('Not enough chips for that one.'); return; }
   s.bets[k] = (s.bets[k] || 0) + n;
   (s.undo ||= []).push([k, n]);
   const pw = g.paysWhole(k, s.bets[k], s.point);
@@ -245,7 +247,7 @@ function takeDown(k, n = s.bets[k]) {
   const dep = { pass: 'passOdds', dontPass: 'dontOdds' }[k] || (/^dcome(\d+)$/.test(k) ? k.replace('dcome', 'dcomeOdds') : null);
   let extra = 0;
   if (dep && !s.bets[k] && s.bets[dep]) { extra = s.bets[dep]; delete s.bets[dep]; }
-  cage.pay(n + extra, { unwager: n + extra });
+  cage.pay(n + extra);
   return n + extra;
 }
 
@@ -385,7 +387,8 @@ $('roll').addEventListener('click', roll);
 function finish() {
   if ((!(s.pending > 0) && !s.pendingRec) || seat.guard()) return;
   const owed = s.pending || 0, rec = s.pendingRec;
-  if (owed > 0) cage.pay(owed);
+  // the winnings to the rack, and the bets this roll decided onto the player's card
+  cage.pay(owed, { wager: rec?.wagered || 0 });
   s.pending = 0; s.pendingRec = null; save();
   if (rec) records.note('craps', rec);
 }

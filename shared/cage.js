@@ -48,12 +48,13 @@ export function take(n, { wager = true } = {}) {
 }
 
 // Chips back into the rack: a win, or a bet picked back up. A bet picked back up before it played takes its
-// wager back off the count too (unwager).
-export function pay(n, { unwager = 0 } = {}) {
-  const k = whole(n);
-  if (!(k > 0)) return read();
+// wager back off the count too (unwager). wager: chips to count on the player's card as bet now, for a table that
+// counts its bets as each one is decided rather than as the chips go down (craps), with or without chips to pay.
+export function pay(n, { unwager = 0, wager = 0 } = {}) {
+  const k = whole(n) || 0, w = whole(wager) || 0;
+  if (!(k > 0) && !(w > 0)) return read();
   const d = doc();
-  L.pay(d, L.device(), k, whole(unwager) || 0);
+  L.pay(d, L.device(), k, whole(unwager) || 0, w);
   return save(d);
 }
 

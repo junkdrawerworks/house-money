@@ -1388,6 +1388,34 @@ if (cageWants('craps')) {
     [990, 10, 1, 0, 0, 1], 'Craps: a roll that decides nothing, reloaded mid-throw');
   await ctx.close();
 }
+// Craps counts chips bet on the player's card the way Records does: as each roll decides a bet, so a pass line bet won
+// on a 7 and left up counts again on the 11, nothing counts as the chips go down or when a bet is taken down, and come
+// odds handed back unplayed on a come-out don't count.
+if (cageWants('craps', 'records')) {
+  const { p, ctx } = await sit('craps/?fast&seen', { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 } });
+  const dice = (...f) => p.evaluate(f => { crypto.getRandomValues = a => { a[0] = f.shift() - 1; return a; }; }, f);
+  const both = async () => [(await cageOf(p)).wagered, (await recordsOf(p)).craps?.wagered || 0];
+  const savedOf = (p, id) => p.evaluate(id => JSON.parse(localStorage.getItem(`house-money.${id}`)) || {}, id);
+  await p.click('#rack .c5'); await p.click('[data-spot="pass"]'); await p.click('[data-spot="pass"]');
+  assert.deepEqual(await both(), [0, 0], 'Craps: chips going down counted as bet before any roll decided them');
+  await dice(3, 4, 5, 6);
+  for (let i = 1; i <= 2; i++) {
+    await p.click('#roll');
+    await until(async () => (await savedOf(p, 'craps')).history.length === i && !(await p.isDisabled('#roll')), 4000, `Craps: roll ${i} never landed`);
+  }
+  await p.waitForTimeout(150);
+  assert.deepEqual(await both(), [20, 20], 'Craps: the card and Records over a pass line won twice and left up');
+  await p.click('#clear');
+  assert.deepEqual([...await both(), (await cageOf(p)).chips], [20, 20, 1020], 'Craps: taking the pass line down changed the chips bet');
+  await ctx.close();
+  const q = await sit('craps/?fast&seen', { cage: { chips: 970, wagered: 0, high: 1000, stakes: 1 }, craps: { bets: { come5: 10, comeOdds5: 20 }, point: 0, history: [], felt: 30 } });
+  await q.p.evaluate(() => { const f = [2, 3]; crypto.getRandomValues = a => { a[0] = f.shift() - 1; return a; }; });
+  await q.p.click('#roll');
+  await until(async () => /You win 10/.test(await q.p.textContent('#say')), 4000, 'Craps: the come-out never landed');
+  const c = await cageOf(q.p);
+  assert.deepEqual([c.chips, c.wagered, (await recordsOf(q.p)).craps?.wagered], [1010, 10, 10], 'Craps: come odds handed back on the come-out counted as bet');
+  await q.ctx.close();
+}
 // Craps, a first visit on a phone: the pass line, the last thing on the layout, is brought up to sit just above the
 // dock, inside the screen, and only the stickman says to start there. A come bet that travels says where it went.
 if (cageWants('craps')) {

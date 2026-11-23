@@ -160,10 +160,13 @@ export function take(d, id, k, wager = true) {
   return true;
 }
 // k chips back into the rack on device id; unwager: chips of it that were a wager picked back up before it played.
-export function pay(d, id, k, unwager = 0) {
+// wager: chips that count as bet now, without coming off the stack (a craps bet left up, counted each time a roll
+// decides it).
+export function pay(d, id, k, unwager = 0, wager = 0) {
   k = whole(k);
   const s = section(d, id);
   s.p += k;
+  s.w += whole(wager);
   s.u += Math.min(whole(unwager), s.w - s.u);
   touched(d, id);
   return d;

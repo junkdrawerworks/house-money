@@ -74,7 +74,8 @@ test('blackjack: every chip and half chip accounted for, over a long sitting wit
 test('craps: bets on the layout, odds fractions and winnings all add up, roll after roll', () => {
   store.clear();
   const rng = seeded(11), s = cr.fresh();
-  const put = (k, n) => { const c = cr.can(s, k, 500); n = Math.min(n, c.room); if (c.ok && n > 0 && cage.take(n)) s.bets[k] = (s.bets[k] || 0) + n; };
+  // chips go down without counting on the card; each roll counts what it decided, as the page does
+  const put = (k, n) => { const c = cr.can(s, k, 500); n = Math.min(n, c.room); if (c.ok && n > 0 && cage.take(n, { wager: false })) s.bets[k] = (s.bets[k] || 0) + n; };
   let owed30 = 0, paid30 = 0;   // odds wins at exact true odds, in thirtieths, against what came back in whole chips
   const TRUE = { 4: [2, 1], 10: [2, 1], 5: [3, 2], 9: [3, 2], 6: [6, 5], 8: [6, 5] }, LAY = { 4: [1, 2], 10: [1, 2], 5: [2, 3], 9: [2, 3], 6: [5, 6], 8: [5, 6] };
   for (let i = 0; i < ROUNDS * 3; i++) {
@@ -101,10 +102,11 @@ test('craps: bets on the layout, odds fractions and winnings all add up, roll af
       if (k === 'passOdds') assert.ok(s.point && s.bets.pass, 'odds without a pass bet');
       if (k === 'dontOdds') assert.ok(s.point && s.bets.dontPass, 'lay odds without a don’t pass bet');
     }
-    if (r.toRack) cage.pay(r.toRack);
+    cage.pay(r.toRack, { wager: r.wagered });
     // every roll with chips out counts once, as the page notes it (the ones that decide nothing add 0 bet and 0 back)
     records.note('craps', { wagered: r.wagered, back: r.back });
     assert.equal(cage.read().chips, c0 + r.toRack);
+    assert.equal(cage.read().wagered, records.table('craps').wagered, 'the player’s card and Records count the same chips bet');
     void carry0;
   }
   books('craps', cr.onFelt(s));
