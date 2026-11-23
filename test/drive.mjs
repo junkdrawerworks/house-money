@@ -585,6 +585,53 @@ if (wants(18)) {
   await P.ctx.close(); await Q.ctx.close();
 }
 
+// ================= 19. Turning Drive on after a Start over elsewhere =================
+// The phone started over and has played on since (1,200). A laptop that has never saved to Drive, at 3,000 from its own
+// play, turns it on: its play adds in (3,200, both tables' rounds in Records), as any device's joining does, instead of
+// giving way to the phone's Start over and dropping to 1,200. So does a laptop that started over on its own before it
+// ever saved there. A device that had saved there before, and stopped, still gives way when it turns Drive on again.
+if (wants(19)) {
+  const g = fakeGoogle();
+  const P = await device(g), R = await device(g);
+  await turnOn(P.p); await turnOn(R.p);
+  await play(R.p, [[100, 400]]); await synced(R.p);
+  await R.p.click('#drive button[data-a="off"]'); await R.p.click('#drive button[data-a="off"]');
+  await until(async () => (await syncState(R.p))?.on === false, '19: the old laptop to stop saving');
+  await play(P.p, [[50, 0]]); await synced(P.p);
+  const rec = await page(P.ctx, 'records/');
+  await rec.click('#startOver'); await rec.click('#overYes'); await rec.close();
+  await play(P.p, [[100, 300]], 'roulette'); await synced(P.p);
+  assert.equal(inDrive(g).chips, 1200, '19: the phone after Start over');
+  // a laptop that never saved to Drive
+  const Q = await device(g);
+  await play(Q.p, [[500, 2500]]);
+  await shows(Q.p, 3000, '19: the laptop on its own');
+  await turnOn(Q.p);
+  await shows(Q.p, 3200, '19: the laptop turning Drive on after the phone started over');
+  assert.equal(inDrive(g).chips, 3200, '19: the file after the laptop joined');
+  assert.deepEqual(Object.fromEntries(Object.entries(await recs(Q.p)).map(([k, t]) => [k, t.rounds])), { blackjack: 1, roulette: 1 }, '19: Records on the laptop after it joined');
+  assert.equal(body(g).cage.reset?.by, await devId(P.p), '19: the file lost the phone\'s Start over');
+  await synced(P.p);
+  await shows(P.p, 3200, '19: the phone after the laptop joined');
+  // a laptop that started over on its own before it ever saved there: 1,000 again, then up 100
+  const S = await device(g);
+  await play(S.p, [[100, 900]]);
+  const rs = await page(S.ctx, 'records/');
+  await rs.click('#startOver'); await rs.click('#overYes'); await rs.close();
+  await play(S.p, [[100, 200]]);
+  await shows(S.p, 1100, '19: the second laptop after its own Start over');
+  await turnOn(S.p);
+  await shows(S.p, 3300, '19: the second laptop turning Drive on');
+  assert.equal(body(g).cage.reset?.by, await devId(P.p), '19: the second laptop\'s own Start over reached Drive');
+  // the device that had saved there before: its 1,300 from before the Start over doesn't come back
+  await play(R.p, [[100, 0]]);
+  await R.p.click('#drive button[data-a="on"]');
+  await until(async () => ((await syncState(R.p))?.last || 0) > 0, '19: the old laptop to sync again');
+  await shows(R.p, 3300, '19: the old laptop turning Drive on again after the Start over');
+  assert.equal(inDrive(g).chips, 3300, '19: the file after the old laptop came back');
+  await P.ctx.close(); await Q.ctx.close(); await R.ctx.close(); await S.ctx.close();
+}
+
 assert.deepEqual(problems, [], 'problems while using it');
 await browser.close();
 server.close();

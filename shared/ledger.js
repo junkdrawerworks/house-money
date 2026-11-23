@@ -29,7 +29,8 @@
 // Start over (on Records) puts a reset marker in both, { at, by }: when it was done and on which device. Two copies with
 // different markers aren't put together: the one with the later marker is kept whole and the other dropped, so the old
 // totals of a device that hadn't heard yet can't come back. That includes anything it played after the reset and before
-// it next synced. Copies with the same marker (or none) are put together as above.
+// it next synced. Copies with the same marker (or none) are put together as above. A device saving to Drive for the
+// first time takes Drive's markers first (joining()), so its play is put together with the rest like any device's.
 //
 // What it guarantees: Records and the chips bet on the player's card come out exact whatever order devices sync in
 // and however many syncs go missing. The stack comes out exact whenever each device syncs as it opens and as it's
@@ -288,6 +289,13 @@ export function mergeRecords(a, b) {
 export function startOver(id, at) {
   const reset = { at: whole(at), by: String(id) };
   return { cage: cleanCage({ reset }), records: cleanRecords({ reset }) };
+}
+// A device's first sync with Drive: it wasn't part of any Start over made there, so its copy takes Drive's markers (a
+// Start over of its own, before it ever saved there, was its own business too) and its play is put together with the
+// rest instead of giving way. body: { cage, records } (or the file's whole body), reset: the cage's and Records'
+// markers to take.
+export function joining(body, { cage, records }) {
+  return { ...body, cage: { ...cleanCage(body.cage), reset: cleanCage(cage).reset }, records: { ...cleanRecords(body.records), reset: cleanRecords(records).reset } };
 }
 // What Records shows: { since, tables: { blackjack: { rounds, wagered, net, best, bestOn, ...add, ...top } } }, every
 // device's counters summed (top counters and the biggest win at their highest), counting since the earliest day.

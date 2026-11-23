@@ -376,3 +376,28 @@ test('Start over: the copy with the later marker is kept whole, in either order,
   assert.deepEqual(L.mergeCage(fresh.cage, b.cage).reset, { at: 6000, by: 'L' });
   assert.deepEqual(L.mergeCage(b.cage, a2.cage).reset, L.mergeCage(a2.cage, b.cage).reset);
 });
+
+test('a device saving to Drive for the first time after a Start over there: its play joins the rest', () => {
+  // the phone started over and played on to 1,200; a laptop that never saved there is at 3,000, with a Start over of
+  // its own before that
+  const drive = L.startOver('P', 5000);
+  L.pay(drive.cage, 'P', 200); L.note(drive.records, 'P', 'roulette', { wagered: 100, back: 300 }, '2026-11-22');
+  const own = L.startOver('L', 9000);
+  L.pay(own.cage, 'L', 2000); L.note(own.records, 'L', 'blackjack', { wagered: 500, back: 2500 }, '2026-11-22');
+  // put together as it is, the laptop's later marker would win and drop the phone's play
+  assert.equal(L.cageTotals(L.mergeCage(own.cage, drive.cage)).chips, 3000);
+  const joined = L.joining({ app: 'house-money', v: 1, ...own, seen: {} }, drive);
+  assert.deepEqual([joined.app, joined.seen], ['house-money', {}], 'the rest of the body stays');
+  for (const [x, y] of [[joined, drive], [drive, joined]]) {
+    const c = L.mergeCage(x.cage, y.cage), r = L.mergeRecords(x.records, y.records);
+    assert.equal(L.cageTotals(c).chips, 3200);
+    assert.deepEqual(c.reset, { at: 5000, by: 'P' });
+    assert.deepEqual([r.reset, Object.keys(L.recordsTotals(r).tables).sort()], [{ at: 5000, by: 'P' }, ['blackjack', 'roulette']]);
+  }
+  // Drive never started over: the laptop's own marker goes, and it still joins
+  const plain = { cage: L.cleanCage(null), records: L.cleanRecords(null) };
+  L.pay(plain.cage, 'P', 50);
+  const j2 = L.joining(own, plain);
+  assert.equal(j2.cage.reset, null);
+  assert.equal(L.cageTotals(L.mergeCage(j2.cage, plain.cage)).chips, 3050);
+});

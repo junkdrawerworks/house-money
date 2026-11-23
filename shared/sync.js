@@ -27,7 +27,8 @@ const SOON = 3000, GAP = 30000, EVERY = 5 * 60000;
 const get = k => { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch { return null; } };
 const put = (k, v) => { try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, JSON.stringify(v)); } catch { /* storage full or blocked */ } };
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const fresh = () => ({ on: false, email: '', name: '', last: 0, fileId: '', cover: 0 });
+// joined: this device has saved to Drive before (kept through Stop), so it was part of any Start over made there
+const fresh = () => ({ on: false, email: '', name: '', last: 0, fileId: '', cover: 0, joined: false });
 
 let st = { ...fresh(), ...(get(KS) || {}) }, tok = get(KT);
 let status = 'off', note = '', busy = null, again = false, client = null, gisLoading = false;
@@ -110,16 +111,17 @@ function local() {
 // What was synced, back into this device: put together with what's in localStorage at this moment, all in one go,
 // so a chip taken while the network was answering is kept. Then the page redraws from it (the house-money:cage and
 // house-money:records events). Returns true when this device now holds something Drive doesn't.
-function bringIn(m) {
+function bringIn(m, join) {
   quiet = true;
   try {
-    const c0 = cage.doc(), c = L.mergeCage(c0, m.cage);
+    const here = join ? L.joining({ cage: cage.doc(), records: records.doc() }, m) : null;
+    const c0 = here ? here.cage : cage.doc(), c = L.mergeCage(c0, m.cage);
     if (L.canon(c) !== L.canon(c0)) {
       cage.save(c);
       // two devices bet the same chips while apart, and the cage covered it: the floor says so, once
       if (c.forgiven > c0.forgiven) { st.cover = (st.cover || 0) + c.forgiven - c0.forgiven; saveSt(); }
     }
-    const r0 = records.doc(), r = L.mergeRecords(r0, m.records);
+    const r0 = here ? here.records : records.doc(), r = L.mergeRecords(r0, m.records);
     if (L.canon(r) !== L.canon(r0)) records.save(r);
     const s0 = L.cleanSeen(get(SEEN)), s = L.mergeSeen(s0, m.seen);
     if (L.canon(s) !== L.canon(s0)) put(SEEN, s);
@@ -138,7 +140,9 @@ async function run(tries, g) {
     // the same whichever way round, so nothing on the devices that already synced with the first one changes.
     const extras = [];
     for (const extra of files.slice(1)) { remote = L.mergeBody(remote, await download(extra.id)); extras.push(extra.id); }
-    const merged = remote ? L.mergeBody(local(), remote) : local(), out = JSON.stringify(merged);
+    // the first time this device saves there, its play joins the rest even if Drive's copy was started over since
+    const join = !st.joined && !!remote;
+    const merged = remote ? L.mergeBody(join ? L.joining(local(), remote) : local(), remote) : local(), out = JSON.stringify(merged);
     if (g !== gen) return; // saving stopped meanwhile
     if (!file) file = await create(out);
     else if (L.canon(remote) !== L.canon(merged) || extras.length) {
@@ -155,8 +159,8 @@ async function run(tries, g) {
     // the extra files are in the first one now
     for (const id of extras) await api('PATCH', `drive/v3/files/${id}`, JSON.stringify({ trashed: true }), 'application/json');
     if (g !== gen) return;
-    if (bringIn(merged)) dirty = true; // played on while the network answered: that goes at the next sync
-    st.fileId = file.id; st.last = Date.now(); saveSt();
+    if (bringIn(merged, join)) dirty = true; // played on while the network answered: that goes at the next sync
+    st.fileId = file.id; st.last = Date.now(); st.joined = true; saveSt();
   } catch (e) {
     if (e === RETRY && tries < 4 && g === gen) return run(tries + 1, g);
     throw e;
@@ -268,7 +272,7 @@ function signIn() {
 function stop() {
   clearTimeout(timer); timer = 0;
   gen++;
-  st = fresh(); saveSt(); setStatus('off');
+  st = { ...fresh(), joined: st.joined }; saveSt(); setStatus('off');
 }
 function now() { if (!st.on) start(); else if (!live()) signIn(); else sync(); } // inside a tap
 
