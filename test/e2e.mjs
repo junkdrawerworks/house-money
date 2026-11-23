@@ -297,6 +297,12 @@ const outOfReach = p => p.evaluate(() => {
       await p.goto(`${base}${id}/?seen`);
       await p.evaluate(() => document.fonts.ready); await p.waitForTimeout(500);
       assert.deepEqual(await outOfReach(p), [], `${id} at ${w}x${h}${notch ? ' with a notch and a home bar' : ''}: out of reach as the table opens`);
+      // roulette's rows get shorter on a short screen: the words up the side ('19 to 36') still fit their boxes
+      if (id === 'roulette') {
+        const cut = await p.evaluate(() => [...document.querySelectorAll('.layout .out.v span')]
+          .filter(s => s.getBoundingClientRect().height > s.parentElement.getBoundingClientRect().height).map(s => s.textContent.trim()));
+        assert.deepEqual(cut, [], `roulette at ${w}x${h}: words cut off up the side of the layout`);
+      }
     }
     await ctx.close();
   }

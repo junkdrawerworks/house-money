@@ -140,6 +140,8 @@ body.roulette main { max-width: 1120px; gap: 0; padding-top: 4px; }
 /* very short (an iPhone SE with Safari's toolbars up): the numbers get shorter, so the whole layout is above the rack */
 @media (max-height: 600px) {
   .layout { min-height: max(250px, calc(100dvh - 292px - var(--chrome-safe))); }
+  /* and the words up the side smaller, so '19 to 36' still fits its two rows */
+  .layout .out.v { font-size: .66rem; letter-spacing: 0; }
 }
 
 @media (max-width: 360px) {
