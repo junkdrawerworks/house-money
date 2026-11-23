@@ -595,14 +595,14 @@ if (cageWants('blackjack', 'video-poker', 'records')) {
     await p.click('dialog.sheet[open] .x');
     return r;
   };
-  assert.equal(await menuLine(), 'Here so far: 212 hands, up 340, best win 750 (Nov 20).', 'Video Poker: the menu\'s line from Records');
+  assert.equal(await menuLine(), 'Here so far: 212 hands, up 340, best win 750 (Nov\u00a020).', 'Video Poker: the menu\'s line from Records');
   assert.equal(await sittingLine(), null, 'Video Poker: a line for this sitting before anything\'s played in it');
   await p.goto(`${base}blackjack/?fast&seen`); await p.waitForTimeout(300);
   assert.equal(await menuLine(), null, 'Blackjack: the menu has a line from Records before anything is played there');
   await p.click('#rack .c25'); await p.click('#spot'); await p.click('#deal');
   await p.waitForSelector('#stand:not([disabled])'); await p.click('#stand');
   await p.waitForSelector('#doneActions:not([hidden])');
-  assert.match(await menuLine(), /^Here so far: 1 round, up 25, best win 25 \([A-Z][a-z]{2} \d{1,2}\)\.$/, 'Blackjack: the menu\'s line after a hand');
+  assert.match(await menuLine(), /^Here so far: 1 round, up 25, best win 25 \([A-Z][a-z]{2}\u00a0\d{1,2}\)\.$/, 'Blackjack: the menu\'s line after a hand');
   assert.equal(await sittingLine(), 'This sitting: 1 round, up 25.', 'Blackjack: the menu\'s line for this sitting');
   await p.goto(`${base}records/`);
   assert.deepEqual(await p.$$eval('.rec.t-blackjack li', lis => lis.map(li => li.innerText.replace(/\s+/g, ' ').trim()).find(t => /sitting/.test(t))), 'This sitting 1 round, up 25', 'Records: this sitting at Blackjack');

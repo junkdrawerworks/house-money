@@ -332,7 +332,7 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
 // Chips up or down, in words: "up 340", "down 120", "even".
 export const upDown = n => (n > 0 ? `up ${cage.fmt(n)}` : n < 0 ? `down ${cage.fmt(-n)}` : 'even');
 // A day as Records keeps it (YYYY-MM-DD), short: "Nov 20".
-export const shortDay = iso => { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); };
+export const shortDay = iso => { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).replace(' ', '\u00a0'); };
 
 // The tables as links, in words: "Craps", "Roulette and Craps", "Roulette, Craps and Baccarat". up: the way to the
 // floor's folder from the page ('../' at a table, '' on the floor).
