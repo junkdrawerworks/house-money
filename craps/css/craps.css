@@ -182,3 +182,6 @@
   .pit .history { left: calc(50% - 550px); }
   .pit .puck { right: calc(50% - 550px); }
 }
+
+/* the menu's Working on the come-out switch, across the menu under Sound and Quick play */
+.sheet-btns [data-act="working"] { grid-column: 1 / -1; }

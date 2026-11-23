@@ -10,6 +10,7 @@
 //   place4…place10            place bets (off on the come-out)
 //   field                     one roll: 3, 4, 9, 10, 11 even money, 2 double, 12 triple
 //   hard4…hard10              the hardways (off on the come-out)
+// Place bets, hardways and come odds can be called working on the come-out too (roll's working: the menu's switch).
 //   any7, anyCraps, yo, aces, aceDeuce, boxcars    one-roll bets in the middle
 //
 // Winning bets that a dealer would leave up stay on the layout (line, place, field, hardways, props); the winnings go
@@ -130,9 +131,10 @@ export function removable(s, spot) {
   return true;
 }
 
-// Bets that won't count on this roll: place bets, hardways and come odds are off on the come-out.
-export function working(s, spot) {
-  if (s.point) return true;
+// Bets that won't count on this roll: place bets, hardways and come odds are off on the come-out, unless they've been
+// called working (on).
+export function working(s, spot, on = false) {
+  if (s.point || on) return true;
   return !(/^place\d+$/.test(spot) || /^hard\d+$/.test(spot) || /^comeOdds\d+$/.test(spot) || spot === 'passOdds');
 }
 
@@ -140,10 +142,13 @@ export function working(s, spot) {
 //   { total, hard, events: [{ spot, outcome: 'win'|'lose'|'push'|'return'|'move', stake, win, to }],
 //     toRack, wagered, back, call, point: { was, now, made, sevenOut }, carry: { was, now } }
 // toRack: chips going back to the rack. wagered/back: what was decided on this roll, for the records. carry: the
-// fraction of a chip kept from odds wins, before and after.
-export function roll(s, d1, d2) {
+// fraction of a chip kept from odds wins, before and after. working: place bets, hardways and come odds work on a
+// come-out roll too, as a player can ask the dealer.
+export function roll(s, d1, d2, { working = false } = {}) {
   const t = d1 + d2, hard = d1 === d2;
   const b = s.bets, was = s.point;
+  // the bets that are off on the come-out are on for this roll
+  const live = !!(was || working);
   const events = [];
   let toRack = 0, wagered = 0, back = 0;
   const carryWas = s.carry || 0;
@@ -171,16 +176,16 @@ export function roll(s, d1, d2) {
   }
   for (const [k, p] of Object.entries(PROPS)) if (has(k)) { if (p.hits(t)) win(k, pay(b[k], p.pays)); else lose(k); }
 
-  // hardways (off on the come-out)
-  if (was) for (const n of [4, 6, 8, 10]) {
+  // hardways (off on the come-out, unless working)
+  if (live) for (const n of [4, 6, 8, 10]) {
     const k = `hard${n}`;
     if (!has(k)) continue;
     if (t === n && hard) win(k, pay(b[k], HARD[n]));
     else if (t === n || t === 7) lose(k);
   }
 
-  // place bets (off on the come-out)
-  if (was) for (const n of POINTS) {
+  // place bets (off on the come-out, unless working)
+  if (live) for (const n of POINTS) {
     const k = `place${n}`;
     if (!has(k)) continue;
     if (t === n) win(k, pay(b[k], PLACE[n]));
@@ -194,10 +199,10 @@ export function roll(s, d1, d2) {
     if (has(c) || has(co)) {
       if (t === n) {
         if (has(c)) win(c, b[c], true);
-        if (has(co)) { if (was) win(co, odds(b[co], TRUE_ODDS[n]), true); else ret(co); }
+        if (has(co)) { if (live) win(co, odds(b[co], TRUE_ODDS[n]), true); else ret(co); }
       } else if (t === 7) {
         if (has(c)) lose(c);
-        if (has(co)) { if (was) lose(co); else ret(co); }
+        if (has(co)) { if (live) lose(co); else ret(co); }
       }
     }
     if (has(d) || has(dO)) {

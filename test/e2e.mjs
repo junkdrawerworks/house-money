@@ -1416,6 +1416,31 @@ if (cageWants('craps', 'records')) {
   assert.deepEqual([c.chips, c.wagered, (await recordsOf(q.p)).craps?.wagered], [1010, 10, 10], 'Craps: come odds handed back on the come-out counted as bet');
   await q.ctx.close();
 }
+// Craps' Working on the come-out switch: off to start, with the place 6 and the hard 6 marked off on the come-out.
+// Turned on in the menu, they aren't, and it's still on after a reload. A 6 the hard way on the come-out, the page
+// reloaded mid-throw, pays both once: 7 on the place 6 and 45 on the hard 6, with both left up.
+if (cageWants('craps')) {
+  const { p, ctx } = await sit('craps/?seen', { cage: { chips: 989, wagered: 0, high: 1000, stakes: 1 }, craps: { bets: { place6: 6, hard6: 5 }, point: 0, history: [], felt: 11 } });
+  const offs = () => p.evaluate(() => [...document.querySelectorAll('.is-off')].map(e => e.dataset.spot).sort());
+  assert.deepEqual(await offs(), ['hard6', 'place6'], 'Craps: place and hardways not marked off on the come-out');
+  await p.click('.menu-btn');
+  assert.equal((await p.textContent('[data-act="working"]')).trim(), 'Working on the come-out: off');
+  await p.click('[data-act="working"]');
+  assert.deepEqual([(await p.textContent('[data-act="working"]')).trim(), await p.getAttribute('[data-act="working"]', 'aria-pressed')], ['Working on the come-out: on', 'true']);
+  await p.click('dialog.sheet[open] .x');
+  assert.deepEqual(await offs(), [], 'Craps: bets still marked off with Working on the come-out on');
+  assert.equal(await p.getAttribute('[data-spot="place6"]', 'aria-label'), 'Place 6, 6 on it');
+  await p.reload(); await p.waitForTimeout(400);
+  assert.deepEqual(await offs(), [], 'Craps: Working on the come-out was off again after a reload');
+  await p.evaluate(() => { const f = [3, 3]; crypto.getRandomValues = a => { a[0] = f.shift() - 1; return a; }; });
+  await reloadAfter(p, '#roll', 500);
+  await p.waitForTimeout(600);
+  const b = await balanced(p, 'Craps, working on the come-out, reloaded mid-throw');
+  const left = await p.evaluate(() => JSON.parse(localStorage.getItem('house-money.craps')));
+  assert.deepEqual([b.chips, b.felt, left.bets, left.point, b.recs.craps?.rounds, b.recs.craps?.wagered, b.recs.craps?.net], [1041, 11, { place6: 6, hard6: 5 }, 6, 1, 11, 52],
+    'Craps: a hard 6 on the come-out with the place 6 and hard 6 working');
+  await ctx.close();
+}
 // Craps, a first visit on a phone: the pass line, the last thing on the layout, is brought up to sit just above the
 // dock, inside the screen, and only the stickman says to start there. A come bet that travels says where it went.
 if (cageWants('craps')) {

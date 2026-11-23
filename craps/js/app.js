@@ -16,6 +16,9 @@ import * as quick from '../../shared/quick.js';
 import * as seat from '../../shared/seat.js';
 
 const KEY = 'house-money.craps';
+// The menu's Working on the come-out switch, off to start: kept on this device, like Baccarat's squeeze.
+const WORKING = 'house-money.craps.working';
+let working = (() => { try { return localStorage.getItem(WORKING) === 'on'; } catch { return false; } })();
 const T = byId('craps');
 const $ = id => document.getElementById(id);
 
@@ -58,6 +61,8 @@ const table = mountTable({
       <li>The rest are one roll: <b>Seven</b> 4 to 1, <b>Any craps</b> 7 to 1, <b>3</b> and <b>11</b> 15 to 1,
       <b>2</b> and <b>12</b> 30 to 1.</li>
     </ul>
+    <p><b>Working on the come-out</b>, the switch below, keeps your place bets, hardways and come odds working on the
+    come-out roll too, the way you can ask a dealer to. It starts off.</p>
     <h3>Chips</h3>
     <p>Winning bets stay up, the way a dealer leaves them, and the winnings go to your rack. Odds and come bets that win
     come back with their winnings. <b>Undo</b> picks up the last chip you put down; <b>Take down</b> picks up every bet
@@ -71,6 +76,18 @@ const table = mountTable({
   onStake: () => paint(),
   // the stack changed, here or in another tab
   onCage: () => { if (!busy) paint(); },
+});
+
+// the switch, in the menu beside Sound and Quick play
+const workBtn = document.createElement('button');
+workBtn.type = 'button'; workBtn.className = 'btn ghost'; workBtn.dataset.act = 'working';
+document.querySelector('dialog.sheet [data-act="quick"]').after(workBtn);
+const workLabel = () => { workBtn.textContent = `Working on the come-out: ${working ? 'on' : 'off'}`; workBtn.setAttribute('aria-pressed', working); };
+workLabel();
+workBtn.addEventListener('click', () => {
+  working = !working;
+  try { localStorage.setItem(WORKING, working ? 'on' : 'off'); } catch { /* storage off: for this visit only */ }
+  workLabel(); sound.tap(); paint();
 });
 
 const rack = makeRack($('rack'), { values: [1, 5, 25, 100, 500], key: 'house-money.craps.chip' });
@@ -148,7 +165,7 @@ function paint() {
     if (amt) el.appendChild(stackEl(amt, { most: 5 }));
     // off on the come-out: place bets and hardways, and the odds on a come bet (the come bet itself works: it wins on
     // its number and loses on a 7), so only the odds are marked off there
-    const oddsOff = !s.point && !!m && m[1] === 'come';
+    const oddsOff = !s.point && !working && !!m && m[1] === 'come';
     let odds = 0;
     if (m) {
       odds = b[betFor(el)] || 0;
@@ -162,7 +179,7 @@ function paint() {
     const bet = betFor(el);
     const open = g.can(s, bet, table.limits().max).ok;
     el.classList.toggle('closed', !amt && !odds && !open);
-    const off = !s.point && /^(place|hard)\d+$/.test(k) && amt;
+    const off = !s.point && !working && /^(place|hard)\d+$/.test(k) && amt;
     el.classList.toggle('is-off', !!off);
     el.setAttribute('aria-label', label(el, amt, odds, { off: !!off, oddsOff: oddsOff && !!odds }));
   }
@@ -343,7 +360,7 @@ function roll() {
       const handBefore = s.handRolls || 0;
       // every roll with chips out counts once in Records, the ones that decide nothing too (they add 0 bet and 0 back)
       const out = g.onFelt(s) > 0;
-      const r = g.roll(s, d1, d2);
+      const r = g.roll(s, d1, d2, { working });
       s.pending = (s.pending || 0) + r.toRack; s.undo = [];
       s.pendingRec = out ? {
         wagered: r.wagered, back: r.back,

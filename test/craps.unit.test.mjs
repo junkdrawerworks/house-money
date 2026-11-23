@@ -94,6 +94,29 @@ test('come bets travel, win, lose, and their odds are off on the come-out', () =
   assert.equal(g.removable(S(6, { come8: 10 }), 'come8'), false);
 });
 
+test('called working on the come-out: place bets, hardways and come odds play the come-out roll', () => {
+  const W = { working: true };
+  // a 6 the hard way: the place 6 pays 7 to 6, the hard 6 9 to 1, the come bet on the 6 and its odds win, and the 6
+  // becomes the point
+  let s = S(0, { place6: 6, hard6: 5, come6: 10, comeOdds6: 25 });
+  let r = g.roll(s, 3, 3, W);
+  assert.deepEqual([ev(r, 'place6').win, ev(r, 'hard6').win, ev(r, 'come6').win, ev(r, 'comeOdds6').win], [7, 45, 10, 30]);
+  assert.deepEqual(s.bets, { place6: 6, hard6: 5 }, 'place and hardways stay up; the come bet and odds come back');
+  assert.equal(r.toRack, 7 + 45 + 10 + 10 + 30 + 25); assert.equal(s.point, 6);
+  // an easy 8 takes the hard 8 down; a 7 takes the lot, the come odds too
+  s = S(0, { hard8: 5 }); r = g.roll(s, 5, 3, W); assert.equal(ev(r, 'hard8').outcome, 'lose');
+  s = S(0, { place5: 5, hard4: 5, come9: 10, comeOdds9: 20, pass: 10 });
+  r = g.roll(s, 3, 4, W);
+  assert.deepEqual(r.events.filter(e => e.outcome === 'lose').map(e => e.spot).sort(), ['come9', 'comeOdds9', 'hard4', 'place5']);
+  assert.deepEqual(s.bets, { pass: 10 }); assert.equal(r.toRack, 10);
+  assert.equal(r.wagered, 10 + 5 + 5 + 10 + 20);
+  // with the point on it changes nothing; and off (the default) is as before
+  s = S(5, { place6: 6 }); assert.equal(ev(g.roll(s, 3, 3, W), 'place6').win, 7);
+  s = S(0, { place6: 6, hard6: 5, come6: 10, comeOdds6: 25 }); r = g.roll(s, 3, 3);
+  assert.deepEqual([ev(r, 'place6'), ev(r, 'hard6'), ev(r, 'comeOdds6').outcome], [undefined, undefined, 'return']);
+  assert.equal(g.working(S(0, {}), 'place6'), false); assert.equal(g.working(S(0, {}), 'place6', true), true);
+});
+
 test('don’t come travels and wins on a seven, lay odds working', () => {
   const s = S(6, { dontCome: 10 });
   g.roll(s, 4, 4); assert.equal(s.bets.dcome8, 10);
