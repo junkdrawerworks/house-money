@@ -48,7 +48,8 @@ test('blackjack: every chip and half chip accounted for, over a long sitting wit
     let taken = bet; cage.take(bet); s.bet = bet; bj.deal(s, rng);
     if (s.phase === 'insurance') { const h = Math.floor(s.hands[0].bet / 2); if (i % 3 === 0 && cage.take(h)) { taken += h; bj.insure(s, h); } else bj.insure(s, 0); }
     while (s.phase === 'play') {
-      let a = bj.book(s).act;
+      // the book as the page asks it: whether the rack can cover another bet's worth for a double or a split
+      let a = bj.book(s, { afford: bj.hand(s).bet <= cage.read().chips }).act;
       if ((a === 'double' || a === 'split') && !cage.take(bj.hand(s).bet)) a = 'hit'; else if (a === 'double' || a === 'split') taken += bj.hand(s).bet;
       bj[a](s, rng);
     }
@@ -101,7 +102,8 @@ test('craps: bets on the layout, odds fractions and winnings all add up, roll af
       if (k === 'dontOdds') assert.ok(s.point && s.bets.dontPass, 'lay odds without a don’t pass bet');
     }
     if (r.toRack) cage.pay(r.toRack);
-    if (r.wagered || r.back) records.note('craps', { wagered: r.wagered, back: r.back });
+    // every roll with chips out counts once, as the page notes it (the ones that decide nothing add 0 bet and 0 back)
+    records.note('craps', { wagered: r.wagered, back: r.back });
     assert.equal(cage.read().chips, c0 + r.toRack);
     void carry0;
   }
