@@ -18,6 +18,7 @@
 
 import * as cage from './cage.js';
 import * as sound from './sound.js';
+import * as quick from './quick.js';
 import { TABLES, topBet } from './tables.js';
 import { sit } from './seat.js';
 import { drive } from './sync.js';
@@ -50,6 +51,7 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
         <a class="btn ghost" href="../">The floor</a>
         <a class="btn ghost" href="../records/">Records</a>
         <button type="button" class="btn ghost" data-act="sound" aria-pressed="true">Sound: on</button>
+        <button type="button" class="btn ghost" data-act="quick" aria-pressed="false">Quick play: off</button>
         <button type="button" class="btn ghost" data-act="sync" hidden>Sync now</button>
       </div>
       <footer class="jd-foot">
@@ -125,6 +127,10 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
   addEventListener('house-money:sound', soundLabel);
   addEventListener('storage', e => { if (e.key === sound.KEY) soundLabel(); });
   soundBtn.addEventListener('click', () => { sound.setEnabled(!sound.enabled()); sound.tap(); });
+  // Quick play, beside it: shorter spins, throws and dealing, at every table and in every tab
+  const quickBtn = sheet.querySelector('[data-act="quick"]');
+  quick.watch(on => { quickBtn.textContent = `Quick play: ${on ? 'on' : 'off'}`; quickBtn.setAttribute('aria-pressed', on); });
+  quickBtn.addEventListener('click', () => { quick.setEnabled(!quick.enabled()); sound.tap(); });
 
   // Google Drive saving, when it's on: the purse is a button that syncs (a dot on it says how it stands), and the
   // menu says when it last synced, with Sync now beside Sound. One tap signs back in to Google if it has to.
@@ -374,7 +380,10 @@ export function float(over, text, kind = 'win') {
   setTimeout(() => el.remove(), 1600);
 }
 
-// A pause in the dealing. Shorter with reduced motion; ?fast (the tests) makes every pause a blink.
+// A pause in the dealing. Shorter with reduced motion, and under Quick play (shared/quick.js) a little over a third as
+// long; ?fast (the tests) makes every pause a blink.
 const FAST = /[?&]fast\b/.test(location.search);
-export const wait = ms => new Promise(r => setTimeout(r, FAST ? Math.min(ms, 5) : matchMedia('(prefers-reduced-motion: reduce)').matches ? Math.min(ms, 60) : ms));
+export const QUICK = .35;
+export const wait = ms => new Promise(r => setTimeout(r, FAST ? Math.min(ms, 5) : matchMedia('(prefers-reduced-motion: reduce)').matches ? Math.min(ms, 60)
+  : quick.enabled() ? Math.round(ms * QUICK) : ms));
 export const fast = FAST;

@@ -4,6 +4,7 @@
 import * as cage from '../shared/cage.js';
 import * as records from '../shared/records.js';
 import * as sound from '../shared/sound.js';
+import * as quick from '../shared/quick.js';
 import { TABLES, units, topBet } from '../shared/tables.js';
 import { outLine, elsewhereLine, waitLine, stakeWhen } from '../shared/table.js';
 import { drive } from '../shared/sync.js';
@@ -119,6 +120,10 @@ const soundBtn = $('sound');
 const soundLabel = () => { soundBtn.textContent = `Sound: ${sound.enabled() ? 'on' : 'off'}`; soundBtn.setAttribute('aria-pressed', sound.enabled()); };
 soundLabel();
 soundBtn.addEventListener('click', () => { sound.setEnabled(!sound.enabled()); soundLabel(); sound.chip(); });
+// Quick play: shorter spins, throws and dealing at every table (shared/quick.js)
+const quickBtn = $('quick');
+quick.watch(on => { quickBtn.textContent = `Quick play: ${on ? 'on' : 'off'}`; quickBtn.setAttribute('aria-pressed', on); });
+quickBtn.addEventListener('click', () => { quick.setEnabled(!quick.enabled()); sound.tap(); });
 addEventListener('storage', e => {
   if (e.key === sound.KEY) soundLabel();
   if (e.key === records.KEY) stats();

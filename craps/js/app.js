@@ -10,6 +10,7 @@ import * as sound from '../../shared/sound.js';
 import { rack as makeRack, stackEl } from '../../shared/chips.js';
 import { mountTable, float, wait, fast, hotkey, shortcut } from '../../shared/table.js';
 import { byId } from '../../shared/tables.js';
+import * as quick from '../../shared/quick.js';
 import * as seat from '../../shared/seat.js';
 
 const KEY = 'house-money.craps';
@@ -308,7 +309,7 @@ async function throwDice(d1, d2) {
     sound.dice();
     return;
   }
-  const dur = 1150;
+  const dur = quick.enabled() ? 600 : 1150;   // Quick play: a shorter throw
   const landX = W * (.32 + Math.random() * .22);
   const jobs = dice.map((d, i) => {
     const x0 = -50 - i * 30, y0 = H - 10 + i * 12;

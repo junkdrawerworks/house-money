@@ -10,6 +10,7 @@ import * as sound from '../../shared/sound.js';
 import { rack as makeRack, stackEl } from '../../shared/chips.js';
 import { mountTable, float, wait, fast, netLine, hotkey, shortcut } from '../../shared/table.js';
 import { byId } from '../../shared/tables.js';
+import * as quick from '../../shared/quick.js';
 import * as seat from '../../shared/seat.js';
 import { guardEdges } from '../../shared/edge-guard.js';
 
@@ -473,6 +474,8 @@ async function spin() {
   if (!wide()) { box.classList.add('show'); wheel.size(); }
   await wait(wide() ? 0 : 420);
   if (fast || reduced()) wheel.place(n);
+  // Quick play: a short spin, the ball two and a half times round
+  else if (quick.enabled()) await wheel.spin(n, 1200, 2.5);
   else await wheel.spin(n, 6400);
   await reveal();
   busy = false;

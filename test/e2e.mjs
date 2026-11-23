@@ -411,6 +411,35 @@ if (cageWants('roulette')) {
   await ctx.close();
 }
 
+// Quick play: the switch beside Sound on the floor and in every table's menu, followed by every tab, and a roulette
+// spin from Spin to the next bet in about 2.5 s instead of about 10 (it still shows a short spin of the wheel). The
+// craps throw and the slot reels are shorter too; the results are settled before any of it.
+if (cageWants('roulette')) {
+  const { p, ctx } = await sit('roulette/?seen', { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 } }, { f: .3 });
+  const floor = await ctx.newPage();
+  await floor.goto(`${base}?seen`);
+  assert.equal((await floor.textContent('#quick')).trim(), 'Quick play: off', 'the floor: Quick play starts off');
+  await floor.click('#quick');
+  assert.equal(await floor.getAttribute('#quick', 'aria-pressed'), 'true');
+  // the table in the other tab follows it
+  await p.bringToFront();
+  await until(async () => (await p.textContent('.sheet [data-act="quick"]')).trim() === 'Quick play: on', 2000, 'Roulette: the menu did not follow Quick play from the floor');
+  await p.click('#rack .c5'); await p.click('[data-k="red"]');
+  // the wheel is drawn turning: a short spin, not the ball dropped straight in
+  await p.evaluate(() => { const raf = requestAnimationFrame; window.__raf = 0; window.requestAnimationFrame = f => { window.__raf++; return raf(f); }; });
+  const t0 = Date.now();
+  await p.click('#spin');
+  await until(async () => (await p.evaluate(() => JSON.parse(localStorage.getItem('house-money.roulette')).spin?.shown)) === true && !(await p.isDisabled('#again')), 8000, 'Roulette: the quick spin never finished');
+  const took = Date.now() - t0;
+  assert.ok(took < 4000, `Roulette: a spin under Quick play took ${took} ms`);
+  assert.ok(await p.evaluate(() => window.__raf) > 20, 'Roulette: Quick play dropped the ball in without a spin');
+  // and off again from the table's menu, which the floor follows
+  await p.click('.menu-btn');
+  await p.click('.sheet [data-act="quick"]');
+  await until(async () => (await floor.textContent('#quick')).trim() === 'Quick play: off', 2000, 'the floor did not follow Quick play switched off at a table');
+  await ctx.close();
+}
+
 // Roulette on a phone: a finger held on the 5 for 800 ms opens the list of every bet on the 5, and the list stays up
 // when the finger lifts (the tap that ends the hold lands on the list's backdrop, or on one of its rows). A tap on a
 // row then puts the chip on that bet. (Touches sent through the browser's own input, as a finger's would be.)

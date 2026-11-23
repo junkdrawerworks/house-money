@@ -10,6 +10,7 @@ import { rand } from './cards.js';
 import * as cage from './cage.js';
 import * as records from './records.js';
 import * as seat from './seat.js';
+import * as quick from './quick.js';
 
 // ---------- the arithmetic ----------
 
@@ -264,14 +265,16 @@ export class ReelSet {
       for (let c = 0; c < n; c++) if (!hold.includes(c)) onStop(c);
       return Promise.resolve();
     }
+    // Quick play: the reels stop half as far apart, and a tease is half as long
+    const q = quick.enabled() ? .5 : 1;
     const V = this.speed, ACC = 0.12, LAND = 0.3;
     const DB = V * LAND / 4.7;           // the landing's length, so its first speed matches the spin's
     const plan = this.reels.map((reel, c) => {
       if (hold.includes(c)) return null;
       const L = reel.strip.length;
       const start = this.pos[c];
-      const extra = tease.filter(t => t <= c).length * 1.1;   // a reel that might make a big win spins on a moment longer (and the ones after it wait)
-      const want = first + c * stagger + extra;
+      const extra = tease.filter(t => t <= c).length * 1.1 * q;   // a reel that might make a big win spins on a moment longer (and the ones after it wait)
+      const want = first + c * stagger * q + extra;
       // the landing starts DB cells short of the stop; the steady spin before it lasts at least `want`
       let d = mod(start - stops[c] - DB, L);
       while ((d + V * ACC / 2) / V < want) d += L;

@@ -164,8 +164,9 @@ export class Wheel {
     return c.w0 + c.omega * c.tau * (1 - Math.exp(-s / c.tau));
   }
 
-  // Spins to the pocket for n over `ms` milliseconds. Resolves when the ball has settled.
-  spin(n, ms = 6500) {
+  // Spins to the pocket for n over `ms` milliseconds, the ball going `turns` times round the wheel and then some.
+  // Resolves when the ball has settled.
+  spin(n, ms = 6500, turns = 7) {
     const idx = ORDER.indexOf(n);
     const now = performance.now();
     // give the wheel a fresh push, from wherever it is
@@ -177,7 +178,7 @@ export class Wheel {
     // where the ball starts: on the track, wherever it was
     const startAbs = this.ball ? this.ball.a : (this.rest !== null ? w0 + this.rest * STEP : w0 + Math.PI);
     const rel0 = startAbs - w0;
-    const D = mod(rel0 - end) + TAU * 7;      // how far it travels round the wheel, against the turn
+    const D = mod(rel0 - end) + TAU * turns;  // how far it travels round the wheel, against the turn
     this.rest = null;
     this.spinning = true;
     let lastPocket = null;
