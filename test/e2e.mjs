@@ -908,7 +908,10 @@ if (cageWants('motherlode')) {
   const under = [];
   for (let i = 0; i < 8; i++) { under.push((await p.textContent('#paid')).trim()); await p.waitForTimeout(120); }
   assert.deepEqual(under.filter(Boolean), [], 'Motherlode: the line under the reels said what was won while the big-win card counted up');
+  // nor does the dealer's line ("Five gold nuggets pay 1,000.") show through the card, though it's still there to be read out
+  assert.equal(await p.evaluate(() => getComputedStyle(document.getElementById('say')).opacity), '0', 'Motherlode: the dealer’s line showed through the big-win card');
   await p.click('#bigwin');
+  await until(async () => (await p.evaluate(() => getComputedStyle(document.getElementById('say')).opacity)) === '1', 2000, 'Motherlode: the dealer’s line stayed hidden after the big-win card');
   await until(async () => (await p.textContent('#paid')).trim() === 'Won 1,000', 2000, 'Motherlode: the line under the reels never said what the big win paid');
   assert.equal((await cageOf(p)).chips, 1980);
   await ctx.close();
