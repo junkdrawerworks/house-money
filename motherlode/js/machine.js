@@ -13,13 +13,15 @@ export const NAMES = {
   canary: 'Canary', A: 'A', K: 'K', Q: 'Q', J: 'J', ten: '10',
 };
 
+// Two lanterns on reels 3 and 5, one on the others, and one plate or canary fewer on each reel than the plain set, so
+// the lanterns come up about once in 135 spins.
 const LOW = { A: 5, K: 5, Q: 6, J: 6, ten: 6 };
 const COUNTS = [
-  { lantern: 1, nugget: 2, cart: 3, dynamite: 3, canary: 4, ...LOW },
-  { lantern: 1, pick: 3, nugget: 2, cart: 3, dynamite: 3, canary: 4, ...LOW },
-  { lantern: 2, pick: 3, nugget: 2, cart: 3, dynamite: 3, canary: 4, ...LOW },
-  { lantern: 1, pick: 3, nugget: 2, cart: 3, dynamite: 3, canary: 4, ...LOW },
-  { lantern: 1, pick: 3, nugget: 2, cart: 3, dynamite: 3, canary: 4, ...LOW },
+  { lantern: 1, nugget: 2, cart: 3, dynamite: 3, canary: 4, ...LOW, K: 4 },
+  { lantern: 1, pick: 3, nugget: 2, cart: 3, dynamite: 3, canary: 3, ...LOW },
+  { lantern: 2, pick: 3, nugget: 2, cart: 3, dynamite: 3, canary: 4, ...LOW, K: 4 },
+  { lantern: 1, pick: 3, nugget: 2, cart: 3, dynamite: 3, canary: 4, ...LOW, A: 4 },
+  { lantern: 2, pick: 3, nugget: 2, cart: 3, dynamite: 3, canary: 4, ...LOW, ten: 5 },
 ];
 export const REELS = COUNTS.map((c, i) => ({ strip: spread(c, 31 + i, { lantern: 4, pick: 3 }) }));
 export const ROWS = 3, ANCHOR = 0;
@@ -39,7 +41,7 @@ export const PAYS = {
 };
 // lanterns anywhere: times the whole bet, and the free spins they light
 export const SCATTER_PAYS = { 3: 2, 4: 10, 5: 50 };
-export const FREE_SPINS = { 3: 8, 4: 12, 5: 20 };
+export const FREE_SPINS = { 3: 6, 4: 12, 5: 20 };
 export const LINE_COUNT = LINES.length;
 
 const OPTS = { wild: WILD, not: [SCATTER] };
@@ -71,6 +73,6 @@ export function feature(count, rng = rand) {
   return units;
 }
 
-// Figured by test/slots.unit.test.mjs (exact for the lines and lanterns, and a long seeded run of free spins):
+// Figured by test/slots.unit.test.mjs (exact, the free spins too; the share of spins that win from a long seeded run):
 // the share of every chip bet that comes back, the share of spins that win something, and how often free spins come.
-export const RETURN = { rtp: 95.0, hit: 40.3, feature: 217 };
+export const RETURN = { rtp: 95.0, hit: 41.4, feature: 135 };

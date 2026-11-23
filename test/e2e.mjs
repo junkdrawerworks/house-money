@@ -898,7 +898,7 @@ if (cageWants('motherlode')) {
   }
 }
 
-// Motherlode's big win: five gold nuggets across the middle, 1,000 on a 20 bet. While the card counts up to it, the
+// Motherlode's big win: five gold nuggets across the middle, and three more on line 11, 1,050 on a 20 bet. While the card counts up to it, the
 // line under the reels says nothing (the figure it's climbing to would show through); once the card is put away, it
 // says what came in. (No ?fast: the count-up takes its real time.)
 if (cageWants('motherlode')) {
@@ -916,12 +916,12 @@ if (cageWants('motherlode')) {
   const under = [];
   for (let i = 0; i < 8; i++) { under.push((await p.textContent('#paid')).trim()); await p.waitForTimeout(120); }
   assert.deepEqual(under.filter(Boolean), [], 'Motherlode: the line under the reels said what was won while the big-win card counted up');
-  // nor does the dealer's line ("Five gold nuggets pay 1,000.") show through the card, though it's still there to be read out
+  // nor does the dealer's line ("2 lines pay 1,050.") show through the card, though it's still there to be read out
   assert.equal(await p.evaluate(() => getComputedStyle(document.getElementById('say')).opacity), '0', 'Motherlode: the dealer’s line showed through the big-win card');
   await p.click('#bigwin');
   await until(async () => (await p.evaluate(() => getComputedStyle(document.getElementById('say')).opacity)) === '1', 2000, 'Motherlode: the dealer’s line stayed hidden after the big-win card');
-  await until(async () => (await p.textContent('#paid')).trim() === 'Won 1,000', 2000, 'Motherlode: the line under the reels never said what the big win paid');
-  assert.equal((await cageOf(p)).chips, 1980);
+  await until(async () => (await p.textContent('#paid')).trim() === 'Won 1,050', 2000, 'Motherlode: the line under the reels never said what the big win paid');
+  assert.equal((await cageOf(p)).chips, 2030);
   await ctx.close();
 }
 

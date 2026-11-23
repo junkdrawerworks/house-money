@@ -73,30 +73,107 @@ test('Odds & Ends pays back what its help says (exact)', () => {
   assert.ok(ev / n > .92 && ev / n < .97);
 });
 
-test('Motherlode pays back what its help says (lines and lanterns exact, free spins from a long seeded run)', () => {
+// Motherlode's free spins, exactly: a chain over which cells hold a sticky pickaxe. The pickaxes land only on reels 2
+// to 5, so there are 2^12 ways for them to be stuck. A spin's expected pay depends only on which cells are stuck (each
+// line is one cell from each reel, and the reels are independent; a stuck cell is wild and hides any lantern under
+// it), and each reel adds its own pickaxes to what's stuck. So the free spins' worth is worked out spin by spin from
+// the last one back. Returns worth[k]: line bets paid over k free spins starting with nothing stuck.
+function freeSpinsWorth(maxSpins) {
+  const { REELS, LINES, PAYS, SCATTER_PAYS, WILD, SCATTER, ROWS } = ml;
+  const n = REELS.length;
+  const wildReels = REELS.map((r, c) => (r.strip.includes(WILD) ? c : -1)).filter(c => c >= 0);
+  assert.ok(!REELS[0].strip.includes(WILD) && !PAYS[WILD], 'the chain counts on lines starting on a plain symbol');
+  const bit = (c, r) => { const k = wildReels.indexOf(c); return k < 0 ? -1 : k * ROWS + r; };
+  const NS = 1 << (wildReels.length * ROWS);
+  const odds = REELS.map(R.symbolOdds);
+  const views = REELS.map(reel => {
+    const L = reel.strip.length, w = R.weightsOf(reel), T = w.reduce((a, b) => a + b, 0);
+    return reel.strip.map((_, i) => ({ p: w[i] / T, col: Array.from({ length: ROWS }, (_, r) => reel.strip[(i + r) % L]) }));
+  });
+  const first = Object.keys(odds[0]).filter(s => PAYS[s]);
+  const pay = new Float64Array(NS);
+  for (let S = 0; S < NS; S++) {
+    const stuck = (c, r) => { const b = bit(c, r); return b >= 0 && (S >> b) & 1; };
+    let ev = 0;
+    for (const line of LINES) for (const s of first) {
+      let run = odds[0][s];
+      for (let c = 1; c <= n && run; c++) {
+        const q = c < n ? (stuck(c, line[c]) ? 1 : (odds[c][s] || 0) + (odds[c][WILD] || 0)) : 0;
+        ev += run * (1 - q) * (PAYS[s][c] || 0);
+        run *= q;
+      }
+    }
+    let dist = [1];
+    for (let c = 0; c < n; c++) {
+      const here = [];
+      for (const { p, col } of views[c]) { const k = col.filter((s, r) => s === SCATTER && !stuck(c, r)).length; here[k] = (here[k] || 0) + p; }
+      const next = [];
+      dist.forEach((a, i) => here.forEach((b, j) => { if (b) next[i + j] = (next[i + j] || 0) + a * b; }));
+      dist = next.map(x => x || 0);
+    }
+    dist.forEach((p, k) => { ev += p * (SCATTER_PAYS[k] || 0) * LINES.length; });
+    pay[S] = ev;
+  }
+  const mask = (1 << ROWS) - 1;
+  const moves = wildReels.map(c => Array.from({ length: 1 << ROWS }, (_, rs) => {
+    const m = new Map();
+    for (const { p, col } of views[c]) { let x = rs; col.forEach((s, r) => { if (s === WILD) x |= 1 << r; }); m.set(x, (m.get(x) || 0) + p); }
+    return [...m];
+  }));
+  const worth = [0];
+  let V = new Float64Array(NS);
+  for (let k = 1; k <= maxSpins; k++) {
+    const W = new Float64Array(NS);
+    for (let S = 0; S < NS; S++) {
+      let acc = [[0, 1]];
+      wildReels.forEach((_, j) => {
+        const rs = (S >> (j * ROWS)) & mask, next = [];
+        for (const [b, p] of acc) for (const [x, q] of moves[j][rs]) next.push([b | (x << (j * ROWS)), p * q]);
+        acc = next;
+      });
+      W[S] = pay[S] + acc.reduce((a, [S2, p]) => a + p * V[S2], 0);
+    }
+    V = W; worth[k] = V[0];
+  }
+  return worth;
+}
+
+test('Motherlode pays back what its help says (exact: lines, lanterns and free spins)', () => {
   const lines = R.lineReturn(ml.REELS, ml.PAYS, { wild: ml.WILD, not: [ml.SCATTER] }).ev;
   const so = R.scatterOdds(ml.REELS, ml.SCATTER);
-  const rng = R.seeded(2026);
-  const N = 50000;
+  const worth = freeSpinsWorth(Math.max(...Object.values(ml.FREE_SPINS)));
   let scatter = 0, feature = 0, trig = 0;
   so.forEach((p, n) => {
     scatter += p * (ml.SCATTER_PAYS[n] || 0);
-    if (n >= 3) {
-      trig += p;
-      let t = 0;
-      for (let i = 0; i < N; i++) t += ml.feature(ml.FREE_SPINS[n], rng);
-      feature += p * t / N / ml.LINE_COUNT;
-    }
+    if (ml.FREE_SPINS[n]) { trig += p; feature += p * worth[ml.FREE_SPINS[n]] / ml.LINE_COUNT; }
   });
+  const rtp = lines + scatter + feature;
+  console.log(`Motherlode: ${(rtp * 100).toFixed(3)}% (lines ${pct(lines)}, lanterns ${pct(scatter)}, free spins ${pct(feature)}); free spins 1 in ${(1 / trig).toFixed(1)}, worth ${(feature / trig).toFixed(1)} times the bet on average`);
+  assert.equal(pct(rtp), ml.RETURN.rtp);
+  assert.equal(Math.round(1 / trig), ml.RETURN.feature);
+  assert.ok(feature / trig >= 25, 'the free spins are worth 25 times the bet or more on average');
+  assert.ok(rtp > .92 && rtp < .97);
+
+  // the chain against the machine's own free spins, played out: a long seeded run of each comes to what the chain
+  // says, within four standard errors
+  const rng = R.seeded(2026), N = 40000;
+  for (const n of Object.keys(ml.FREE_SPINS).map(Number)) {
+    const k = ml.FREE_SPINS[n];
+    let t = 0, t2 = 0;
+    for (let i = 0; i < N; i++) { const u = ml.feature(k, rng); t += u; t2 += u * u; }
+    const mean = t / N, se = Math.sqrt((t2 / N - mean * mean) / N);
+    console.log(`Motherlode, ${k} free spins: ${(mean / ml.LINE_COUNT).toFixed(2)} times the bet played out (±${(se / ml.LINE_COUNT).toFixed(2)}), ${(worth[k] / ml.LINE_COUNT).toFixed(2)} worked out`);
+    assert.ok(Math.abs(mean - worth[k]) < 4 * se, `${k} free spins: played out ${mean / ml.LINE_COUNT} vs ${worth[k] / ml.LINE_COUNT}`);
+  }
+});
+
+test('Motherlode wins about as often as its help says (a long seeded run)', () => {
+  const rng = R.seeded(2026);
   let hit = 0;
   const H = 60000;
   for (let i = 0; i < H; i++) if (ml.play(R.pickStops(ml.REELS, rng)).units > 0) hit++;
-  const rtp = lines + scatter + feature;
-  console.log(`Motherlode: ${pct(rtp)}% (lines ${pct(lines)}, lanterns ${pct(scatter)}, free spins ${pct(feature)}); 1 spin in ${(H / hit).toFixed(2)} wins; free spins 1 in ${Math.round(1 / trig)}`);
-  assert.ok(Math.abs(rtp * 100 - ml.RETURN.rtp) < .4, `return ${pct(rtp)} vs ${ml.RETURN.rtp}`);
+  console.log(`Motherlode: 1 spin in ${(H / hit).toFixed(2)} wins`);
   assert.ok(Math.abs(hit / H * 100 - ml.RETURN.hit) < 1);
-  assert.equal(Math.round(1 / trig), ml.RETURN.feature);
-  assert.ok(rtp > .92 && rtp < .97);
 });
 
 test('Motherlode: sticky pickaxes stay put and stand in', () => {

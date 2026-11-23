@@ -16,7 +16,7 @@
   &nbsp;
   <img src="docs/phone-video-poker.png" alt="Video Poker: a blue Jacks or Better screen with its pay table lit, the Four of a Kind row and the 125 for five coins in red, four kings held and FOUR OF A KIND! WIN 625" width="250">
   &nbsp;
-  <img src="docs/phone-motherlode.png" alt="Motherlode: free spin 5 of 8, five reels of gold-mine symbols with pickaxe wilds framed in gold where they've stuck, and coloured pay lines drawn across a win of 1,395" width="250">
+  <img src="docs/phone-motherlode.png" alt="Motherlode: free spin 5 of 6, five reels of gold-mine symbols with pickaxe wilds framed in gold where they've stuck, and coloured pay lines drawn across a win of 1,400" width="250">
 </p>
 <p align="center">
   <img src="docs/phone-cherry-bell.png" alt="Cherry Bell: a chrome three-reel machine under a red marquee, the pay table on the glass with the bells row lit, three bells on the pay line and 270 paid, with the red-balled handle at the side" width="250">
@@ -110,7 +110,7 @@ Jacks or Better on a full-pay machine: nine coins for a full house, six for a fl
 
 - **Five reels, three rows, twenty lines, down a gold mine.** Gold nuggets, mine carts, dynamite, canaries, and card ranks stamped on iron plates. Three, four or five of a kind pay from the left. The bet is spread over the lines, so it goes up in twenties.
 - **The pickaxe is wild** on reels 2 to 5.
-- **Lanterns light free spins.** Three, four or five lanterns anywhere pay 2, 10 or 50 times the bet and light 8, 12 or 20 free spins. Two lanterns already showing make the reels after them spin a moment longer.
+- **Lanterns light free spins.** Three, four or five lanterns anywhere pay 2, 10 or 50 times the bet and light 6, 12 or 20 free spins, about once in 135 spins. Two lanterns already showing make the reels after them spin a moment longer.
 - **In the free spins the pickaxes stick.** Every pickaxe that lands stays on the glass, framed in gold, until the spins are over, so they pile up. Free spins play by themselves at the bet that lit them, and carry on where they left off if you leave. When they're over, a card adds up what they paid, and the pickaxes come unstuck.
 - **Big wins rain coins.** At 15 times the bet it's a Big win, at 40 a Huge win, and at 100 the Motherlode. **Auto** keeps spinning until you tap it again (it says Stop while it runs), the chips run short, or a big win comes in (free spins that pay 15 times the bet count as one).
 - **The long run.** It pays back about 95.0%, more than a quarter of that from the free spins. About one spin in 2.5 wins.

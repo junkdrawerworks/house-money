@@ -7,7 +7,7 @@ const rig = seq => `{ const seq = ${JSON.stringify(seq)}; let i = 0; crypto.getR
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
 export async function go(page, base) {
-  await page.addInitScript(rig(aim([12, 23, 31, 35, 23])));
+  await page.addInitScript(rig(aim([33, 34, 33, 13, 27])));
   await page.goto(`${base}motherlode/?seen`);
   await page.evaluate(async () => {
     // the cage is kept one section per device (shared/ledger.js): this one's, from its totals
@@ -15,14 +15,14 @@ export async function go(page, base) {
     localStorage.setItem('house-money.cage', JSON.stringify((await import('/shared/ledger.js')).cageFrom({ chips: 2240, wagered: 18400, high: 2900, stakes: 1 }, 'd-shots')));
     localStorage.setItem('house-money.motherlode', JSON.stringify({
       bet: 100, felt: 0,
-      free: { left: 4, total: 8, won: 385, bet: 100, sticky: [[1, 0], [2, 1], [3, 2], [4, 1]] },
+      free: { left: 2, total: 6, won: 385, bet: 100, sticky: [[1, 0], [2, 1], [3, 2], [4, 1]] },
     }));
   });
   await page.reload();
   // the free spins carry on by themselves; catch the moment this one has landed, before the next begins
   await page.waitForFunction(() => {
     const s = JSON.parse(localStorage.getItem('house-money.motherlode'));
-    return s?.free?.left === 3 && s?.last?.paid === true;
+    return s?.free?.left === 1 && s?.last?.paid === true;
   }, null, { polling: 30, timeout: 15000 });
   await page.evaluate(() => {
     // hold the next free spin back so the picture can be taken
