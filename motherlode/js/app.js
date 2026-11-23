@@ -157,7 +157,7 @@ async function spin() {
   // two lanterns already showing: the reels after them spin on a moment longer
   const tease = [2, 3, 4].filter(c => r.lit.filter(([lc]) => lc < c).length >= 2);
   const turning = reels.spin(r.stops, {
-    first: .55, stagger: .22, tease,
+    first: .55, stagger: .22, tease, full: free,
     onStop: c => { sound.thunk(); if (r.lit.some(([lc]) => lc === c)) sound.tick(.35); },
   });
   paint();   // Spin is lit again while they turn: a tap lands them

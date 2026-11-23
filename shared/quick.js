@@ -1,5 +1,5 @@
 // Quick play: one switch for the whole floor that shortens the waits that are only animation (the roulette wheel, the
-// slot reels' stagger, the craps throw, the pauses in the dealing). Every result is settled and saved before its
+// slot reels' spin, the craps throw, the pauses in the dealing). Every result is settled and saved before its
 // animation starts, so it changes only the drawing. Off to start with; kept under KEY, and every open tab follows it.
 
 export const KEY = 'house-money.quick';

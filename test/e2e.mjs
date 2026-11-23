@@ -480,6 +480,53 @@ if (cageWants('roulette')) {
   await ctx.close();
 }
 
+// Quick play at the slot machines: the first spin is half as long as well as the gap between reels, and each reel lands
+// just when it's meant to, left to right, so a spin lands in about a second: 0.85 s at Odds & Ends, 1.0 s at Motherlode,
+// 1.1 s at Cherry Bell (before, about 2.2, 2.6 and 2.2 s, up to a whole turn of a reel later than planned). Motherlode's
+// free spins keep their first spin whole. Each machine's own reels, spun from many places to many stops.
+const SLOTS = { 'odds-and-ends': { speed: 24, first: .55, stagger: .28 }, motherlode: { speed: 26, first: .55, stagger: .22 }, 'cherry-bell': { speed: 20, first: .7, stagger: .42 } };
+if (cageWants(...Object.keys(SLOTS))) {
+  const ctx = await browser.newContext(phone);
+  await ctx.addInitScript(() => localStorage.setItem('house-money.quick', 'on'));
+  for (const [id, m] of Object.entries(SLOTS)) {
+    if (!cageWants(id)) continue;
+    const { p } = await sit(`${id}/?seen`, { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 } }, { ctx });
+    const res = await p.evaluate(async ([id, m]) => {
+      const { ReelSet } = await import('/shared/reels.js'), M = await import(`/${id}/js/machine.js`);
+      const host = document.createElement('div'), cv = document.createElement('canvas');
+      host.style.cssText = 'position:fixed;left:0;top:0;width:300px;height:200px'; host.append(cv); document.body.append(host);
+      const rs = new ReelSet(cv, { reels: M.REELS, rows: M.ROWS, anchor: M.ANCHOR, art: () => {}, speed: m.speed });
+      const out = [];
+      for (let i = 0; i < 8; i++) {
+        const L = c => M.REELS[c].strip.length;
+        rs.set(M.REELS.map((_, c) => (3 * i + 5 * c) % L(c)));
+        const stops = M.REELS.map((_, c) => (11 * i + 17 * c + 7) % L(c)), at = [], full = i === 7, t0 = performance.now();
+        await rs.spin(stops, { first: m.first, stagger: m.stagger, full, onStop: c => at.push([c, (performance.now() - t0) / 1000]) });
+        out.push({ full, order: at.map(([c]) => c), first: at[0][1], last: at.at(-1)[1], where: rs.pos.every((x, c) => x === stops[c]) });
+      }
+      host.remove();
+      return out;
+    }, [id, m]);
+    const n = (await import(`../${id}/js/machine.js`)).REELS.length, planned = m.first / 2 + (n - 1) * m.stagger / 2 + .3;
+    for (const r of res.filter(r => !r.full)) {
+      assert.deepEqual(r.order, [...Array(n).keys()], `${id}: under Quick play the reels landed out of turn`);
+      assert.ok(r.where, `${id}: a reel landed off its stop`);
+      assert.ok(r.last >= planned - .02 && r.last < planned + .35, `${id}: a spin under Quick play landed in ${r.last.toFixed(2)} s, not about ${planned.toFixed(2)}`);
+    }
+    // a free spin's first reel turns its whole first spin, as before
+    const free = res.find(r => r.full);
+    assert.ok(free.where && free.first >= m.first + .3 - .02, `${id}: the first reel of a free spin landed at ${free.first.toFixed(2)} s under Quick play`);
+    // and the machine itself: Spin to paid in about a second
+    const t0 = await p.evaluate(() => performance.now());
+    await p.click('#spin');
+    await until(() => p.evaluate(id => JSON.parse(localStorage.getItem(`house-money.${id}`))?.last?.paid === true, id), 5000, `${id}: the spin never landed`);
+    const took = await p.evaluate(t0 => performance.now() - t0, t0);
+    assert.ok(took < (planned + .5) * 1000, `${id}: a spin under Quick play took ${Math.round(took)} ms from Spin to paid`);
+    await p.close();
+  }
+  await ctx.close();
+}
+
 // Roulette on a phone: a finger held on the 5 for 800 ms opens the list of every bet on the 5, and the list stays up
 // when the finger lifts (the tap that ends the hold lands on the list's backdrop, or on one of its rows). A tap on a
 // row then puts the chip on that bet. (Touches sent through the browser's own input, as a finger's would be.)
