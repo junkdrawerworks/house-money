@@ -84,7 +84,8 @@ export function whir(count = 1) {
   const quiet = { reels() {}, rise() {}, calm() {}, stop() {} };
   if (!on || !ac()) return quiet;
   let n = count, hum = null;
-  const timer = setInterval(() => { if (n > 0) burst({ dur: .012, freq: 1500 + Math.random() * 300, q: 5, gain: .03 + .012 * Math.min(n, 5) }); }, 60);
+  // (not while the page is out of sight: the reels stand still then, but a timer still runs about once a second)
+  const timer = setInterval(() => { if (n > 0 && !document.hidden) burst({ dur: .012, freq: 1500 + Math.random() * 300, q: 5, gain: .03 + .012 * Math.min(n, 5) }); }, 60);
   const quietHum = () => {
     if (!hum) return;
     const t = ctx.currentTime;
@@ -111,7 +112,7 @@ export function whir(count = 1) {
 export function rollup(ms) {
   if (!on || !ac() || !(ms > 0)) return () => {};
   let i = 0;
-  const timer = setInterval(() => { burst({ dur: .01, freq: 3600 + (i++ % 2) * 500, q: 6, gain: .05 }); }, 70);
+  const timer = setInterval(() => { if (!document.hidden) burst({ dur: .01, freq: 3600 + (i++ % 2) * 500, q: 6, gain: .05 }); }, 70);
   const end = setTimeout(() => clearInterval(timer), ms);
   return () => { clearInterval(timer); clearTimeout(end); };
 }

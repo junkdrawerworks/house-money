@@ -51,8 +51,8 @@ export function bigWin({ amount, title, x = 15, kick = '', note = '', small = fa
   const t0 = performance.now();
   let last = t0;
   if (!small) { sound.win(top ? 4 : 3); sound.chips(12); } else if (amount > 0) sound.chips(4);
-  // a quiet tick while the amount climbs
-  const ticks = fast ? () => {} : sound.rollup(dur * .8);
+  // a quiet tick while the amount climbs (none when there's nothing to count: free spins that paid nothing)
+  const ticks = fast || !(amount > 0) ? () => {} : sound.rollup(dur * .8);
   return new Promise(resolve => {
     const end = () => { if (done) return; done = true; ticks(); box.hidden = true; box.removeEventListener('click', end); ctx.clearRect(0, 0, cv.width, cv.height); resolve(); };
     box.addEventListener('click', end);

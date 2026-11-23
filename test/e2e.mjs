@@ -1026,6 +1026,12 @@ if (cageWants('odds-and-ends') || cageWants('cherry-bell')) {
     assert.ok(await clicks(p, t0 + 100, t0 + 500) >= 4, 'Odds & Ends: the reels turned without a whir');
     await p.waitForTimeout(900);
     assert.equal(await clicks(p, landed + 150, landed + 900), 0, 'Odds & Ends: the whir went on after the reels landed');
+    // with the page out of sight (another tab, the phone locked) the reels stand still, and so does the whir
+    await p.evaluate(() => Object.defineProperty(document, 'hidden', { configurable: true, get: () => true }));
+    const t1 = await now(p);
+    await p.click('#spin');
+    await paidAt(p, 'odds-and-ends');
+    assert.equal(await clicks(p, t1 + 100, t1 + 500), 0, 'Odds & Ends: the whir went on with the page out of sight');
     await p.close();
   }
   await ctx.close();
