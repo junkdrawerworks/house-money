@@ -4,6 +4,7 @@
 
 import * as vp from './poker.js';
 import * as cage from '../../shared/cage.js';
+import { bigWin, shown as bigShown, dismiss } from '../../shared/bigwin.js';
 import * as records from '../../shared/records.js';
 import * as sound from '../../shared/sound.js';
 import { cardEl, turn, label } from '../../shared/cards.js';
@@ -222,7 +223,9 @@ async function draw() {
     if (s.result) {
       table.say(`${s.result.name}! Win ${cage.fmt(o.pay)}`, 'win');
       const big = vp.PAYTABLE.findIndex(p => p.id === s.result.id);
-      sound.chips(Math.min(10, 3 + (8 - big))); sound.win(big <= 2 ? 3 : big <= 5 ? 2 : 1);
+      // a royal flush: the big card, once the hand is paid and saved
+      if (s.result.id === 'royal') await bigWin({ amount: o.pay, title: 'Royal flush!', x: o.pay / o.wagered, note: `${s.coins} coin${s.coins === 1 ? '' : 's'} of ${cage.fmt(s.coin)}` });
+      else { sound.chips(Math.min(10, 3 + (8 - big))); sound.win(big <= 2 ? 3 : big <= 5 ? 2 : 1); }
       float($('hand'), `+${cage.fmt(o.pay)}`);
     } else { table.say('Game over', 'lose'); sound.lose(); }
   } finally { busy = false; paint(); }
@@ -250,7 +253,8 @@ addEventListener('keydown', e => {
   if (!shortcut(e)) return;
   if (/^[1-5]$/.test(e.key)) { toggle(Number(e.key) - 1); e.preventDefault(); }
   else if (e.key === 'Enter' && hotkey(e)) {
-    if (!$('deal').disabled) { $('deal').click(); e.preventDefault(); }
+    if (bigShown()) { dismiss(); e.preventDefault(); }
+    else if (!$('deal').disabled) { $('deal').click(); e.preventDefault(); }
   }
 });
 

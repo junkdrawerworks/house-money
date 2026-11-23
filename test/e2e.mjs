@@ -925,6 +925,41 @@ if (cageWants('motherlode')) {
   await ctx.close();
 }
 
+// The big moment for the top prizes: Cherry Bell's three sevens on three coins, three lucky pennies on a line at Odds &
+// Ends, and a royal flush, each with its own title. The card comes up only once the round is paid and saved, so a
+// reload under it pays nothing more. Ten times the bet or more at Cherry Bell chases the marquee's bulbs too.
+{
+  const C = (r, s) => ({ r, s });
+  const pennies = async p => p.evaluate(async () => {
+    const M = await import('/odds-and-ends/js/machine.js');
+    // each reel's draw puts a lucky penny in the middle row
+    const fs = M.REELS.map(r => { const L = r.strip.length; return (((r.strip.indexOf('penny') + L - 1) % L) + .5) / L; });
+    const real = crypto.getRandomValues.bind(crypto);
+    crypto.getRandomValues = a => { if (fs.length && a.length === 1) { a[0] = Math.floor(fs.shift() * 2 ** 32); return a; } return real(a); };
+  });
+  for (const [id, saved, f, before, go, title, chips] of [
+    ['cherry-bell', { 'cherry-bell': { coins: 3, coin: 1 } }, 0, null, '#spin', 'Jackpot!', 1997],
+    ['odds-and-ends', { 'odds-and-ends': { lines: 1, lineBet: 1 } }, null, pennies, '#spin', 'Lucky pennies!', 1249],
+    ['video-poker', { cage: { chips: 995, wagered: 5, high: 1000, stakes: 1 }, 'video-poker': { phase: 'draw', coin: 1, coins: 5, hand: [C(10, 'h'), C(11, 'h'), C(12, 'h'), C(13, 'h'), C(1, 'h')], held: [true, true, true, true, true], deck: [], result: null, felt: 5 } }, null, null, '#deal', 'Royal flush!', 4995],
+  ]) {
+    if (!cageWants(id)) continue;
+    const { p, ctx } = await sit(`${id}/?seen`, { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 }, ...saved }, { f });
+    if (before) await before(p);
+    await p.click(go);
+    await p.waitForSelector('#bigwin:not([hidden])', { timeout: 10000 });
+    assert.equal(await p.textContent('#bwTitle'), title, `${id}: the big card's title`);
+    // paid and saved before the card: the stack has it, and nothing is out on the machine
+    assert.deepEqual([(await cageOf(p)).chips, await feltOf(p, id)], [chips, 0], `${id}: the big card came up before the win was paid and saved`);
+    if (id === 'cherry-bell') assert.equal(await p.evaluate(() => document.body.classList.contains('winning')), true, 'Cherry Bell: the marquee did not chase on the jackpot');
+    await p.click('#bigwin');
+    await until(() => p.isHidden('#bigwin'), 2000, `${id}: the big card stayed up after a tap`);
+    await p.reload();
+    await p.waitForTimeout(400);
+    assert.equal((await cageOf(p)).chips, chips, `${id}: a reload after the big card paid again`);
+    await ctx.close();
+  }
+}
+
 // Chips still in play are out on the felt until they're paid: no offer while a slot's reels turn or a video poker
 // draw is turning over, even when what's left in the rack is under 10. (No ?fast here: the reels take their time.)
 // whether the offer is up, each moment busy (a function run in the page) says the round is still in play

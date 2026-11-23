@@ -10,6 +10,7 @@ import { mountTable, float, wait, hotkey, shortcut, overLine } from '../../share
 import { byId } from '../../shared/tables.js';
 import { ReelSet, loadArt, pickStops, window as view, keeper } from '../../shared/reels.js';
 import { guardEdges } from '../../shared/edge-guard.js';
+import { bigWin, shown as bigShown, dismiss } from '../../shared/bigwin.js';
 
 const T = byId(M.ID);
 const $ = id => document.getElementById(id);
@@ -132,8 +133,8 @@ async function pull() {
   const tease = (line[0] === line[1] && (line[0] === 'seven' || line[0] === 'bar')) ? [2] : [];
   await reels.spin(stops, { first: .7, stagger: .42, tease, onStop: () => sound.thunk() });
   keep.settle();
-  finish(r, win);
   spinning = false; document.body.classList.remove('spinning');
+  await finish(r, win);
   paint();
 }
 
@@ -143,7 +144,7 @@ const onLine = stops => view(M.REELS, stops, M.ROWS, M.ANCHOR).map(c => WORD[c[1
 // The reels' picture, for a screen reader: "On the pay line: cherry, BAR, blank."
 const describe = stops => $('reels').setAttribute('aria-label', `On the pay line: ${onLine(stops).join(', ')}.`);
 
-function finish(r, win) {
+async function finish(r, win) {
   lastWin = win;
   describe(s.last.stops);
   if (win > 0) {
@@ -156,7 +157,14 @@ function finish(r, win) {
     const what = r.row === 0 && s.coins === 3 ? 'Three sevens on three coins: the top prize!' : `${name} ${M.pays(r.row)} ${cage.fmt(win)}.`;
     table.say(what, 'win');
     const big = win >= bet() * 50 ? 3 : win >= bet() * 10 ? 2 : 1;
-    sound.win(big); sound.chips(Math.min(12, 3 + big * 3));
+    // ten times the bet or more, the marquee's bulbs chase for a moment
+    if (big >= 2) chase();
+    // the top prize: the big card, then the meter
+    if (r.row === 0 && s.coins === M.COINS) {
+      spinning = true; paint();
+      await bigWin({ amount: win, title: 'Jackpot!', x: win / bet(), note: 'Three sevens on three coins' });
+      spinning = false;
+    } else { sound.win(big); sound.chips(Math.min(12, 3 + big * 3)); }
     float($('reelBox'), `+${cage.fmt(win)}`);
     countUp(win);
   } else {
@@ -164,6 +172,13 @@ function finish(r, win) {
     const line = onLine(s.last.stops), said = line.join(', ');
     table.say(line.every(x => x === 'lemon') ? 'Three lemons. Of course.' : `${said[0].toUpperCase()}${said.slice(1)}. Nothing this time.`);
   }
+}
+
+let chaseTimer = 0;
+function chase() {
+  document.body.classList.add('winning');
+  clearTimeout(chaseTimer);
+  chaseTimer = setTimeout(() => document.body.classList.remove('winning'), 2400);
 }
 
 function countUp(to) {
@@ -239,7 +254,7 @@ handle.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' '
 
 addEventListener('keydown', e => {
   if (!shortcut(e)) return;
-  if (e.key === ' ' || e.key === 'Enter') { if (hotkey(e)) { e.preventDefault(); pull(); } }
+  if (e.key === ' ' || e.key === 'Enter') { if (hotkey(e)) { e.preventDefault(); if (bigShown()) dismiss(); else pull(); } }
   else if (['1', '2', '3'].includes(e.key) && !spinning) { s.coins = +e.key; keep.save(); sound.chip(); paint(); }
 });
 

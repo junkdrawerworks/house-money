@@ -6,10 +6,11 @@ import * as M from './machine.js';
 import { ART, icon } from './art.js';
 import * as cage from '../../shared/cage.js';
 import * as sound from '../../shared/sound.js';
-import { mountTable, float, wait, fast, hotkey, overLine, article } from '../../shared/table.js';
+import { mountTable, float, wait, hotkey, overLine, article } from '../../shared/table.js';
 import { byId } from '../../shared/tables.js';
 import { ReelSet, loadArt, pickStops, keeper } from '../../shared/reels.js';
 import * as seat from '../../shared/seat.js';
+import { bigWin, shown as bigShown, dismiss } from '../../shared/bigwin.js';
 
 const T = byId(M.ID);
 const $ = id => document.getElementById(id);
@@ -283,58 +284,21 @@ function decorate(ctx, rs) {
 
 // A big win (15, 40 or 100 times the bet), or the card that closes the free spins (feature: what they came to), with
 // "Free spins" over the title when the total is big and as the title when it isn't, and "8 spins · 6 pickaxes" under
-// the amount. Coins rain for a big one.
+// the amount. Coins rain for a big one. The card itself is the shared one (shared/bigwin.js).
 function celebrate(win, bet, { feature = null } = {}) {
   const x = win / bet, big = x >= 15;
-  const title = !big ? 'Free spins' : x >= 100 ? 'Motherlode!' : x >= 40 ? 'Huge win' : 'Big win';
-  const box = $('bigwin');
-  $('bwTitle').textContent = title;
-  $('bwKick').hidden = !(feature && big);
   const n = feature?.sticky.length || 0;
-  $('bwNote').textContent = feature ? `${feature.total} spins · ${n ? `${n} pickaxe${n === 1 ? '' : 's'}` : 'no pickaxes'}` : '';
-  $('bwNote').hidden = !feature;
-  box.classList.toggle('small', !big);
-  box.hidden = false;
-  const dur = fast ? 50 : big ? Math.min(6000, 2200 + x * 30) : 1600;
-  const cv = $('coins'), ctx = cv.getContext('2d');
-  const dpr = Math.min(2, devicePixelRatio || 1);
-  cv.width = innerWidth * dpr; cv.height = innerHeight * dpr;
-  const coins = [];
-  const rate = big ? Math.min(14, 3 + x / 10) : 0;
-  let done = false, t0 = performance.now(), last = t0;
-  if (big) { sound.win(3); sound.chips(12); } else if (win > 0) sound.chips(4);
-  return new Promise(resolve => {
-    const end = () => { if (done) return; done = true; box.hidden = true; box.removeEventListener('click', end); resolve(); };
-    box.addEventListener('click', end);
-    const frame = now => {
-      if (done) return;
-      const t = now - t0, dt = Math.min(50, now - last) / 1000; last = now;
-      const k = Math.min(1, t / (dur * .8));
-      $('bwAmt').textContent = cage.fmt(Math.round(win * (1 - (1 - k) ** 2)));
-      if (t < dur) for (let i = 0; i < rate; i++) if (Math.random() < .5) coins.push({ x: Math.random() * cv.width, y: -20 * dpr, vx: (Math.random() - .5) * 60 * dpr, vy: (80 + Math.random() * 120) * dpr, r: (7 + Math.random() * 7) * dpr, a: Math.random() * 6, va: 4 + Math.random() * 6 });
-      ctx.clearRect(0, 0, cv.width, cv.height);
-      for (const c of coins) {
-        c.vy += 600 * dpr * dt; c.x += c.vx * dt; c.y += c.vy * dt; c.a += c.va * dt;
-        const sx = Math.abs(Math.cos(c.a));
-        ctx.save(); ctx.translate(c.x, c.y); ctx.scale(Math.max(.15, sx), 1);
-        const g = ctx.createRadialGradient(-c.r * .3, -c.r * .3, 1, 0, 0, c.r);
-        g.addColorStop(0, '#fff6c0'); g.addColorStop(.5, '#f2c33a'); g.addColorStop(1, '#9a6a12');
-        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, c.r, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = '#7a5008'; ctx.lineWidth = 1.5 * dpr; ctx.stroke();
-        ctx.restore();
-      }
-      for (let i = coins.length - 1; i >= 0; i--) if (coins[i].y > cv.height + 40) coins.splice(i, 1);
-      if (t > dur + 1200) { end(); return; }
-      requestAnimationFrame(frame);
-    };
-    requestAnimationFrame(frame);
-    if (fast) setTimeout(end, 60);
+  return bigWin({
+    amount: win, x, small: !big,
+    title: !big ? 'Free spins' : x >= 100 ? 'Motherlode!' : x >= 40 ? 'Huge win' : 'Big win',
+    kick: feature && big ? 'Free spins' : '',
+    note: feature ? `${feature.total} spins · ${n ? `${n} pickaxe${n === 1 ? '' : 's'}` : 'no pickaxes'}` : '',
   });
 }
 
 $('spin').addEventListener('click', () => spin());
 addEventListener('keydown', e => {
-  if (e.key === ' ' && hotkey(e)) { e.preventDefault(); if (!$('bigwin').hidden) $('bigwin').click(); else spin(); }
+  if (e.key === ' ' && hotkey(e)) { e.preventDefault(); if (bigShown()) dismiss(); else spin(); }
 });
 
 // a few lines of the pay table under the reels

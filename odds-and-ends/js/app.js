@@ -9,6 +9,7 @@ import { chipEl } from '../../shared/chips.js';
 import { mountTable, float, hotkey, overLine } from '../../shared/table.js';
 import { byId } from '../../shared/tables.js';
 import { ReelSet, loadArt, pickStops, window as view, evalLines, keeper } from '../../shared/reels.js';
+import { bigWin, shown as bigShown, dismiss } from '../../shared/bigwin.js';
 
 const T = byId(M.ID);
 const $ = id => document.getElementById(id);
@@ -131,6 +132,8 @@ async function spin() {
   await reels.spin(stops, { first: .55, stagger: .28, onStop: () => sound.thunk() });
   keep.settle();
   show(wins, win);
+  // three lucky pennies on a line: the big card, once the spin is paid
+  if (wins.some(w => w.sym === M.WILD && w.count === 3)) await bigWin({ amount: win, title: 'Lucky pennies!', x: win / b, note: 'Three on a line' });
   spinning = false;
   paint();
 }
@@ -154,7 +157,7 @@ function show(wins, win) {
   $('paid').className = 'paid win';
   $('paid').textContent = `Won ${cage.fmt(win)}`;
   const big = win >= bet() * 25 ? 3 : win >= bet() * 5 ? 2 : 1;
-  sound.win(big); sound.chips(Math.min(12, 3 + wins.length * 2));
+  if (!wins.some(w => w.sym === M.WILD && w.count === 3)) { sound.win(big); sound.chips(Math.min(12, 3 + wins.length * 2)); }
   float($('reelBox'), `+${cage.fmt(win)}`);
   table.say(wins.length === 1 ? lineSay(wins[0]) : `${wins.length} lines pay ${cage.fmt(win)}.`, 'win');
   // after a moment, go through the winning lines one at a time, in the caption under the drawer: on the dealer's line
@@ -203,7 +206,7 @@ function decorate(ctx, rs) {
 
 $('spin').addEventListener('click', spin);
 addEventListener('keydown', e => {
-  if (e.key === ' ' && hotkey(e)) { e.preventDefault(); spin(); }
+  if (e.key === ' ' && hotkey(e)) { e.preventDefault(); if (bigShown()) dismiss(); else spin(); }
 });
 addEventListener('resize', () => requestAnimationFrame(tabs));
 
