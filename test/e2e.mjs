@@ -954,6 +954,55 @@ if (cageWants('motherlode')) {
   await ctx.close();
 }
 
+// A second tap lands the reels at once at Odds & Ends and Motherlode (Spin again, or the reels), and a tap on the
+// roulette wheel drops the ball in. The result was picked and saved before anything moved, so it only cuts the wait.
+// Motherlode's free spins play out whatever is tapped. (No ?fast: the reels take their real time.)
+{
+  const savedSpin = (p, id) => p.evaluate(id => JSON.parse(localStorage.getItem(`house-money.${id}`))?.last, id);
+  // (a steady draw of 0.275 wins nothing at either machine)
+  for (const [id, saved, again, left] of [
+    ['odds-and-ends', { 'odds-and-ends': { lines: 5, lineBet: 1 } }, '#spin', 995],
+    ['odds-and-ends', { 'odds-and-ends': { lines: 5, lineBet: 1 } }, '#reels', 995],
+    ['motherlode', { motherlode: { bet: 20, free: null } }, '#spin', 980],
+    ['motherlode', { motherlode: { bet: 20, free: null } }, '#reels', 980],
+  ]) {
+    if (!cageWants(id)) continue;
+    const { p, ctx } = await sit(`${id}/?seen`, { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 }, ...saved }, { f: .275 });
+    await p.click('#spin');
+    await p.waitForTimeout(150);
+    assert.equal((await savedSpin(p, id))?.paid, false, `${id}: the spin was over before the second tap`);
+    const t0 = Date.now();
+    await p.click(again, { position: again === '#reels' ? { x: 20, y: 20 } : undefined });
+    await until(async () => (await savedSpin(p, id))?.paid === true, 3000, `${id}: the reels never landed`);
+    const took = Date.now() - t0;
+    assert.ok(took < 800, `${id}: the reels took ${took} ms to land after a tap on ${again}`);
+    assert.equal((await cageOf(p)).chips, left, `${id}: the hurried spin was paid wrongly`);
+    await ctx.close();
+  }
+  if (cageWants('motherlode')) {
+    const { p, ctx } = await sit('motherlode/?seen', { cage: { chips: 500, wagered: 0, high: 1000, stakes: 1 },
+      motherlode: { bet: 20, free: { left: 2, total: 6, sticky: [], won: 0, bet: 20 }, last: { stops: [0, 0, 0, 0, 0], sticky: [], win: 0, wagered: 20, paid: true } } }, { f: .275 });
+    await until(() => p.evaluate(() => !!window.__ml?.running), 5000, 'Motherlode: the free spin never started');
+    await p.click('#reels', { position: { x: 20, y: 20 }, force: true });
+    await p.waitForTimeout(250);
+    assert.equal(await p.evaluate(() => window.__ml.running), true, 'Motherlode: a tap landed a free spin early');
+    assert.equal(await p.isDisabled('#spin'), true, 'Motherlode: Spin lit during a free spin');
+    await ctx.close();
+  }
+  if (cageWants('roulette')) {
+    const { p, ctx } = await sit('roulette/?seen', { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 } }, { f: .3 });
+    await p.click('#rack .c5'); await p.click('[data-k="red"]');
+    await p.click('#spin');
+    await p.waitForTimeout(800);
+    const t0 = Date.now();
+    await p.click('#wheelBox');
+    await until(async () => (await p.evaluate(() => JSON.parse(localStorage.getItem('house-money.roulette')).spin?.shown)) === true, 8000, 'Roulette: the spin never finished');
+    const took = Date.now() - t0;
+    assert.ok(took < 2500, `Roulette: the ball took ${took} ms to drop in after a tap on the wheel`);
+    await ctx.close();
+  }
+}
+
 // The big moment for the top prizes: Cherry Bell's three sevens on three coins, three lucky pennies on a line at Odds &
 // Ends, and a royal flush, each with its own title. The card comes up only once the round is paid and saved, so a
 // reload under it pays nothing more. Ten times the bet or more at Cherry Bell chases the marquee's bulbs too.

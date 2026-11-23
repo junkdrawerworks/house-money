@@ -181,12 +181,13 @@ export class Wheel {
     const D = mod(rel0 - end) + TAU * turns;  // how far it travels round the wheel, against the turn
     this.rest = null;
     this.spinning = true;
+    this.hurried = false;
     let lastPocket = null;
     return new Promise(resolve => {
       const frame = t => {
         const wa = this.coastAngle(t);
         this.angle = wa;
-        const v = Math.min(1, (t - now) / (tLand - now));
+        const v = this.hurried ? 1 : Math.min(1, (t - now) / (tLand - now));
         // the ball's place on the wheel: fast at first, slowing to a stop in its pocket
         const e = 1 - (1 - v) ** 2.4;
         let rel = end + D * (1 - e);
@@ -217,6 +218,9 @@ export class Wheel {
       requestAnimationFrame(frame);
     });
   }
+
+  // A tap on the wheel while the ball runs: it drops straight into its pocket (the number was drawn before the spin).
+  hurry() { if (this.spinning) this.hurried = true; }
 
   // Lets the wheel turn on slowly after the ball is in, with the ball riding along, until it's nearly still (30 s
   // from the push). Called again once the wheel is back in sight, it picks up where the wheel has got to by now.

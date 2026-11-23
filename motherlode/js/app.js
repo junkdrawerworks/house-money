@@ -49,16 +49,21 @@ const table = mountTable({
     <p>Motherlode pays back about ${M.RETURN.rtp.toFixed(1)}% of what goes in, more than a quarter of that from the free
     spins. About one spin in ${Math.round(100 / M.RETURN.hit * 2) / 2} wins something, and the lanterns light free spins
     about once every ${M.RETURN.feature} spins.</p>
-    <p>The keyboard works too: Space spins.</p>`,
+    <p>A tap on Spin or the reels while they turn lands them at once (the free spins play out). The keyboard works too:
+    Space spins, and lands the reels.</p>`,
 });
 
-let reels, spinning = false, auto = false, shown = { wins: [], at: -1, lit: [] }, cycle = 0, fresh = [];
+let reels, spinning = false, freeSpin = false, auto = false, shown = { wins: [], at: -1, lit: [] }, cycle = 0, fresh = [];
 let hold = [];   // the pickaxes stuck to the glass, drawn over the reels
 // Once the free spins are over, the pickaxes that were stuck for the last one, drawn as plain pickaxes (no gold frame)
 // over the reels until the next spin: the picture that paid, with nothing still sticking. After a reload too.
 let rest = [];
 // for the tests (?seen): the pickaxes glowing as new, whether the reels are turning, and the pickaxes stuck and at rest
 if (/[?&]seen\b/.test(location.search)) window.__ml = { get fresh() { return fresh; }, get running() { return !!reels?.running; }, get hold() { return hold; }, get rest() { return rest; } };
+
+// A tap on Spin or the reels lands them at once, except in the free spins, which play out.
+const hurryable = () => spinning && !freeSpin && !!reels?.running;
+const hurry = () => { if (hurryable()) reels.hurry(); };
 
 const lineBet = () => (s.free ? s.free.bet : s.bet) / M.LINE_COUNT;
 // The free spin playing now, or the next one between spins: a spin is painted as it starts, before it's taken off
@@ -80,7 +85,8 @@ function paint() {
   $('bet').textContent = cage.fmt(inFree ? s.free.bet : s.bet);
   $('betDown').disabled = spinning || inFree || i <= 0;
   $('betUp').disabled = spinning || inFree || i >= allowed.length - 1 || allowed[i + 1] > chips;
-  $('spin').disabled = spinning || (!inFree && s.bet > chips);
+  // while the reels turn, Spin lands them (but the free spins play out)
+  $('spin').disabled = spinning ? !hurryable() : (!inFree && s.bet > chips);
   $('spin').querySelector('span').textContent = inFree ? 'Free' : 'Spin';
   // while Auto runs, the button says what a tap on it does now
   $('auto').textContent = auto ? 'Stop' : 'Auto';
@@ -118,7 +124,7 @@ async function spin() {
   const free = !!s.free;
   const bet = free ? s.free.bet : s.bet;
   if (!free && !keep.stake(bet)) { auto = false; table.say('Not enough chips for that bet.'); paint(); return; }
-  spinning = true;
+  spinning = true; freeSpin = free;
   shown = { wins: [], at: -1, lit: [] }; fresh = []; clearInterval(cycle);
   $('paid').innerHTML = '&nbsp;'; $('paid').className = 'paid';
   if (!free) table.say('');
@@ -149,10 +155,12 @@ async function spin() {
 
   // two lanterns already showing: the reels after them spin on a moment longer
   const tease = [2, 3, 4].filter(c => r.lit.filter(([lc]) => lc < c).length >= 2);
-  await reels.spin(r.stops, {
+  const turning = reels.spin(r.stops, {
     first: .55, stagger: .22, tease,
     onStop: c => { sound.thunk(); if (r.lit.some(([lc]) => lc === c)) sound.tick(.35); },
   });
+  paint();   // Spin is lit again while they turn: a tap lands them
+  await turning;
   keep.settle();
   spinning = false;
   // the new pickaxes glow once the reels have landed: while they spin, a glow would give away where they'll stop
@@ -296,9 +304,10 @@ function celebrate(win, bet, { feature = null } = {}) {
   });
 }
 
-$('spin').addEventListener('click', () => spin());
+$('spin').addEventListener('click', () => (spinning ? hurry() : spin()));
+$('reels').addEventListener('click', hurry);
 addEventListener('keydown', e => {
-  if (e.key === ' ' && hotkey(e)) { e.preventDefault(); if (bigShown()) dismiss(); else spin(); }
+  if (e.key === ' ' && hotkey(e)) { e.preventDefault(); if (bigShown()) dismiss(); else if (spinning) hurry(); else spin(); }
 });
 
 // a few lines of the pay table under the reels

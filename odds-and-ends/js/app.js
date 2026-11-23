@@ -45,7 +45,8 @@ const table = mountTable({
     <h3>The long run</h3>
     <p>Odds &amp; Ends pays back about ${M.RETURN.rtp.toFixed(1)}% of what goes in, however many lines you play. On all
     five lines, about one spin in four wins something.</p>
-    <p>The keyboard works too: Space spins.</p>`,
+    <p>A tap on Spin or the drawer while the reels turn lands them at once. The keyboard works too: Space spins, and
+    lands the reels.</p>`,
 });
 
 // ---------- bets ----------
@@ -84,7 +85,8 @@ function paint() {
   $('linesDown').disabled = spinning || s.lines <= 1;
   $('linesUp').disabled = spinning || s.lines >= 5 || (s.lines + 1) * s.lineBet > max;
   $('total').innerHTML = `Bet <b>${cage.fmt(bet())}</b>`;
-  $('spin').disabled = spinning || bet() > chips;
+  // while the reels turn, Spin lands them
+  $('spin').disabled = spinning ? !reels?.running : bet() > chips;
   table.hold(spinning ? '' : overLine(bet(), chips, table.limits().min, 'Play fewer lines or a smaller chip.'));
   tabs();
   table.check();
@@ -114,7 +116,7 @@ function tabs() {
 // ---------- the spin ----------
 
 async function spin() {
-  if (spinning) return;
+  if (spinning) { reels.hurry(); return; }
   const b = bet();
   if (!keep.stake(b)) { table.say('Not enough chips for that bet. Try fewer lines or a smaller chip.'); return; }
   spinning = true;
@@ -129,7 +131,9 @@ async function spin() {
   const win = wins.reduce((a, w) => a + w.pay, 0) * s.lineBet;
   keep.begin({ stops, lines: s.lines, lineBet: s.lineBet, win, wagered: b, wins: wins.map(w => ({ line: w.line, sym: w.sym, pay: w.pay })),
     extra: wins.some(w => w.sym === M.WILD && w.count === 3) ? { jackpots: 1 } : {}, max: { biggest: win } });
-  await reels.spin(stops, { first: .55, stagger: .28, onStop: () => sound.thunk() });
+  const turning = reels.spin(stops, { first: .55, stagger: .28, onStop: () => sound.thunk() });
+  paint();   // Spin is lit again while they turn: a tap lands them
+  await turning;
   keep.settle();
   show(wins, win);
   // three lucky pennies on a line: the big card, once the spin is paid
@@ -205,6 +209,8 @@ function decorate(ctx, rs) {
 }
 
 $('spin').addEventListener('click', spin);
+// a tap on the reels while they turn lands them too
+$('reels').addEventListener('click', () => { if (spinning) reels.hurry(); });
 addEventListener('keydown', e => {
   if (e.key === ' ' && hotkey(e)) { e.preventDefault(); if (bigShown()) dismiss(); else spin(); }
 });

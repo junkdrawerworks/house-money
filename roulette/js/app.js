@@ -53,6 +53,8 @@ const table = mountTable({
     <p>Zero is neither red nor black, odd nor even: when it comes up, the outside bets lose. Every bet gives the house
     the same 1 in 37 (2.7%), whichever you choose.</p>
     <h3>After the spin</h3>
+    <p>A tap on the wheel while the ball runs drops it straight into its pocket: the number was drawn when you
+    pressed Spin.</p>
     <p>The dolly marks the winning number. Winning bets come back to your rack with what they won, and the rest are
     swept. The strip above the layout keeps the last numbers, newest on the left. The wheel has no memory: a number
     that hasn’t come up in a while is no more likely next time.</p>
@@ -447,7 +449,8 @@ $('peek').addEventListener('click', () => {
   wheel.size();
   wheel.coasting();
 });
-box.addEventListener('click', () => { if (!busy && !wide()) hide(); });
+// a tap on the wheel while the ball runs drops it into its pocket; after the spin, on a phone, it puts the wheel away
+box.addEventListener('click', () => { if (busy) wheel.hurry(); else if (!wide()) hide(); });
 
 async function spin() {
   if (busy || seat.guard()) return;

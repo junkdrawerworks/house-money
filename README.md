@@ -56,7 +56,7 @@ A single-zero wheel and the whole layout, standing upright on a phone: 0 at the 
 - **Tap to bet, slide to adjust.** Pick a chip and press on the layout: the numbers your bet covers light up, and the line above says what the bet is and what it pays. Slide to another bet before you let go. The middle of a number is straight up, the line between two numbers a split, the point where four meet a corner, the left edge of a row a street, and the left edge where two rows meet a six line. Along the zero are the splits with 1, 2 and 3, the two trios and the first four.
 - **Press and hold a number** (or right-click it) for a list of every bet that includes it, with what each pays and what's already on it.
 - **Undo, Clear, Rebet, Double.** Undo picks up your last chip and Clear picks up all of them. After a spin, Rebet puts the same bets back down, and once they're down the same button doubles them. Bets are 1 to 500 each on a Red card.
-- **The spin.** The number is drawn the moment you press Spin, and the spin is settled and saved then. On a phone the wheel slides down over the layout. The ball runs round the track against the wheel's turn, drops off, clicks over the frets and settles in its pocket. On a wide screen the wheel stands beside the layout the whole time.
+- **The spin.** The number is drawn the moment you press Spin, and the spin is settled and saved then. On a phone the wheel slides down over the layout. The ball runs round the track against the wheel's turn, drops off, clicks over the frets and settles in its pocket. On a wide screen the wheel stands beside the layout the whole time. A tap on the wheel while the ball runs drops it straight into its pocket.
 - **The payout.** The dolly marks the winning number. Losing bets are swept, and winners light up, show what they won and go back to your rack. Straight up pays 35 to 1, a split 17, a street or trio 11, a corner or the first four 8, a six line 5, a dozen or column 2, and the even-money bets 1. Every bet gives the house the same 1 in 37.
 - **The strip** above the layout keeps the last twelve numbers, newest on the left.
 - **The keyboard:** Space spins, Backspace undoes, and Tab and Enter put chips on numbers and outside bets.
@@ -105,6 +105,7 @@ Jacks or Better on a full-pay machine: nine coins for a full house, six for a fl
 - **A slot machine stocked from the junk drawer.** Three reels and three rows in the compartments of a drawer organizer: key fobs, tape measures, spare keys, AA batteries, takeout menus, rubber bands and paper clips.
 - **The lucky penny is wild.** It stands in for anything, so two keys and a penny pay as three keys. Three pennies pay 250 times the line bet.
 - **Five lines:** across the middle, the top and the bottom, and the two diagonals. Play one to five, with a line bet from the chips. Coloured tabs at the sides show which lines are in play, and each winning line is drawn across the drawer, one after another when several pay.
+- **A second tap** on Spin or on the drawer while the reels turn lands them at once. The result was picked before they moved, so it only cuts the wait.
 - **The long run.** It pays back 95.2% however many lines you play. On all five lines, about one spin in four wins.
 
 ## Motherlode
@@ -113,7 +114,7 @@ Jacks or Better on a full-pay machine: nine coins for a full house, six for a fl
 - **The pickaxe is wild** on reels 2 to 5.
 - **Lanterns light free spins.** Three, four or five lanterns anywhere pay 2, 10 or 50 times the bet and light 6, 12 or 20 free spins, about once in 135 spins. Two lanterns already showing make the reels after them spin a moment longer.
 - **In the free spins the pickaxes stick.** Every pickaxe that lands stays on the glass, framed in gold, until the spins are over, so they pile up. Free spins play by themselves at the bet that lit them, and carry on where they left off if you leave. When they're over, a card adds up what they paid, and the pickaxes come unstuck.
-- **Big wins rain coins.** At 15 times the bet it's a Big win, at 40 a Huge win, and at 100 the Motherlode. **Auto** keeps spinning until you tap it again (it says Stop while it runs), the chips run short, or a big win comes in (free spins that pay 15 times the bet count as one).
+- **Big wins rain coins.** At 15 times the bet it's a Big win, at 40 a Huge win, and at 100 the Motherlode. **Auto** keeps spinning until you tap it again (it says Stop while it runs), the chips run short, or a big win comes in (free spins that pay 15 times the bet count as one). A tap on Spin or the reels while they turn lands them at once, except in the free spins, which play out.
 - **The long run.** It pays back about 95.0%, more than a quarter of that from the free spins. About one spin in 2.5 wins.
 
 ## Saving to Google Drive

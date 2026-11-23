@@ -149,12 +149,14 @@ export async function loadArt(svgs) {
 }
 
 const reduced = () => typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+const HURRY = .16, HURRY_GAP = .07;   // a hurried reel's landing, and the gap between one and the next (seconds)
 const FAST = typeof location !== 'undefined' && /[?&]fast\b/.test(location.search);
 
 // ReelSet: the reels drawn on a canvas that fills its parent.
 //   new ReelSet(canvas, { reels, rows, anchor, art, cell: h/w, pad, look })
 //   rs.set(stops)                    stands the reels still at those stops
 //   await rs.spin(stops, { onStop }) spins them and stops each in turn, left to right
+//   rs.hurry()                       lands the reels still spinning at once (a second tap on Spin, or on the reels)
 //   rs.decorate = ctx => {}          drawn over the reels every frame (win lines, sticky wilds)
 //   rs.cellRect(c, r)                where a cell is, in CSS pixels
 export class ReelSet {
@@ -213,6 +215,17 @@ export class ReelSet {
   }
 
   set(stops) { this.pos = stops.slice(); this.vel = this.vel.map(() => 0); this.draw(); }
+
+  // A second tap: every reel still in its steady spin lands at once, left to right a moment apart so each still
+  // thunks; one already landing finishes its own way. The result was picked before the reels moved, so this changes
+  // nothing but the wait. true if it hurried any.
+  hurry() {
+    if (!this.running || !this.plan) return false;
+    const t = (performance.now() - this.t0) / 1000;
+    let k = 0;
+    for (const pl of this.plan) if (pl && !pl.done && pl.h === undefined && t < pl.t1) pl.h = t + HURRY_GAP * k++;
+    return k > 0;
+  }
 
   cellRect(c, r) {
     return { x: c * (this.colW + this.gap), y: r * this.cellH, w: this.colW, h: this.cellH };
@@ -282,15 +295,21 @@ export class ReelSet {
       return { start, target: stops[c], d, t1, L, done: false };
     });
     this.running = true;
+    this.plan = plan;
     return new Promise(resolve => {
-      const t0 = performance.now();
+      const t0 = this.t0 = performance.now();
       const frame = now => {
         const t = (now - t0) / 1000;
         let busy = false;
         plan.forEach((pl, c) => {
           if (!pl || pl.done) return;
           let pos, vel;
-          if (t < ACC) { pos = pl.start - V * t * t / (2 * ACC); vel = V * t / ACC; }
+          if (pl.h !== undefined && t >= pl.h) {
+            // hurried: straight onto its stop, settling down onto it
+            const u = Math.min(1, (t - pl.h) / HURRY);
+            pos = pl.target + .35 * (1 - u) ** 2; vel = 0;
+            if (u >= 1) { pl.done = true; this.pos[c] = pl.target; this.vel[c] = 0; onStop(c); return; }
+          } else if (t < ACC) { pos = pl.start - V * t * t / (2 * ACC); vel = V * t / ACC; }
           else if (t < pl.t1) { pos = pl.start - V * (t - ACC / 2); vel = V; }
           else {
             const u = Math.min(1, (t - pl.t1) / LAND);
@@ -305,7 +324,7 @@ export class ReelSet {
         });
         this.draw();
         if (busy) requestAnimationFrame(frame);
-        else { this.running = false; resolve(); }
+        else { this.running = false; this.plan = null; resolve(); }
       };
       requestAnimationFrame(frame);
     });
