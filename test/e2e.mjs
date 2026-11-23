@@ -84,8 +84,9 @@ await page.goto(base);
 await page.evaluate(() => document.fonts.ready);
 const sideways = async where => assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${where} scrolls sideways on a phone`);
 
-// The long press on the installed icon: the most played tables first, since a launcher may show only the first few.
-const SHORTCUTS = ['Blackjack', 'Roulette', 'Craps', 'Video Poker', 'Baccarat', 'Motherlode', 'Cherry Bell', 'Odds & Ends', 'Records'];
+// The long press on the installed icon: an Android phone shows the first three, so a card table, the wheel and a slot
+// lead, and a computer shows more.
+const SHORTCUTS = ['Blackjack', 'Roulette', 'Motherlode', 'Craps', 'Baccarat', 'Video Poker', 'Cherry Bell', 'Odds & Ends', 'Records'];
 // It installs: Chromium finds nothing in the way of putting it on a home screen, the manifest reads clean, and every
 // icon and long-press shortcut it names is there.
 {

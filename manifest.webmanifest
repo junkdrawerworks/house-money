@@ -18,10 +18,10 @@
   "shortcuts": [
     { "name": "Blackjack", "url": "blackjack/", "icons": [{ "src": "shortcuts/blackjack.png", "sizes": "96x96", "type": "image/png" }] },
     { "name": "Roulette", "url": "roulette/", "icons": [{ "src": "shortcuts/roulette.png", "sizes": "96x96", "type": "image/png" }] },
-    { "name": "Craps", "url": "craps/", "icons": [{ "src": "shortcuts/craps.png", "sizes": "96x96", "type": "image/png" }] },
-    { "name": "Video Poker", "url": "video-poker/", "icons": [{ "src": "shortcuts/video-poker.png", "sizes": "96x96", "type": "image/png" }] },
-    { "name": "Baccarat", "url": "baccarat/", "icons": [{ "src": "shortcuts/baccarat.png", "sizes": "96x96", "type": "image/png" }] },
     { "name": "Motherlode", "url": "motherlode/", "icons": [{ "src": "shortcuts/motherlode.png", "sizes": "96x96", "type": "image/png" }] },
+    { "name": "Craps", "url": "craps/", "icons": [{ "src": "shortcuts/craps.png", "sizes": "96x96", "type": "image/png" }] },
+    { "name": "Baccarat", "url": "baccarat/", "icons": [{ "src": "shortcuts/baccarat.png", "sizes": "96x96", "type": "image/png" }] },
+    { "name": "Video Poker", "url": "video-poker/", "icons": [{ "src": "shortcuts/video-poker.png", "sizes": "96x96", "type": "image/png" }] },
     { "name": "Cherry Bell", "url": "cherry-bell/", "icons": [{ "src": "shortcuts/cherry-bell.png", "sizes": "96x96", "type": "image/png" }] },
     { "name": "Odds & Ends", "url": "odds-and-ends/", "icons": [{ "src": "shortcuts/odds-and-ends.png", "sizes": "96x96", "type": "image/png" }] },
     { "name": "Records", "url": "records/", "icons": [{ "src": "shortcuts/records.png", "sizes": "96x96", "type": "image/png" }] }
