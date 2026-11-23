@@ -1,12 +1,12 @@
 // Every sound on the floor, made on the spot with Web Audio (no files to load). One switch for the whole casino,
-// kept under KEY, and every open tab follows it.
+// kept under KEY, and every open tab follows it. It starts off: a first visit is silent until Sound: on is tapped.
 
 export const KEY = 'house-money.sound';
 
 let ctx = null;
-let on = (() => { try { return localStorage.getItem(KEY) !== 'off'; } catch { return true; } })();
+let on = (() => { try { return localStorage.getItem(KEY) === 'on'; } catch { return false; } })();
 // (the reels' arithmetic, which imports this, also runs in Node for the tests: no window there)
-if (typeof addEventListener === 'function') addEventListener('storage', e => { if (e.key === KEY) on = e.newValue !== 'off'; });
+if (typeof addEventListener === 'function') addEventListener('storage', e => { if (e.key === KEY) on = e.newValue === 'on'; });
 
 export const enabled = () => on;
 export function setEnabled(v) {

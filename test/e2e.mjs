@@ -238,6 +238,31 @@ if (cageWants('floor')) {
   }
 }
 
+// Sound starts off: a first visit makes no sound at all (no Web Audio is even started) until Sound: on is tapped, on
+// the floor or in a table's menu, and then the choice is kept.
+if (cageWants('floor')) {
+  const ctx = await browser.newContext(phone);
+  await ctx.addInitScript(() => {
+    window.__audio = 0;
+    const A = window.AudioContext;
+    window.AudioContext = class extends A { constructor(...a) { super(...a); window.__audio++; } };
+  });
+  const { p } = await sit('?seen', { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 } }, { ctx });
+  assert.deepEqual([(await p.textContent('#sound')).trim(), await p.getAttribute('#sound', 'aria-pressed')], ['Sound: off', 'false'], 'the floor: sound doesn\'t start off');
+  await p.goto(`${base}blackjack/?seen&fast`);
+  await p.click('#rack .c25'); await p.click('#spot');
+  await until(async () => (await p.textContent('#purse')) === '975', 3000, 'Blackjack: the bet did not go down');
+  assert.equal(await p.evaluate(() => window.__audio), 0, 'Blackjack: a chip went down with a sound on a first visit');
+  await p.click('.menu-btn');
+  assert.equal((await p.textContent('.sheet [data-act="sound"]')).trim(), 'Sound: off', 'Blackjack: the menu says the sound is on on a first visit');
+  await p.click('.sheet [data-act="sound"]');
+  assert.equal((await p.textContent('.sheet [data-act="sound"]')).trim(), 'Sound: on', 'Blackjack: Sound: off in the menu didn\'t turn it on');
+  assert.equal(await p.evaluate(() => window.__audio), 1, 'Blackjack: turning the sound on made no sound');
+  await p.goto(`${base}?seen`);
+  assert.equal((await p.textContent('#sound')).trim(), 'Sound: on', 'the floor: the sound turned on at a table didn\'t stay on');
+  await ctx.close();
+}
+
 // The limits a card gives, said the way each table takes bets: Video Poker's are five coins of up to the limit, and
 // Cherry Bell's three coins come to no more than it, so the top of each line is the biggest bet you can actually make.
 if (cageWants('floor', 'video-poker', 'cherry-bell')) {
@@ -1145,10 +1170,11 @@ if (cageWants('motherlode')) {
 
 // The reels' sounds, counted rather than heard: a soft click every 60 ms while the reels turn, which stops when they
 // land, and a quiet tick every 70 ms while Cherry Bell's Paid meter counts up. (Every click and tick is a burst of noise
-// started in Web Audio; the sound is on, as it starts.)
+// started in Web Audio; the sound is turned on first, as it starts off.)
 if (cageWants('odds-and-ends') || cageWants('cherry-bell')) {
   const ctx = await browser.newContext(phone);
   await ctx.addInitScript(() => {
+    localStorage.setItem('house-money.sound', 'on');
     window.__clicks = [];
     const start = AudioBufferSourceNode.prototype.start;
     AudioBufferSourceNode.prototype.start = function (...a) { window.__clicks.push(performance.now()); return start.apply(this, a); };
@@ -1178,6 +1204,7 @@ if (cageWants('odds-and-ends') || cageWants('cherry-bell')) {
   if (cageWants('cherry-bell')) {
     const c2 = await browser.newContext(phone);
     await c2.addInitScript(() => {
+      localStorage.setItem('house-money.sound', 'on');
       window.__clicks = [];
       const start = AudioBufferSourceNode.prototype.start;
       AudioBufferSourceNode.prototype.start = function (...a) { window.__clicks.push(performance.now()); return start.apply(this, a); };

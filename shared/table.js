@@ -54,7 +54,7 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
         <button type="button" class="btn" data-act="close">Back to the table</button>
         <a class="btn ghost" href="../">The floor</a>
         <a class="btn ghost" href="../records/">Records</a>
-        <button type="button" class="btn ghost" data-act="sound" aria-pressed="true">Sound: on</button>
+        <button type="button" class="btn ghost" data-act="sound" aria-pressed="false">Sound: off</button>
         <button type="button" class="btn ghost" data-act="quick" aria-pressed="false">Quick play: off</button>
         <button type="button" class="btn ghost" data-act="sync" hidden>Sync now</button>
       </div>
