@@ -137,7 +137,7 @@ async function spin() {
   keep.settle();
   show(wins, win);
   // three lucky pennies on a line: the big card, once the spin is paid
-  if (wins.some(w => w.sym === M.WILD && w.count === 3)) await bigWin({ amount: win, title: 'Lucky pennies!', x: win / b, note: 'Three on a line' });
+  if (wins.some(w => w.sym === M.WILD && w.count === 3)) await bigWin({ amount: win, title: 'Lucky pennies!', x: win / b, note: 'Three on a line', top: true });
   spinning = false;
   paint();
 }

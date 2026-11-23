@@ -224,7 +224,7 @@ async function draw() {
       table.say(`${s.result.name}! Win ${cage.fmt(o.pay)}`, 'win');
       const big = vp.PAYTABLE.findIndex(p => p.id === s.result.id);
       // a royal flush: the big card, once the hand is paid and saved
-      if (s.result.id === 'royal') await bigWin({ amount: o.pay, title: 'Royal flush!', x: o.pay / o.wagered, note: `${s.coins} coin${s.coins === 1 ? '' : 's'} of ${cage.fmt(s.coin)}` });
+      if (s.result.id === 'royal') await bigWin({ amount: o.pay, title: 'Royal flush!', x: o.pay / o.wagered, note: `${s.coins} coin${s.coins === 1 ? '' : 's'} of ${cage.fmt(s.coin)}`, top: true });
       else { sound.chips(Math.min(10, 3 + (8 - big))); sound.win(big <= 2 ? 3 : big <= 5 ? 2 : 1); }
       float($('hand'), `+${cage.fmt(o.pay)}`);
     } else { table.say('Game over', 'lose'); sound.lose(); }

@@ -297,7 +297,7 @@ function celebrate(win, bet, { feature = null } = {}) {
   const x = win / bet, big = x >= 15;
   const n = feature?.sticky.length || 0;
   return bigWin({
-    amount: win, x, small: !big,
+    amount: win, x, small: !big, top: x >= 100,
     title: !big ? 'Free spins' : x >= 100 ? 'Motherlode!' : x >= 40 ? 'Huge win' : 'Big win',
     kick: feature && big ? 'Free spins' : '',
     note: feature ? `${feature.total} spins · ${n ? `${n} pickaxe${n === 1 ? '' : 's'}` : 'no pickaxes'}` : '',

@@ -162,7 +162,7 @@ async function finish(r, win) {
     // the top prize: the big card, then the meter
     if (r.row === 0 && s.coins === M.COINS) {
       spinning = true; paint();
-      await bigWin({ amount: win, title: 'Jackpot!', x: win / bet(), note: 'Three sevens on three coins' });
+      await bigWin({ amount: win, title: 'Jackpot!', x: win / bet(), note: 'Three sevens on three coins', top: true });
       spinning = false;
     } else { sound.win(big); sound.chips(Math.min(12, 3 + big * 3)); }
     float($('reelBox'), `+${cage.fmt(win)}`);
@@ -184,6 +184,7 @@ function chase() {
 function countUp(to) {
   const el = $('winM');
   const t0 = performance.now(), dur = Math.min(1500, 300 + to * 4);
+  sound.rollup(dur);   // a quiet tick while it climbs
   const step = now => { const k = Math.min(1, (now - t0) / dur); el.textContent = cage.fmt(Math.round(to * k)); if (k < 1) requestAnimationFrame(step); };
   requestAnimationFrame(step);
 }

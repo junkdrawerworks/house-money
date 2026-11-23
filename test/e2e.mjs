@@ -1003,6 +1003,51 @@ if (cageWants('motherlode')) {
   }
 }
 
+// The reels' sounds, counted rather than heard: a soft click every 60 ms while the reels turn, which stops when they
+// land, and a quiet tick every 70 ms while Cherry Bell's Paid meter counts up. (Every click and tick is a burst of noise
+// started in Web Audio; the sound is on, as it starts.)
+if (cageWants('odds-and-ends') || cageWants('cherry-bell')) {
+  const ctx = await browser.newContext(phone);
+  await ctx.addInitScript(() => {
+    window.__clicks = [];
+    const start = AudioBufferSourceNode.prototype.start;
+    AudioBufferSourceNode.prototype.start = function (...a) { window.__clicks.push(performance.now()); return start.apply(this, a); };
+  });
+  const clicks = (p, from, to) => p.evaluate(([from, to]) => window.__clicks.filter(t => t >= from && t < to).length, [from, to]);
+  const now = p => p.evaluate(() => performance.now());
+  const paidAt = async (p, id) => { await until(() => p.evaluate(id => JSON.parse(localStorage.getItem(`house-money.${id}`))?.last?.paid === true, id), 5000, `${id}: the spin never landed`); return now(p); };
+  if (cageWants('odds-and-ends')) {
+    await ctx.addInitScript(steady, .275);
+    const { p } = await sit('odds-and-ends/?seen', { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 }, 'odds-and-ends': { lines: 5, lineBet: 1 } }, { ctx });
+    const t0 = await now(p);
+    await p.click('#spin');
+    const landed = await paidAt(p, 'odds-and-ends');
+    // before the first reel stops (0.55 s in), only the whir is sounding
+    assert.ok(await clicks(p, t0 + 100, t0 + 500) >= 4, 'Odds & Ends: the reels turned without a whir');
+    await p.waitForTimeout(900);
+    assert.equal(await clicks(p, landed + 150, landed + 900), 0, 'Odds & Ends: the whir went on after the reels landed');
+    await p.close();
+  }
+  await ctx.close();
+  if (cageWants('cherry-bell')) {
+    const c2 = await browser.newContext(phone);
+    await c2.addInitScript(() => {
+      window.__clicks = [];
+      const start = AudioBufferSourceNode.prototype.start;
+      AudioBufferSourceNode.prototype.start = function (...a) { window.__clicks.push(performance.now()); return start.apply(this, a); };
+    });
+    await c2.addInitScript(steady, 0);
+    // three sevens on one coin: 200, counted up on the Paid meter (not the top prize, which has its own card)
+    const { p } = await sit('cherry-bell/?seen', { cage: { chips: 1000, wagered: 0, high: 1000, stakes: 1 }, 'cherry-bell': { coins: 1, coin: 1 } }, { ctx: c2 });
+    await p.click('#spin');
+    const landed = await paidAt(p, 'cherry-bell');
+    await p.waitForTimeout(1100);
+    // the win's chips are done by 0.6 s; then only the meter's ticks
+    assert.ok(await clicks(p, landed + 600, landed + 1000) >= 4, 'Cherry Bell: the Paid meter counted up without a tick');
+    await c2.close();
+  }
+}
+
 // The big moment for the top prizes: Cherry Bell's three sevens on three coins, three lucky pennies on a line at Odds &
 // Ends, and a royal flush, each with its own title. The card comes up only once the round is paid and saved, so a
 // reload under it pays nothing more. Ten times the bet or more at Cherry Bell chases the marquee's bulbs too.

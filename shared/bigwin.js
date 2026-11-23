@@ -9,6 +9,7 @@
 //   kick    a word over the title ('Free spins'), or ''
 //   note    a line under the amount ('8 spins · 6 pickaxes'), or ''
 //   small   a quiet card: no rain and no pulse (the free spins' closing card when they paid little)
+//   top     a top prize: a longer winning figure
 // Resolves when it's put away: a tap, Space (see shown()), or on its own a little after the count is done. Under ?fast
 // it's a blink.
 
@@ -33,7 +34,7 @@ if (typeof document !== 'undefined') { if (document.body) ensure(); else addEven
 export const shown = () => !!box && !box.hidden;
 export const dismiss = () => { if (shown()) box.click(); };
 
-export function bigWin({ amount, title, x = 15, kick = '', note = '', small = false }) {
+export function bigWin({ amount, title, x = 15, kick = '', note = '', small = false, top = false }) {
   ensure();
   $('bwTitle').textContent = title;
   $('bwKick').textContent = kick; $('bwKick').hidden = !kick;
@@ -49,9 +50,11 @@ export function bigWin({ amount, title, x = 15, kick = '', note = '', small = fa
   let done = false;
   const t0 = performance.now();
   let last = t0;
-  if (!small) { sound.win(3); sound.chips(12); } else if (amount > 0) sound.chips(4);
+  if (!small) { sound.win(top ? 4 : 3); sound.chips(12); } else if (amount > 0) sound.chips(4);
+  // a quiet tick while the amount climbs
+  const ticks = fast ? () => {} : sound.rollup(dur * .8);
   return new Promise(resolve => {
-    const end = () => { if (done) return; done = true; box.hidden = true; box.removeEventListener('click', end); ctx.clearRect(0, 0, cv.width, cv.height); resolve(); };
+    const end = () => { if (done) return; done = true; ticks(); box.hidden = true; box.removeEventListener('click', end); ctx.clearRect(0, 0, cv.width, cv.height); resolve(); };
     box.addEventListener('click', end);
     const frame = now => {
       if (done) return;

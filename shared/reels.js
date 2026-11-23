@@ -11,6 +11,7 @@ import * as cage from './cage.js';
 import * as records from './records.js';
 import * as seat from './seat.js';
 import * as quick from './quick.js';
+import * as sound from './sound.js';
 
 // ---------- the arithmetic ----------
 
@@ -224,6 +225,7 @@ export class ReelSet {
     const t = (performance.now() - this.t0) / 1000;
     let k = 0;
     for (const pl of this.plan) if (pl && !pl.done && pl.h === undefined && t < pl.t1) pl.h = t + HURRY_GAP * k++;
+    if (k) this.onHurry?.();
     return k > 0;
   }
 
@@ -296,6 +298,15 @@ export class ReelSet {
     });
     this.running = true;
     this.plan = plan;
+    // the reels' soft whir while they turn, and a rising tone while a teased reel spins on
+    const left = () => plan.filter(pl => pl && !pl.done).length;
+    const whir = sound.whir(left());
+    this.onHurry = whir.calm;
+    const land = (c, t) => {
+      whir.reels(left());
+      const next = plan.findIndex((pl, k) => k > c && pl && !pl.done);
+      if (next >= 0 && tease.includes(next) && plan[next].h === undefined) whir.rise(plan[next].t1 + LAND - t);
+    };
     return new Promise(resolve => {
       const t0 = this.t0 = performance.now();
       const frame = now => {
@@ -308,7 +319,7 @@ export class ReelSet {
             // hurried: straight onto its stop, settling down onto it
             const u = Math.min(1, (t - pl.h) / HURRY);
             pos = pl.target + .35 * (1 - u) ** 2; vel = 0;
-            if (u >= 1) { pl.done = true; this.pos[c] = pl.target; this.vel[c] = 0; onStop(c); return; }
+            if (u >= 1) { pl.done = true; this.pos[c] = pl.target; this.vel[c] = 0; onStop(c); land(c, t); return; }
           } else if (t < ACC) { pos = pl.start - V * t * t / (2 * ACC); vel = V * t / ACC; }
           else if (t < pl.t1) { pos = pl.start - V * (t - ACC / 2); vel = V; }
           else {
@@ -317,14 +328,14 @@ export class ReelSet {
             const e = 1 + c3 * (u - 1) ** 3 + c1 * (u - 1) ** 2;
             pos = pl.start - pl.d - DB * e;
             vel = V * (1 - u);
-            if (u >= 1) { pos = pl.target; vel = 0; pl.done = true; this.pos[c] = mod(pos, pl.L); this.vel[c] = 0; onStop(c); return; }
+            if (u >= 1) { pos = pl.target; vel = 0; pl.done = true; this.pos[c] = mod(pos, pl.L); this.vel[c] = 0; onStop(c); land(c, t); return; }
           }
           this.pos[c] = mod(pos, pl.L); this.vel[c] = vel;
           busy = true;
         });
         this.draw();
         if (busy) requestAnimationFrame(frame);
-        else { this.running = false; this.plan = null; resolve(); }
+        else { this.running = false; this.plan = null; this.onHurry = null; whir.stop(); resolve(); }
       };
       requestAnimationFrame(frame);
     });
