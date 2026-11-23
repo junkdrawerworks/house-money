@@ -117,6 +117,26 @@ test('called working on the come-out: place bets, hardways and come odds play th
   assert.equal(g.working(S(0, {}), 'place6'), false); assert.equal(g.working(S(0, {}), 'place6', true), true);
 });
 
+test('Same bets: the line, place bets and hardways from before the seven out, topped up as far as the limit and chips go', () => {
+  const s = S(6, { pass: 10, passOdds: 50, place8: 12, hard10: 5, field: 5, come5: 10, comeOdds5: 20, dontPass: 15 });
+  const same = g.spread(s);
+  assert.deepEqual(same, { pass: 10, place8: 12, hard10: 5, dontPass: 15 }, 'only what can go down on a come-out');
+  const r = g.roll(s, 3, 4);
+  assert.equal(r.point.sevenOut, true);
+  assert.deepEqual(s.bets, { dontPass: 15 }, 'the seven out leaves the don’t pass up');
+  assert.deepEqual([...g.again(s, same, { max: 500, min: 5 })], [['pass', 10], ['place8', 12], ['hard10', 5]]);
+  // short of chips: what fits, in order, and says so; a line bet that would go under the minimum is left out
+  let a = g.again(s, same, { max: 500, chips: 15, min: 5 });
+  assert.deepEqual([[...a], a.short], [[['pass', 10], ['place8', 5]], true]);
+  a = g.again(s, same, { max: 500, chips: 3, min: 5 });
+  assert.deepEqual([[...a], a.short], [[['place8', 3]], true]);
+  // the table's limit, and what's already there
+  s.bets.place8 = 10;
+  assert.deepEqual([...g.again(s, same, { max: 8, min: 5 })], [['pass', 8], ['hard10', 5]]);
+  // nothing on a point: the line is closed then
+  assert.deepEqual([...g.again(S(4, {}), { pass: 10 }, { min: 5 })], []);
+});
+
 test('don’t come travels and wins on a seven, lay odds working', () => {
   const s = S(6, { dontCome: 10 });
   g.roll(s, 4, 4); assert.equal(s.bets.dcome8, 10);

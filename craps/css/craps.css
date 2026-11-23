@@ -185,3 +185,15 @@
 
 /* the menu's Working on the come-out switch, across the menu under Sound and Quick play */
 .sheet-btns [data-act="working"] { grid-column: 1 / -1; }
+
+/* four buttons in the dock on a phone: Take down and Same bets get the room their words need, each on one line */
+@media (max-width: 639px) {
+  .craps .dock .actions .btn { padding: 0 4px; white-space: nowrap; }
+  .craps .dock .actions #undo, .craps .dock .actions #roll { flex-grow: .8; }
+}
+@media (max-width: 379px) {
+  .craps .dock .actions .btn { font-size: .94rem; }
+}
+@media (max-width: 339px) {
+  .craps .dock .actions .btn { font-size: .86rem; }
+}

@@ -69,6 +69,8 @@ const table = mountTable({
     that’s allowed to come down. Hold a finger on one bet to take down just that one. Take down leaves a don’t pass up
     once there’s a point, and a don’t come on its number, with their lay odds: they’re at their best there, and can’t
     go back up. Hold a finger on one to take it down.</p>
+    <p>After a seven out, <b>Same bets</b> puts back the line, place bets and hardways you had before it, as far as the
+    limit and your chips go. Put odds back on once there’s a point; the one-roll bets don’t come back.</p>
     <p>Line and come bets start at ${T.min}. Played on the line with full odds, the house keeps well under one percent.
     On its own the line keeps 1.4% (don’t pass 1.36%); place 6 and 8 keep 1.5%, 5 and 9 4%, 4 and 10 6.7%; the field
     2.8%; the hardways 9 to 11%; and the one-roll bets in the middle 11 to 17%.</p>
@@ -116,7 +118,14 @@ function load() {
       const bets = {};
       for (const [k, v] of Object.entries(x.bets)) { const n = Math.floor(Number(v)); if (n > 0 && g.NAMES[k]) bets[k] = n; }
       const carry = Number.isInteger(x.carry) && x.carry >= 0 && x.carry < g.CARRY ? x.carry : 0;
-      return { ...g.fresh(), ...x, bets, point: g.POINTS.includes(x.point) ? x.point : 0, carry, undo: [] };
+      // the spread from before the last seven out, for Same bets
+      let same = null;
+      if (x.same && typeof x.same === 'object') {
+        same = {};
+        for (const [k, v] of Object.entries(x.same)) { const n = Math.floor(Number(v)); if (n > 0 && g.COME_OUT(k)) same[k] = n; }
+        if (!Object.keys(same).length) same = null;
+      }
+      return { ...g.fresh(), ...x, bets, point: g.POINTS.includes(x.point) ? x.point : 0, carry, same, undo: [] };
     }
   } catch { /* first visit */ }
   return { ...g.fresh(), undo: [] };
@@ -205,6 +214,7 @@ function paint() {
   $('undo').disabled = busy || !(s.undo || []).some(([k]) => g.removable(s, k) && s.bets[k]);
   $('clear').disabled = busy || !Object.keys(s.bets).some(k => g.removable(s, k));
   $('roll').disabled = busy || !total;
+  $('same').disabled = busy || !sameBets().length;
   const short = g.LINE.filter(k => b[k] && b[k] < T.min);
   // (on the come-out with nothing down, the stickman's line says where to start, so this says nothing)
   $('onfelt').textContent = !total ? (s.point ? `The point is ${s.point}. Bet Come, place a number, or anything in the middle.` : '')
@@ -298,6 +308,34 @@ $('undo').addEventListener('click', () => {
   }
   save(); paint();
 });
+// Same bets: after a seven out, on the come-out, the line, place bets and hardways go back as they were before it, each
+// topped up to what it was as far as the table's limit and the rack allow, one undo each. Odds go back on by hand once
+// there's a point; the one-roll bets don't come back.
+function sameBets() {
+  if (s.point || !s.same) return [];
+  return g.again(s, s.same, { max: table.limits().max, chips: cage.read().chips, min: T.min });
+}
+$('same').addEventListener('click', () => {
+  if (busy) return;
+  const plan = sameBets();
+  let total = 0;
+  for (const [k, n] of plan) {
+    if (!cage.take(n, { wager: false })) break;
+    s.bets[k] = (s.bets[k] || 0) + n;
+    (s.undo ||= []).push([k, n]);
+    total += n;
+  }
+  if (!total) return;
+  save(); sound.chips(Math.min(6, plan.length + 1));
+  // what's off on the come-out, unless it's been called working
+  const put = plan.map(([k]) => k);
+  const pl = put.some(k => /^place/.test(k)), hw = put.some(k => /^hard/.test(k));
+  const off = working || !(pl || hw) ? '' : ` ${pl && hw ? 'Place bets and hardways are' : pl ? 'Place bets are' : 'Hardways are'} off on the come-out.`;
+  table.say(`The same bets again${plan.short ? ', as far as your chips go' : ''}: ${cage.fmt(total)}.${off}`);
+  priced = false;
+  paint();
+});
+
 // Take down leaves an established don't bet up, with its lay odds: don't pass once there's a point, and a don't come
 // on its number. It's allowed to come down, but it's at its best there and can't go back up, and Take down is mostly
 // pressed to pull place bets. A long press on it still takes it down.
@@ -360,7 +398,10 @@ function roll() {
       const handBefore = s.handRolls || 0;
       // every roll with chips out counts once in Records, the ones that decide nothing too (they add 0 bet and 0 back)
       const out = g.onFelt(s) > 0;
+      const before = g.spread(s);
       const r = g.roll(s, d1, d2, { working });
+      // after a seven out, the line, place bets and hardways it took, for Same bets; any other roll lets it go
+      s.same = r.point.sevenOut && Object.keys(before).length ? before : null;
       s.pending = (s.pending || 0) + r.toRack; s.undo = [];
       s.pendingRec = out ? {
         wagered: r.wagered, back: r.back,

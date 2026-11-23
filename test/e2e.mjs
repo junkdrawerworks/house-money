@@ -1441,6 +1441,36 @@ if (cageWants('craps')) {
     'Craps: a hard 6 on the come-out with the place 6 and hard 6 working');
   await ctx.close();
 }
+// Craps' Same bets: 10 on the pass line with odds, 12 on the place 8, 5 on the hard 10 and 5 in the field, and a
+// seven out. Same bets is lit on the come-out, still after a reload, and puts back the line, the place 8 and the hard 10
+// (not the odds or the field), one undo each, saved; a roll that isn't a seven out lets the spread go.
+if (cageWants('craps')) {
+  const { p, ctx } = await sit('craps/?fast&seen', { cage: { chips: 943, wagered: 0, high: 1000, stakes: 1 },
+    craps: { bets: { pass: 10, passOdds: 25, place8: 12, hard10: 5, field: 5 }, point: 6, history: [{ d: [2, 4], t: 6 }], felt: 57 } });
+  const saved = () => p.evaluate(() => JSON.parse(localStorage.getItem('house-money.craps')));
+  const dice = (...f) => p.evaluate(f => { crypto.getRandomValues = a => { a[0] = f.shift() - 1; return a; }; }, f);
+  assert.equal(await p.isDisabled('#same'), true, 'Craps: Same bets lit with a point on');
+  await dice(3, 4);
+  await p.click('#roll');
+  await until(async () => /^Seven out/.test((await p.textContent('#say')).trim()), 4000, 'Craps: the seven out never landed');
+  await until(async () => !(await p.isDisabled('#same')), 2000, 'Craps: Same bets not lit after the seven out');
+  await p.reload(); await p.waitForTimeout(400);
+  assert.equal(await p.isDisabled('#same'), false, 'Craps: Same bets went out with a reload');
+  await p.click('#same');
+  assert.equal((await p.textContent('#say')).trim(), 'The same bets again: 27. Place bets and hardways are off on the come-out.');
+  assert.deepEqual([(await saved()).bets, (await cageOf(p)).chips, await feltOf(p, 'craps')], [{ pass: 10, place8: 12, hard10: 5 }, 916, 27], 'Craps: what Same bets put back');
+  assert.equal(await p.isDisabled('#same'), true, 'Craps: Same bets still lit with everything back');
+  await p.click('#undo');
+  assert.deepEqual([(await saved()).bets, (await cageOf(p)).chips], [{ pass: 10, place8: 12 }, 921], 'Craps: Undo after Same bets');
+  await p.reload(); await p.waitForTimeout(400);
+  assert.deepEqual([(await saved()).bets, await p.isDisabled('#same')], [{ pass: 10, place8: 12 }, false], 'Craps: after Same bets, an undo and a reload');
+  await balanced(p, 'Craps, Same bets');
+  await dice(2, 2);
+  await p.click('#roll');
+  await until(async () => (await saved()).point === 4 && !(await p.isDisabled('#roll')), 4000, 'Craps: the come-out never landed');
+  assert.deepEqual([(await saved()).same, await p.isDisabled('#same')], [null, true], 'Craps: the spread outlived the come-out');
+  await ctx.close();
+}
 // Craps, a first visit on a phone: the pass line, the last thing on the layout, is brought up to sit just above the
 // dock, inside the screen, and only the stickman says to start there. A come bet that travels says where it went.
 if (cageWants('craps')) {

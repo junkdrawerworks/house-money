@@ -131,6 +131,35 @@ export function removable(s, spot) {
   return true;
 }
 
+// Same bets: the bets that can go down on a come-out (the line, place bets and hardways), as they stand before the roll
+// that sevens out, to put back in one tap after it. One-roll bets, come bets and odds aren't in it.
+export const COME_OUT = k => k === 'pass' || k === 'dontPass' || /^(place|hard)\d+$/.test(k);
+export function spread(s) {
+  const o = {};
+  for (const [k, v] of Object.entries(s.bets)) if (v > 0 && COME_OUT(k)) o[k] = v;
+  return o;
+}
+// What putting a spread back adds now, in order: [[spot, chips], …], each topped up to what it was, no more than the
+// spot takes (max) and the chips there are (chips). A line bet that would end up under min is left out. short: true when
+// the chips didn't cover all of it.
+export function again(s, same, { max = Infinity, chips = Infinity, min = 0 } = {}) {
+  const out = [];
+  let left = chips, short = false;
+  const order = Object.keys(same || {}).filter(COME_OUT).sort((a, b) => rank(a) - rank(b));
+  for (const k of order) {
+    const need = same[k] - (s.bets[k] || 0);
+    if (!(need > 0)) continue;
+    const c = can(s, k, max);
+    if (!c.ok) continue;
+    let n = Math.min(need, c.room);
+    if (n > left) { n = left; short = true; }
+    if (LINE.includes(k) && (s.bets[k] || 0) + n < min) { if (n < need) short = true; continue; }
+    if (n > 0) { out.push([k, n]); left -= n; }
+  }
+  return Object.assign(out, { short });
+}
+const rank = k => (k === 'pass' ? 0 : k === 'dontPass' ? 1 : /^place/.test(k) ? 2 : 3) * 100 + (+(/\d+$/.exec(k)?.[0]) || 0);
+
 // Bets that won't count on this roll: place bets, hardways and come odds are off on the come-out, unless they've been
 // called working (on).
 export function working(s, spot, on = false) {
