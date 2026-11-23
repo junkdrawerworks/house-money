@@ -62,6 +62,15 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
     </div>`;
   document.body.appendChild(sheet);
 
+  // A phone held sideways gets a card over the table asking for it the tall way: every table is laid out for a phone
+  // held upright, and squeezed into a short wide screen its bets and buttons don't fit. Only on a short touch screen
+  // (shared/casino.css): a tablet or a computer plays on either way round.
+  const upright = document.createElement('div');
+  upright.className = 'upright';
+  upright.innerHTML = `<div class="upright-in"><span class="upright-phone" aria-hidden="true"></span>
+    <p class="upright-h">Turn your phone upright</p><p>${name} is laid out for a phone held the tall way.</p></div>`;
+  document.body.appendChild(upright);
+
   const say = document.querySelector('.say') || (() => {
     const p = document.createElement('p'); p.className = 'say'; p.setAttribute('aria-live', 'polite');
     document.querySelector('main')?.prepend(p); return p;

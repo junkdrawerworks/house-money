@@ -2103,6 +2103,33 @@ if (cageWants('floor', 'records', ...IDS)) {
   }
 }
 
+// A phone held sideways: every table is covered by a card asking for the phone upright (844x390 and 667x375, a touch
+// screen), and nothing is covered on the same phone held upright, on a tablet held sideways (1024x768, a touch
+// screen) or on a laptop with a short window (1280x480).
+if (cageWants(...IDS)) {
+  const sizes = [
+    [{ viewport: { width: 844, height: 390 }, isMobile: true, hasTouch: true }, true],
+    [{ viewport: { width: 667, height: 375 }, isMobile: true, hasTouch: true }, true],
+    [phone, false],
+    [{ viewport: { width: 1024, height: 768 }, hasTouch: true }, false],
+    [{ viewport: { width: 1280, height: 480 } }, false],
+  ];
+  for (const [size, covers] of sizes) {
+    const { p, ctx } = await sit('?seen', {}, { size });
+    for (const id of IDS.filter(id => cageWants(id))) {
+      await p.goto(`${base}${id}/?seen`); await p.waitForTimeout(200);
+      const seen = await p.evaluate(() => {
+        const u = document.querySelector('.upright'), r = u.getBoundingClientRect();
+        return { shown: getComputedStyle(u).display !== 'none', whole: r.width >= innerWidth && r.height >= innerHeight, top: document.elementFromPoint(innerWidth / 2, innerHeight - 20)?.closest('.upright') === u, text: u.innerText.replace(/\s+/g, ' ').trim() };
+      });
+      const { width, height } = size.viewport;
+      if (covers) assert.deepEqual(seen, { shown: true, whole: true, top: true, text: `Turn your phone upright ${TABLES.find(t => t.id === id).name} is laid out for a phone held the tall way.` }, `${id}: no card over the table on a phone held sideways (${width}x${height})`);
+      else assert.equal(seen.shown, false, `${id}: the card for a phone held sideways shows at ${width}x${height}`);
+    }
+    await ctx.close();
+  }
+}
+
 // The copy for the Artifact viewer (tools/artifact.mjs): built into a folder of its own and served as it is, the floor
 // and every table open with no errors, the floor keeps its look (its body's class) whether or not the viewer wraps the
 // page in a <body>, and no link names a folder ('blackjack/'), which the viewer can't open.

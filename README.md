@@ -35,7 +35,7 @@
 - **Records.** Each table keeps your rounds, chips bet, how far up or down you are and your biggest single win, with the day it came, and a few counters of its own (blackjacks, royal flushes, jackpots). **Records** on the floor shows them all, with the most you've ever held.
 - **Sound.** Chips, cards, dice, the roulette ball and the reels, all made on the spot with Web Audio: the reels whir softly while they turn, with a low note rising while the last ones spin on for a big win, and winnings tick as they count up. One switch for the whole floor.
 - **Quick play.** One switch beside Sound, on the floor and in every table's menu, for long sittings: the roulette wheel spins for a moment instead of ten seconds (about 2.5 s from Spin to the next bet), the slot reels stop half as far apart, the dice fly faster and the dealing doesn't linger. Every result is settled and saved before its animation starts, so it only changes the drawing. It starts off.
-- No account and no server. Your chips and records stay in your browser, unless you save them to your own Google Drive (below). It works offline and installs to a phone's home screen as one app; a long press on the icon goes straight to a table.
+- No account and no server. Your chips and records stay in your browser, unless you save them to your own Google Drive (below). It works offline and installs to a phone's home screen as one app; a long press on the icon goes straight to a table. The tables are laid out for a phone held upright: held sideways, a phone gets a card asking for it the tall way (a tablet or a computer plays either way round).
 
 ## Blackjack
 
