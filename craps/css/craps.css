@@ -42,7 +42,7 @@
 .puck.on { background: #fbfaf5; color: #141414; }
 .puck b { display: block; }
 .puck span { display: block; font: 800 1.15rem/1 var(--serif); letter-spacing: 0; margin-top: 2px; }
-.pit .say { position: absolute; left: 8px; right: 8px; bottom: 2px; margin: 0; min-height: 2.6em; font-size: .95rem; text-shadow: 0 1px 3px rgba(0, 0, 0, .6); }
+.pit .say { position: absolute; left: 8px; right: 8px; bottom: 2px; margin: 0 auto; min-height: 2.6em; font-size: .95rem; text-shadow: 0 1px 3px rgba(0, 0, 0, .6); }
 
 .dice { position: absolute; inset: 0; pointer-events: none; }
 .die {
