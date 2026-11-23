@@ -521,7 +521,14 @@ if (cageWants(...Object.keys(SLOTS))) {
     await p.click('#spin');
     await until(() => p.evaluate(id => JSON.parse(localStorage.getItem(`house-money.${id}`))?.last?.paid === true, id), 5000, `${id}: the spin never landed`);
     const took = await p.evaluate(t0 => performance.now() - t0, t0);
-    assert.ok(took < (planned + .5) * 1000, `${id}: a spin under Quick play took ${Math.round(took)} ms from Spin to paid`);
+    // a tease (two sevens or bars at Cherry Bell, two lanterns at Motherlode) holds the last reels back 0.55 s more each
+    const teases = await p.evaluate(async id => {
+      const last = JSON.parse(localStorage.getItem(`house-money.${id}`)).last, M = await import(`/${id}/js/machine.js`);
+      if (id === 'motherlode') { const lit = M.play(last.stops, last.sticky || []).lit; return [2, 3, 4].filter(c => lit.filter(([lc]) => lc < c).length >= 2).length; }
+      if (id === 'cherry-bell') { const { window } = await import('/shared/reels.js'); const line = window(M.REELS, last.stops, M.ROWS, M.ANCHOR).map(col => col[1]); return line[0] === line[1] && (line[0] === 'seven' || line[0] === 'bar') ? 1 : 0; }
+      return 0;
+    }, id);
+    assert.ok(took < (planned + .5 + teases * .55) * 1000, `${id}: a spin under Quick play took ${Math.round(took)} ms from Spin to paid`);
     await p.close();
   }
   await ctx.close();
