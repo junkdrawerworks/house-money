@@ -62,7 +62,7 @@ export function note(id, { wagered = 0, back = 0, extra = {}, max = {}, marks = 
   const r = L.note(d, L.device(), id, { wagered, back, add: extra, top: max }, today());
   r.milestones = M.earned({ id, won: r.won, add: extra, top: max, marks, tables: L.recordsTotals(d).tables, cage: cage.read() }, d.ms);
   for (const k of r.milestones) d.ms[k] = today();
-  try { localStorage.setItem(SITTING, JSON.stringify(sittingAdd(getSitting(), id, { wagered, back }, Date.now()))); } catch { /* full or off */ }
+  try { localStorage.setItem(SITTING, JSON.stringify(sittingAdd(getSitting(d.reset), id, { wagered, back }, Date.now()))); } catch { /* full or off */ }
   save(d);
   // a round just settled at a table (the table's own line about it comes next)
   dispatchEvent(new CustomEvent('house-money:round', { detail: { id, ...r } }));
@@ -77,7 +77,13 @@ export function note(id, { wagered = 0, back = 0, extra = {}, max = {}, marks = 
 export const SITTING = 'house-money.sitting';
 export const AWAY = 3600e3;
 const count = v => { const n = Math.floor(Number(v)); return Number.isFinite(n) && n > 0 ? n : 0; };
-function getSitting() { try { return JSON.parse(localStorage.getItem(SITTING)); } catch { return null; } }
+// The sitting saved here, or none if it began before a Start over (reset: Records' marker, here or from another device
+// through Google Drive), so the next round doesn't add on to it.
+function getSitting(reset = null) {
+  let x = null;
+  try { x = JSON.parse(localStorage.getItem(SITTING)); } catch { /* none, or storage off */ }
+  return reset && count(x?.at) <= reset.at ? null : x;
+}
 
 // The sitting still going at `now`: a fresh one once AWAY has passed since its last round.
 export function sittingOf(x, now) {
@@ -100,8 +106,7 @@ export function sittingAdd(x, id, { wagered = 0, back = 0 }, now) {
 }
 // This sitting at table id: { rounds, wagered, net }. Nothing, after Start over (here, or on another device).
 export function sitting(id) {
-  const x = getSitting(), reset = doc().reset;
-  const t = reset && count(x?.at) <= reset.at ? null : sittingOf(x, Date.now()).tables[id];
+  const t = sittingOf(getSitting(doc().reset), Date.now()).tables[id];
   return t ? { rounds: t.rounds, wagered: t.wagered, net: t.back - t.wagered } : { rounds: 0, wagered: 0, net: 0 };
 }
 

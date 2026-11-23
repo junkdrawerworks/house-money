@@ -2203,6 +2203,31 @@ if (cageWants('records')) {
   }
 }
 
+// Start over on another device, brought in through Google Drive (Records' reset marker, half a minute ago) while this
+// device's sitting from before it (3 rounds a minute ago) is still in its hour: the menu has no sitting, and the next
+// hand starts a new one rather than adding on to the old.
+if (cageWants('blackjack')) {
+  const C = (r, s = 'c') => ({ r, s });
+  const shoe = Array(150).fill(C(2)).concat([C(10), C(7, 'h'), C(9, 'd'), C(10, 'h')].reverse());
+  const { p, ctx } = await sit('blackjack/?fast&seen', { cage: { chips: 1000 },
+    sitting: { at: Date.now() - 60e3, tables: { blackjack: { rounds: 3, wagered: 30, back: 0 } } },
+    blackjack: { shoe, phase: 'bet', bet: 0, last: 25, hands: [], active: 0, dealer: [], hole: true, insurance: 0, felt: 0, carry: 0 } });
+  await p.evaluate(() => { const k = 'house-money.records', r = JSON.parse(localStorage.getItem(k)); r.reset = { at: Date.now() - 30e3, by: 'd-other' }; localStorage.setItem(k, JSON.stringify(r)); });
+  await p.reload(); await p.waitForTimeout(300);
+  const sittingLine = async () => {
+    await p.click('.menu-btn');
+    const r = await p.evaluate(() => { const el = document.querySelector('dialog.sheet[open] .record.sitting'); return el.hidden ? null : el.textContent; });
+    await p.click('dialog.sheet[open] .x');
+    return r;
+  };
+  assert.equal(await sittingLine(), null, 'Blackjack: the sitting from before another device started over');
+  await p.click('#rebet'); await p.click('#deal');
+  await p.waitForSelector('#stand:not([disabled])'); await p.click('#stand');
+  await p.waitForSelector('#doneActions:not([hidden])');
+  assert.equal(await sittingLine(), 'This sitting: 1 round, up 25.', 'Blackjack: the sitting from before another device started over came back');
+  await ctx.close();
+}
+
 // Chips left on a table are still yours, and the floor and Records say where: 200 on the pass line and 100 on the field
 // at craps, left there. The tiles say what's waiting at each table: the craps layout, a blackjack hand dealt and
 // Motherlode's free spins.
