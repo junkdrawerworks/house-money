@@ -35,7 +35,7 @@
 - **Records.** Each table keeps your rounds, chips bet, how far up or down you are and your biggest single win, with the day it came, and a few counters of its own (blackjacks, royal flushes, jackpots). **Records** on the floor shows them all, with the most you've ever held.
 - **Sound.** Chips, cards, dice, the roulette ball and the reels, all made on the spot with Web Audio: the reels whir softly while they turn, with a low note rising while the last ones spin on for a big win, and winnings tick as they count up. One switch for the whole floor.
 - **Quick play.** One switch beside Sound, on the floor and in every table's menu, for long sittings: the roulette wheel spins for a moment instead of ten seconds (about 2.5 s from Spin to the next bet), the slot reels stop half as far apart, the dice fly faster and the dealing doesn't linger. Every result is settled and saved before its animation starts, so it only changes the drawing. It starts off.
-- No account and no server. Your chips and records stay in your browser, unless you save them to your own Google Drive (below). It works offline and installs to a phone's home screen as one app; a long press on the icon goes straight to a table. The tables are laid out for a phone held upright: held sideways, a phone gets a card asking for it the tall way (a tablet or a computer plays either way round).
+- No account and no server. Your chips and records stay in your browser, unless you save them to your own Google Drive (below). It works offline and installs to a phone's home screen as one app; a long press on the icon lists every table and Records, each with its own picture, to go straight there. The tables are laid out for a phone held upright: held sideways, a phone gets a card asking for it the tall way (a tablet or a computer plays either way round).
 
 ## Blackjack
 
@@ -142,7 +142,7 @@ GitHub Pages serves `main` at [house-money.junkdrawer.works](https://house-money
 
 - `npm test` runs the unit tests (every payout, the blackjack book, the slot machines' pay-back, the cage, what Records counts, and a long sitting at every table with the books checked after every round) and then drives the real pages in Chromium (`test/e2e.mjs`, needs Playwright): every table opening, the cage's stake, rounds reloaded mid-play, two tabs at one table, that it installs, and every page opening offline. `ONLY=blackjack` runs one table's checks and `PARTIAL=1` skips tables with no page yet. Last, `test/drive.mjs` checks Google Drive saving with two browsers as two devices against a stand-in for Google (`test/fake-google.mjs`, from the junkdrawer kit), looking at what lands in the stand-in's Drive as well as at the pages; `ONLY=3,4` runs some of its checks.
 - `node tools/sw-files.mjs` rewrites the offline copy's file list and fingerprint in `sw.js` after a change; the test fails until it's run.
-- `node tools/screenshots.mjs [table …]` makes the floor's pictures and the README's phone screenshots, `node tools/og.mjs` makes the link preview (`og.png`), and `node tools/make-icons.mjs` makes the icons.
+- `node tools/screenshots.mjs [table …]` makes the floor's pictures and the README's phone screenshots, `node tools/og.mjs` makes the link preview (`og.png`), and `node tools/make-icons.mjs` makes the icons, with the long-press shortcuts' icons cut from the floor's pictures (`node tools/make-icons.mjs shortcuts` makes only those, after the pictures change).
 - `node tools/artifact.mjs` builds the copy that plays in the Artifact viewer, in `dist/artifact/`: links name each folder's `index.html`, and there's no offline copy.
 
 ### Files
@@ -152,6 +152,7 @@ GitHub Pages serves `main` at [house-money.junkdrawer.works](https://house-money
 - `blackjack/`, `roulette/`, `craps/`, `baccarat/`, `video-poker/`, `cherry-bell/`, `odds-and-ends/`, `motherlode/`: one folder per table, each with its rules in a file of their own (`js/game.js` and the like) and the page that plays them.
 - `records/`: the records page.
 - `floor/`: the pictures on the floor's tiles, from `tools/screenshots.mjs`.
+- `shortcuts/`: the long-press shortcuts' icons, from `tools/make-icons.mjs`.
 - `sw.js`: the offline copy. `manifest.webmanifest` and the icons: installing it.
 - `fonts/`: Limelight, Figtree and Playfair Display, served from here so nothing loads from elsewhere (SIL Open Font License).
 

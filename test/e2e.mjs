@@ -84,6 +84,8 @@ await page.goto(base);
 await page.evaluate(() => document.fonts.ready);
 const sideways = async where => assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `${where} scrolls sideways on a phone`);
 
+// The long press on the installed icon: the most played tables first, since a launcher may show only the first few.
+const SHORTCUTS = ['Blackjack', 'Roulette', 'Craps', 'Video Poker', 'Baccarat', 'Motherlode', 'Cherry Bell', 'Odds & Ends', 'Records'];
 // It installs: Chromium finds nothing in the way of putting it on a home screen, the manifest reads clean, and every
 // icon and long-press shortcut it names is there.
 {
@@ -95,6 +97,15 @@ const sideways = async where => assert.equal(await page.evaluate(() => document.
   const manifest = JSON.parse(m.data);
   const named = [...manifest.icons.map(i => i.src), ...manifest.shortcuts.flatMap(x => [x.url, ...(x.icons || []).map(i => i.src)])];
   for (const u of new Set(named)) assert.equal((await fetch(new URL(u, base))).status, 200, `the manifest names ${u}, which isn't there`);
+  // the long press lists every table and Records, each with an icon of its own, 96 px square, cut from its picture
+  assert.deepEqual(manifest.shortcuts.map(x => x.name), SHORTCUTS, 'the long-press shortcuts');
+  for (const x of manifest.shortcuts) {
+    assert.equal(x.url, `${TABLES.find(t => t.name === x.name)?.id || 'records'}/`, `${x.name}: the shortcut goes somewhere else`);
+    assert.equal(x.icons.length, 1, `${x.name}: the shortcut has more than one icon`);
+    const png = Buffer.from(await (await fetch(new URL(x.icons[0].src, base))).arrayBuffer());
+    assert.deepEqual([png.readUInt32BE(16), png.readUInt32BE(20), x.icons[0].sizes], [96, 96, '96x96'], `${x.name}: the shortcut's icon isn't 96 px square`);
+  }
+  assert.equal(new Set(manifest.shortcuts.map(x => x.icons[0].src)).size, SHORTCUTS.length, 'two shortcuts share an icon');
   await cdp.detach();
 }
 
