@@ -3,6 +3,7 @@
 // Drive saving can add devices together (shared/ledger.js has the shape). read() adds it up:
 //
 //   { tables: { blackjack: { rounds, wagered, net, best, bestOn, ...extra } }, since }
+// sitting(id) is the same table since you sat down, kept on this device only (see the end).
 
 import * as L from './ledger.js';
 
@@ -51,8 +52,44 @@ export function table(id) {
 export function note(id, { wagered = 0, back = 0, extra = {}, max = {} } = {}) {
   const d = doc();
   const r = L.note(d, L.device(), id, { wagered, back, add: extra, top: max }, today());
+  try { localStorage.setItem(SITTING, JSON.stringify(sittingAdd(getSitting(), id, { wagered, back }, Date.now()))); } catch { /* full or off */ }
   save(d);
   // a round just settled at a table (the table's own line about it comes next)
   dispatchEvent(new CustomEvent('house-money:round', { detail: { id } }));
   return r;
+}
+
+// ---------- this sitting ----------
+// What's been played since you sat down: kept on this device only, under SITTING, and never saved to Google Drive.
+// A sitting ends after an hour with no round played anywhere on the floor (a phone keeps a page open for days, so
+// closing the page doesn't end one):
+//   { at, tables: { blackjack: { rounds, wagered, back } } }   at: when the last round was played
+export const SITTING = 'house-money.sitting';
+export const AWAY = 3600e3;
+const count = v => { const n = Math.floor(Number(v)); return Number.isFinite(n) && n > 0 ? n : 0; };
+function getSitting() { try { return JSON.parse(localStorage.getItem(SITTING)); } catch { return null; } }
+
+// The sitting still going at `now`: a fresh one once AWAY has passed since its last round.
+export function sittingOf(x, now) {
+  const at = count(x?.at);
+  if (!at || now - at > AWAY || now < at - AWAY) return { at: 0, tables: {} };
+  const tables = {};
+  for (const [id, t] of Object.entries(x.tables && typeof x.tables === 'object' ? x.tables : {})) {
+    if (id === '__proto__') continue;
+    tables[id] = { rounds: count(t?.rounds), wagered: count(t?.wagered), back: count(t?.back) };
+  }
+  return { at, tables };
+}
+// One round more at table id, at `now`.
+export function sittingAdd(x, id, { wagered = 0, back = 0 }, now) {
+  const s = sittingOf(x, now);
+  const t = (s.tables[id] ||= { rounds: 0, wagered: 0, back: 0 });
+  t.rounds += 1; t.wagered += count(wagered); t.back += count(back);
+  s.at = now;
+  return s;
+}
+// This sitting at table id: { rounds, wagered, net }.
+export function sitting(id) {
+  const t = sittingOf(getSitting(), Date.now()).tables[id];
+  return t ? { rounds: t.rounds, wagered: t.wagered, net: t.back - t.wagered } : { rounds: 0, wagered: 0, net: 0 };
 }

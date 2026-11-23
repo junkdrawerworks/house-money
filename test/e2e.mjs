@@ -572,7 +572,8 @@ if (cageWants('blackjack', 'floor')) {
   await ctx.close();
 }
 // Each table's menu has its line from Records under the limits: Video Poker after 212 hands, and Blackjack, not played
-// yet, without one until a hand is played there (one 25 hand won), and then with it.
+// yet, without one until a hand is played there (one 25 hand won), and then with it. Then this sitting's line, there
+// and on Records, once a round's been played in it, and gone after an hour with no round played.
 if (cageWants('blackjack', 'video-poker', 'records')) {
   const C = (r, s = 'c') => ({ r, s });
   const shoe = Array(150).fill(C(2)).concat([C(10), C(7, 'h'), C(9, 'd'), C(10, 'h')].reverse());
@@ -585,13 +586,30 @@ if (cageWants('blackjack', 'video-poker', 'records')) {
     await p.click('dialog.sheet[open] .x');
     return r;
   };
+  const sittingLine = async () => {
+    await p.click('.menu-btn');
+    const r = await p.evaluate(() => { const el = document.querySelector('dialog.sheet[open] .record.sitting'); return el.hidden ? null : el.textContent; });
+    await p.click('dialog.sheet[open] .x');
+    return r;
+  };
   assert.equal(await menuLine(), 'Here so far: 212 hands, up 340, best win 750 (Nov 20).', 'Video Poker: the menu\'s line from Records');
+  assert.equal(await sittingLine(), null, 'Video Poker: a line for this sitting before anything\'s played in it');
   await p.goto(`${base}blackjack/?fast&seen`); await p.waitForTimeout(300);
   assert.equal(await menuLine(), null, 'Blackjack: the menu has a line from Records before anything is played there');
   await p.click('#rack .c25'); await p.click('#spot'); await p.click('#deal');
   await p.waitForSelector('#stand:not([disabled])'); await p.click('#stand');
   await p.waitForSelector('#doneActions:not([hidden])');
   assert.match(await menuLine(), /^Here so far: 1 round, up 25, best win 25 \([A-Z][a-z]{2} \d{1,2}\)\.$/, 'Blackjack: the menu\'s line after a hand');
+  assert.equal(await sittingLine(), 'This sitting: 1 round, up 25.', 'Blackjack: the menu\'s line for this sitting');
+  await p.goto(`${base}records/`);
+  assert.deepEqual(await p.$$eval('.rec.t-blackjack li', lis => lis.map(li => li.innerText.replace(/\s+/g, ' ').trim()).find(t => /sitting/.test(t))), 'This sitting 1 round, up 25', 'Records: this sitting at Blackjack');
+  assert.equal(await p.locator('.rec.t-video-poker li', { hasText: 'sitting' }).count(), 0, 'Records: a sitting at Video Poker, which hasn\'t been played since');
+  // an hour and a minute with no round played: the sitting is over
+  await p.evaluate(() => { const k = 'house-money.sitting', x = JSON.parse(localStorage.getItem(k)); x.at -= 61 * 60e3; localStorage.setItem(k, JSON.stringify(x)); });
+  await p.reload();
+  assert.equal(await p.locator('.rec li', { hasText: 'sitting' }).count(), 0, 'Records: the sitting is still there after an hour away');
+  await p.goto(`${base}blackjack/?fast&seen`); await p.waitForTimeout(300);
+  assert.equal(await sittingLine(), null, 'Blackjack: the sitting is still in the menu after an hour away');
   await ctx.close();
 }
 // Ask the book with 100 bet and 40 left in the rack: hard 11 against a 6 would double, but Double is greyed out, so

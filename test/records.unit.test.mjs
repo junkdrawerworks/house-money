@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { EXTRA } from '../shared/records.js';
+import { EXTRA, sittingAdd, sittingOf, AWAY } from '../shared/records.js';
 import { TABLES, units } from '../shared/tables.js';
 import { PAYTABLE } from '../video-poker/js/poker.js';
 import { evalLine } from '../shared/reels.js';
@@ -79,4 +79,18 @@ test('each table counts its rounds in its own word', () => {
   assert.equal(units(at('roulette'), 80), '80 spins');
   assert.equal(units(at('baccarat'), 1), '1 hand');
   assert.deepEqual(TABLES.map(t => t.unit), ['round', 'spin', 'roll', 'hand', 'hand', 'spin', 'spin', 'spin']);
+});
+
+// This sitting: rounds added up per table while play goes on, and a fresh sitting after an hour with no round played.
+test('a sitting adds up until an hour goes by with no round', () => {
+  const t0 = Date.parse('2026-11-23T20:00:00Z');
+  let s = sittingAdd(null, 'roulette', { wagered: 50, back: 0 }, t0);
+  s = sittingAdd(s, 'roulette', { wagered: 20, back: 70 }, t0 + 59 * 60e3);
+  s = sittingAdd(s, 'craps', { wagered: 10, back: 20 }, t0 + 100 * 60e3);   // 41 minutes after the last round
+  assert.deepEqual(s, { at: t0 + 100 * 60e3, tables: { roulette: { rounds: 2, wagered: 70, back: 70 }, craps: { rounds: 1, wagered: 10, back: 20 } } });
+  assert.deepEqual(sittingOf(s, t0 + 100 * 60e3 + AWAY).tables.craps, { rounds: 1, wagered: 10, back: 20 }, 'an hour to the minute is still the same sitting');
+  assert.deepEqual(sittingOf(s, t0 + 100 * 60e3 + AWAY + 1), { at: 0, tables: {} }, 'over an hour away, the sitting is over');
+  assert.deepEqual(sittingAdd(s, 'craps', { wagered: 5, back: 0 }, t0 + 100 * 60e3 + 2 * AWAY).tables, { craps: { rounds: 1, wagered: 5, back: 0 } }, 'the next round starts a new sitting');
+  // anything else saved there is no sitting
+  for (const junk of [undefined, 'x', 5, [], { at: 'soon' }, { at: t0, tables: 7 }]) assert.deepEqual(sittingOf(junk, t0).tables, {});
 });

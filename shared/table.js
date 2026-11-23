@@ -46,6 +46,7 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
       <h2 tabindex="-1">${name}</h2>
       <p class="limits" id="limits"></p>
       <p class="record" hidden></p>
+      <p class="record sitting" hidden></p>
       <div class="help">${help}</div>
       <p class="drive-line" hidden></p>
       <div class="sheet-btns">
@@ -133,13 +134,15 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
   }
 
   // This table's line from Records, under the limits: "Here so far: 212 hands, up 340, best win 750 (Nov 20)." Not
-  // there before the first round here.
+  // there before the first round here. Then this sitting's, once there's been a round here in it: "This sitting: 34
+  // hands, down 120." (shared/records.js: a sitting ends after an hour away.)
   function recordLine() {
-    const x = records.table(id), el = sheet.querySelector('.record');
+    const x = records.table(id), now = records.sitting(id);
+    const [el, sit] = sheet.querySelectorAll('.record');
     el.hidden = !x.rounds;
-    if (!x.rounds) return;
-    const net = x.net > 0 ? `up ${cage.fmt(x.net)}` : x.net < 0 ? `down ${cage.fmt(-x.net)}` : 'even';
-    el.textContent = `Here so far: ${units(me, x.rounds)}, ${net}${x.best > 0 ? `, best win ${cage.fmt(x.best)}${x.bestOn ? ` (${shortDay(x.bestOn)})` : ''}` : ''}.`;
+    sit.hidden = !now.rounds;
+    if (x.rounds) el.textContent = `Here so far: ${units(me, x.rounds)}, ${upDown(x.net)}${x.best > 0 ? `, best win ${cage.fmt(x.best)}${x.bestOn ? ` (${shortDay(x.bestOn)})` : ''}` : ''}.`;
+    if (now.rounds) sit.textContent = `This sitting: ${units(me, now.rounds)}, ${upDown(now.net)}.`;
   }
   addEventListener('house-money:records', () => { if (sheet.open) recordLine(); });
 
@@ -307,6 +310,8 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
   return { say: line, call, hold, limits, check, open, sheet };
 }
 
+// Chips up or down, in words: "up 340", "down 120", "even".
+export const upDown = n => (n > 0 ? `up ${cage.fmt(n)}` : n < 0 ? `down ${cage.fmt(-n)}` : 'even');
 // A day as Records keeps it (YYYY-MM-DD), short: "Nov 20".
 export const shortDay = iso => { const [y, m, d] = iso.split('-').map(Number); return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); };
 

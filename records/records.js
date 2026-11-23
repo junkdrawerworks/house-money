@@ -1,10 +1,10 @@
 // Records: the whole floor's totals, then each table's rounds (in its own word: hands, rolls, spins), chips bet, net
-// and biggest win, and its own counters.
+// and biggest win, how this sitting has gone there, and its own counters.
 
 import * as cage from '../shared/cage.js';
 import * as records from '../shared/records.js';
 import { TABLES, units } from '../shared/tables.js';
-import { outWords } from '../shared/table.js';
+import { outWords, upDown } from '../shared/table.js';
 import { drive } from '../shared/sync.js';
 
 const fmt = cage.fmt;
@@ -31,7 +31,7 @@ function draw() {
     <div><b>${t.name}</b><span>player’s card</span></div>
     <div><b>${fmt(Math.max(0, c.stakes - 1))}</b><span>${c.stakes - 1 === 1 ? 'stake' : 'stakes'} from the cage</span></div>`;
   $('list').innerHTML = TABLES.map(tb => {
-    const x = records.table(tb.id);
+    const x = records.table(tb.id), now = records.sitting(tb.id);
     const extra = Object.entries(EXTRA[tb.id] || {}).filter(([k]) => x[k] > 0).map(([k, w]) => `<li><span>${w}</span><b>${fmt(x[k])}</b></li>`).join('');
     return `<section class="rec t-${tb.id}">
       <h2><a href="../${tb.id}/">${tb.name}</a></h2>
@@ -40,6 +40,7 @@ function draw() {
         <li><span>Chips bet</span><b>${fmt(x.wagered)}</b></li>
         <li><span>Up or down</span><b class="${x.net > 0 ? 'up' : x.net < 0 ? 'down' : ''}">${signed(x.net)}</b></li>
         <li><span>Biggest win</span><b>${x.best > 0 ? `${fmt(x.best)} <small>${day(x.bestOn)}</small>` : '—'}</b></li>
+        ${now.rounds ? `<li><span>This sitting</span><b>${units(tb, now.rounds)}, ${upDown(now.net)}</b></li>` : ''}
         ${extra}
       </ul>` : '<p class="none">Not played yet.</p>'}
     </section>`;
