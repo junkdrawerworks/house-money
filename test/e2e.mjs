@@ -612,6 +612,46 @@ if (cageWants('blackjack', 'video-poker', 'records')) {
   assert.equal(await sittingLine(), null, 'Blackjack: the sitting is still in the menu after an hour away');
   await ctx.close();
 }
+// Beating the biggest win at a table says so at the end of the round's line, once, when the win is more than ten times
+// the table's smallest bet and it isn't the first round there: 150 won at Blackjack against a best of 100 does; 150
+// again doesn't; nor does a first hand at a table never played (150 won), nor a best of 100 at the 10 table (not more
+// than 100). At Cherry Bell, the three sevens on three coins (1,000) against a best of 200 does.
+if (cageWants('blackjack', 'cherry-bell')) {
+  const C = (r, s = 'c') => ({ r, s });
+  // 10 and 9 against the dealer's 7 and 10, three hands' worth
+  const win = Array(3).fill([C(10), C(7, 'h'), C(9, 'd'), C(10, 'h')]).flat();
+  const bj = bet => ({ shoe: Array(150).fill(C(2)).concat(win.slice().reverse()), phase: 'bet', bet: 0, last: bet, hands: [], active: 0, dealer: [], hole: true, insurance: 0, felt: 0, carry: 0 });
+  const hand = async (p, i) => {
+    if (i) { await p.click('#again'); await p.waitForSelector('#doneActions', { state: 'hidden' }); } else { await p.click('#rebet'); await p.click('#deal'); }
+    await until(async () => {
+      if (await p.isVisible('#stand') && await p.isEnabled('#stand')) await p.click('#stand').catch(() => {});
+      return p.isVisible('#doneActions');
+    }, 5000, 'Blackjack: the hand never finished');
+    return (await p.textContent('#say')).trim();
+  };
+  if (cageWants('blackjack')) {
+    for (const [rounds, best, bet, lines, what] of [
+      [5, 100, 150, ['Dealer has 17. You win 150. Your biggest win at Blackjack yet.', 'Dealer has 17. You win 150.'], 'a best of 100'],
+      [0, 0, 150, ['Dealer has 17. You win 150.'], 'the first hand there'],
+      [5, 50, 100, ['Dealer has 17. You win 100.'], 'a win of no more than ten times the smallest bet'],
+    ]) {
+      const records = rounds ? { since: '2026-11-01', tables: { blackjack: { rounds, wagered: 500, net: 0, best, bestOn: '2026-11-02' } } } : { since: '2026-11-01', tables: {} };
+      const { p, ctx } = await sit('blackjack/?fast&seen', { cage: { chips: 1000 }, records, blackjack: bj(bet) });
+      for (const [i, want] of lines.entries()) assert.equal(await hand(p, i), want, `Blackjack, ${what}: the line`);
+      await ctx.close();
+    }
+  }
+  if (cageWants('cherry-bell')) {
+    const { p, ctx } = await sit('cherry-bell/?seen', { cage: { chips: 1000 }, 'cherry-bell': { coins: 3, coin: 1 },
+      records: { since: '2026-11-01', tables: { 'cherry-bell': { rounds: 5, wagered: 15, net: 185, best: 200, bestOn: '2026-11-02' } } } }, { f: 0 });
+    await p.click('#spin');
+    await p.waitForSelector('#bigwin:not([hidden])', { timeout: 10000 });
+    await p.click('#bigwin');
+    await until(async () => /top prize/.test(await p.textContent('.say')), 3000, 'Cherry Bell: the jackpot\'s line never came');
+    assert.equal((await p.textContent('.say')).trim(), 'Three sevens on three coins: the top prize! Your biggest win at Cherry Bell yet.', 'Cherry Bell: the line for a biggest win');
+    await ctx.close();
+  }
+}
 // Ask the book with 100 bet and 40 left in the rack: hard 11 against a 6 would double, but Double is greyed out, so
 // the book lights Hit and says why.
 if (cageWants('blackjack')) {
@@ -1942,7 +1982,8 @@ if (cageWants('cherry-bell')) {
   await p.evaluate(() => { let k = 0; const v = [0.4751, 0.3714, 0.1882]; crypto.getRandomValues = a => { a.fill(Math.floor(v[k++ % 3] * 2 ** 32)); return a; }; });
   await p.click('#spin');
   await until(async () => /pay/.test(await sayOf(p)), 8000, 'Cherry Bell: bell, bell, BAR never paid');
-  assert.equal(await sayOf(p), 'Two bells and a BAR pay 18.');
+  // (the machine's biggest win yet, and more than ten times its smallest bet, so the line says so)
+  assert.equal(await sayOf(p), 'Two bells and a BAR pay 18. Your biggest win at Cherry Bell yet.');
   assert.equal(await reelsName(p), 'On the pay line: bell, bell, BAR.');
   await ctx.close();
 }

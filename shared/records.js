@@ -48,14 +48,15 @@ export function table(id) {
 
 // One round settled at a table. wagered: everything bet on it; back: everything paid back to the rack (stakes
 // included). extra: counters of the table's own, added up ({ blackjacks: 1 }); max: ones kept highest
-// ({ longestHand: 9 }). Returns { won, best }: what the round came to, and whether it's the table's biggest win yet.
+// ({ longestHand: 9 }). Returns { won, best, first }: what the round came to, whether it's the table's biggest win yet,
+// and whether it's the first round there. The house-money:round event that follows carries the same, with the id.
 export function note(id, { wagered = 0, back = 0, extra = {}, max = {} } = {}) {
   const d = doc();
   const r = L.note(d, L.device(), id, { wagered, back, add: extra, top: max }, today());
   try { localStorage.setItem(SITTING, JSON.stringify(sittingAdd(getSitting(), id, { wagered, back }, Date.now()))); } catch { /* full or off */ }
   save(d);
   // a round just settled at a table (the table's own line about it comes next)
-  dispatchEvent(new CustomEvent('house-money:round', { detail: { id } }));
+  dispatchEvent(new CustomEvent('house-money:round', { detail: { id, ...r } }));
   return r;
 }
 

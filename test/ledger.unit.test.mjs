@@ -309,7 +309,10 @@ test('Records put together: counters summed, the biggest win and the earliest da
   assert.equal(t.since, '2026-11-18');
   assert.deepEqual(t.tables.craps, { rounds: 3, wagered: 25, net: 115, best: 60, bestOn: '2026-11-18', pointsMade: 3, longestHand: 9 });
   // note says when a round is the biggest win across every device
-  assert.deepEqual(L.note(a, 'P', 'craps', { wagered: 10, back: 60 }, '2026-11-22'), { won: 50, best: false });
+  assert.deepEqual(L.note(a, 'P', 'craps', { wagered: 10, back: 60 }, '2026-11-22'), { won: 50, best: false, first: false });
+  // and when it's the first round at a table
+  assert.deepEqual(L.note(a, 'P', 'roulette', { wagered: 10, back: 0 }, '2026-11-22'), { won: -10, best: false, first: true });
+  assert.deepEqual(L.note(a, 'P', 'roulette', { wagered: 10, back: 360 }, '2026-11-22'), { won: 350, best: true, first: false });
 });
 
 test('cageFrom sets up a cage with the totals asked for', () => {

@@ -267,9 +267,10 @@ export function recordsTotals(d) {
   return { since, tables };
 }
 // One round settled at table tb on device id, on day (YYYY-MM-DD). add: counters that add up; top: ones kept
-// highest. Returns { won, best }: what the round came to, and whether it's the biggest win at that table yet.
+// highest. Returns { won, best, first }: what the round came to, whether it's the biggest win at that table yet, and
+// whether it's the first round there (on any device).
 export function note(d, id, tb, { wagered = 0, back = 0, add = {}, top = {} } = {}, on = null) {
-  const before = recordsTotals(d).tables[tb]?.best || 0;
+  const was = recordsTotals(d).tables[tb], before = was?.best || 0, first = !was?.rounds;
   const s = (d.dev[id] ||= { since: day(on), tables: {} });
   s.since ||= day(on);
   const t = (s.tables[tb] ||= cleanTable({}));
@@ -279,7 +280,7 @@ export function note(d, id, tb, { wagered = 0, back = 0, add = {}, top = {} } = 
   if (won > t.best) { t.best = won; t.bestOn = day(on); }
   for (const [k, v] of entries(add)) if (whole(v)) t.add[k] = (t.add[k] || 0) + whole(v);
   for (const [k, v] of entries(top)) if (whole(v) > (t.top[k] || 0)) t.top[k] = whole(v);
-  return { won, best: won > before };
+  return { won, best: won > before, first };
 }
 
 // ---------- the first-visit flags, and the file in Drive ----------
