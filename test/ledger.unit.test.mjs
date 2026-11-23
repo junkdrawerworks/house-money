@@ -330,3 +330,14 @@ test('the player\'s card announced: kept from 0 to 3, and the higher of two copi
   assert.equal(L.canon(L.mergeCage(a, b)), L.canon(L.mergeCage(b, a)));
   assert.equal(L.mergeBody(L.cleanBody({ app: 'house-money', cage: a }), L.cleanBody({ app: 'house-money', cage: b })).cage.told, 2);
 });
+
+test('milestones put together: every one earned on either copy, on the earlier day, in either order', () => {
+  const a = L.cleanRecords({ ms: { royal: '2026-11-30', tie: '2026-11-20', junk: 'soon', __proto__: { x: 1 } } });
+  const b = L.cleanRecords({ ms: { royal: '2026-11-28', sevens: '2026-11-29' } });
+  assert.deepEqual(a.ms, { royal: '2026-11-30', tie: '2026-11-20' });
+  assert.deepEqual(L.mergeRecords(a, b).ms, { royal: '2026-11-28', sevens: '2026-11-29', tie: '2026-11-20' });
+  assert.equal(L.canon(L.mergeRecords(a, b)), L.canon(L.mergeRecords(b, a)));
+  assert.equal(L.canon(L.mergeRecords(a, L.mergeRecords(a, b))), L.canon(L.mergeRecords(a, b)));
+  // a file from before milestones has none
+  assert.deepEqual(L.cleanRecords({ v: 1, dev: {} }).ms, {});
+});

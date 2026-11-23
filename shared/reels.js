@@ -387,7 +387,7 @@ export function keeper(id, defaults = {}) {
     l.paid = true;
     save();
     if (l.win > 0) cage.pay(l.win);
-    records.note(id, { wagered: l.wagered || 0, back: l.win || 0, extra: l.extra || {}, max: l.max || {} });
+    records.note(id, { wagered: l.wagered || 0, back: l.win || 0, extra: l.extra || {}, max: l.max || {}, marks: l.marks || [] });
     return l.win || 0;
   };
   // the bet off the stack for a new spin (free spins pass 0); false if there aren't enough chips

@@ -29,3 +29,18 @@ b.up { color: var(--win); } b.down { color: var(--lose); }
 .note { text-align: center; color: var(--muted); font-size: .85rem; margin: 22px 0 0; }
 .note + .note { margin-top: 6px; }
 .note a { color: var(--gold-hi); font-weight: 700; }
+
+/* the milestones: a card each, greyed until earned, then dated */
+.ms { margin: 22px 0 0; }
+.ms h2 { margin: 0 0 8px; font: 400 1.4rem/1.1 var(--sign); color: var(--gold-hi); text-align: center; }
+.ms h2 small { font: 600 .85rem var(--sans); color: var(--muted); margin-left: 6px; }
+.ms ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; grid-template-columns: 1fr; }
+@media (min-width: 600px) { .ms ul { grid-template-columns: 1fr 1fr; } }
+.ms li { display: grid; grid-template-columns: 1fr auto; gap: 0 10px; align-items: baseline; padding: 8px 12px; border-radius: 12px;
+  background: rgba(20, 8, 8, .75); border: 1px solid rgba(217, 180, 90, .3); }
+.ms li b { color: var(--gold-hi); font-size: .95rem; }
+.ms li small { color: var(--muted); font-size: .8rem; white-space: nowrap; }
+.ms li span { grid-column: 1 / -1; color: var(--muted); font-size: .85rem; }
+.ms li.not { background: rgba(20, 8, 8, .4); border-color: rgba(217, 180, 90, .12); }
+.ms li.not b { color: var(--muted); font-weight: 600; }
+.ms li.not b, .ms li.not span, .ms li.not small { opacity: .6; }

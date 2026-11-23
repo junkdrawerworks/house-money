@@ -17,6 +17,7 @@ import { tmpdir } from 'node:os';
 import assert from 'node:assert/strict';
 import { TABLES } from '../shared/tables.js';
 import { cageFrom } from '../shared/ledger.js';
+import { MILESTONES } from '../shared/milestones.js';
 
 const require = createRequire(import.meta.url);
 let pw;
@@ -57,10 +58,12 @@ const until = async (ok, ms, what) => {
 // and Records.
 const DEV = 'd-0000test';
 const seedCage = c => cageFrom(c, DEV);
-// Records from their totals ({ since, tables: { id: { rounds, wagered, net, best, bestOn, ...counters } } }): the
-// counters that keep the highest rather than add up are named in TOP.
+// Records from their totals ({ since, tables: { id: { rounds, wagered, net, best, bestOn, ...counters } }, ms }): the
+// counters that keep the highest rather than add up are named in TOP. Every milestone is earned already unless ms says
+// otherwise, so a check of a table's line doesn't gain one; the milestones' own checks start with none ({}).
 const TOP = ['longestHand', 'feature', 'biggest'];
-const seedRecords = ({ since, tables }) => ({ v: 1, dev: { [DEV]: { since, tables: Object.fromEntries(Object.entries(tables).map(([id, t]) => {
+const EARNED = Object.fromEntries(MILESTONES.map(m => [m.id, '2026-11-01']));
+const seedRecords = ({ since, tables, ms = EARNED }) => ({ v: 1, ms, dev: { [DEV]: { since, tables: Object.fromEntries(Object.entries(tables).map(([id, t]) => {
   const { rounds, wagered, net, best, bestOn, ...rest } = t, add = {}, top = {};
   for (const [k, v] of Object.entries(rest)) (TOP.includes(k) ? top : add)[k] = v;
   return [id, { rounds, wagered, back: wagered + net, best, bestOn, add, top }];
@@ -196,7 +199,7 @@ async function sit(path, saved, { ctx = null, size = phone, f = null } = {}) {
       localStorage.clear();
       localStorage.setItem('house-money.device', dev);
       for (const [k, v] of Object.entries(saved)) localStorage.setItem(`house-money.${k}`, JSON.stringify(v));
-    }, [{ ...saved, ...(saved.cage ? { cage: seedCage(saved.cage) } : {}), ...(saved.records ? { records: seedRecords(saved.records) } : {}) }, DEV]);
+    }, [{ ...saved, ...(saved.cage ? { cage: seedCage(saved.cage) } : {}), records: seedRecords(saved.records || { tables: {} }) }, DEV]);
   }
   await p.goto(`${base}${path}`);
   await p.waitForTimeout(400);
@@ -649,6 +652,50 @@ if (cageWants('blackjack', 'cherry-bell')) {
     await p.click('#bigwin');
     await until(async () => /top prize/.test(await p.textContent('.say')), 3000, 'Cherry Bell: the jackpot\'s line never came');
     assert.equal((await p.textContent('.say')).trim(), 'Three sevens on three coins: the top prize! Your biggest win at Cherry Bell yet.', 'Cherry Bell: the line for a biggest win');
+    await ctx.close();
+  }
+}
+// Milestones: Records lists them all, greyed until earned, then dated. At the table, the round that earns one says so
+// at the end of its line, once: Cherry Bell's three sevens (and not the next time), and 10,000 in the rack after a 25
+// hand of blackjack won from 9,990. A reload doesn't say it again, and Records has it, dated.
+if (cageWants('records', 'cherry-bell', 'blackjack')) {
+  {
+    const { p, ctx } = await sit('records/', { records: { since: '2026-11-01', tables: {}, ms: { royal: '2026-11-30' } } });
+    assert.equal((await p.textContent('#msH')).replace(/\s+/g, ' ').trim(), `Milestones 1 of ${MILESTONES.length}`, 'Records: the milestones\' heading');
+    const items = await p.$$eval('#ms li', lis => lis.map(li => [li.className, li.querySelector('b').textContent, li.querySelector('small').textContent]));
+    assert.equal(items.length, MILESTONES.length, 'Records: a line for every milestone');
+    assert.deepEqual(items.find(i => i[1] === 'Royal flush'), ['got', 'Royal flush', 'Nov 30, 2026'], 'Records: an earned milestone, dated');
+    assert.deepEqual(items.filter(i => i[0] === 'not').map(i => i[2]), Array(MILESTONES.length - 1).fill('Not yet'), 'Records: the milestones not earned yet');
+    await ctx.close();
+  }
+  if (cageWants('cherry-bell')) {
+    const { p, ctx } = await sit('cherry-bell/?seen', { cage: { chips: 1000 }, 'cherry-bell': { coins: 3, coin: 1 },
+      records: { since: '2026-11-01', tables: { 'cherry-bell': { rounds: 5, wagered: 15, net: 1985, best: 2000, bestOn: '2026-11-02' } }, ms: {} } }, { f: 0 });
+    const jackpot = async () => {
+      await p.click('#spin');
+      await p.waitForSelector('#bigwin:not([hidden])', { timeout: 10000 });
+      await p.click('#bigwin');
+      await until(async () => /top prize/.test(await p.textContent('.say')), 3000, 'Cherry Bell: the jackpot\'s line never came');
+      return (await p.textContent('.say')).trim();
+    };
+    assert.equal(await jackpot(), 'Three sevens on three coins: the top prize! That’s a milestone: three sevens.', 'Cherry Bell: the milestone isn\'t said');
+    await until(async () => !(await p.isDisabled('#spin')), 5000, 'Cherry Bell: Spin never came back');
+    assert.equal(await jackpot(), 'Three sevens on three coins: the top prize!', 'Cherry Bell: the milestone is said again');
+    await p.reload(); await p.waitForTimeout(400);
+    assert.doesNotMatch(await p.textContent('.say'), /milestone/, 'Cherry Bell: the milestone is said again after a reload');
+    await p.goto(`${base}records/`);
+    assert.match(await p.textContent('#ms li.got'), /^Three sevens[A-Z][a-z]{2} \d{1,2}, \d{4}Three sevens on the line at Cherry Bell\.$/, 'Records: the milestone earned at Cherry Bell');
+    await ctx.close();
+  }
+  if (cageWants('blackjack')) {
+    const C = (r, s = 'c') => ({ r, s });
+    const shoe = Array(150).fill(C(2)).concat([C(10), C(7, 'h'), C(9, 'd'), C(10, 'h')].reverse());
+    const { p, ctx } = await sit('blackjack/?fast&seen', { cage: { chips: 9990, wagered: 0, high: 9990 }, records: { tables: {}, ms: {} },
+      blackjack: { shoe, phase: 'bet', bet: 0, last: 25, hands: [], active: 0, dealer: [], hole: true, insurance: 0, felt: 0, carry: 0 } });
+    await p.click('#rebet'); await p.click('#deal');
+    await p.waitForSelector('#stand:not([disabled])'); await p.click('#stand');
+    await p.waitForSelector('#doneActions:not([hidden])');
+    assert.equal((await p.textContent('#say')).trim(), 'Dealer has 17. You win 25. That’s a milestone: 10,000 in the rack.', 'Blackjack: 10,000 in the rack isn\'t said');
     await ctx.close();
   }
 }

@@ -1,11 +1,12 @@
 // Records: the whole floor's totals, then each table's rounds (in its own word: hands, rolls, spins), chips bet, net
-// and biggest win, how this sitting has gone there, and its own counters.
+// and biggest win, how this sitting has gone there, and its own counters; then the milestones.
 
 import * as cage from '../shared/cage.js';
 import * as records from '../shared/records.js';
 import { TABLES, units } from '../shared/tables.js';
 import { outWords, upDown } from '../shared/table.js';
 import { drive } from '../shared/sync.js';
+import { MILESTONES } from '../shared/milestones.js';
 
 const fmt = cage.fmt;
 const $ = id => document.getElementById(id);
@@ -14,6 +15,7 @@ const signed = n => (n > 0 ? `+${fmt(n)}` : n < 0 ? `−${fmt(-n)}` : '0');
 
 const { EXTRA } = records;
 const cap = w => w[0].toUpperCase() + w.slice(1);
+const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;');
 
 function draw() {
   const r = records.read();
@@ -45,6 +47,10 @@ function draw() {
       </ul>` : '<p class="none">Not played yet.</p>'}
     </section>`;
   }).join('');
+  // the milestones: greyed until earned, then dated
+  const have = records.milestones(), got = MILESTONES.filter(m => have[m.id]).length;
+  $('ms').innerHTML = `<h2 id="msH">Milestones <small>${got} of ${MILESTONES.length}</small></h2>
+    <ul>${MILESTONES.map(m => `<li class="${have[m.id] ? 'got' : 'not'}"><b>${esc(m.title)}</b><small>${have[m.id] ? day(have[m.id]) : 'Not yet'}</small><span>${esc(m.what)}</span></li>`).join('')}</ul>`;
 }
 
 draw();

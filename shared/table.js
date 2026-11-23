@@ -20,6 +20,7 @@ import * as cage from './cage.js';
 import * as sound from './sound.js';
 import * as quick from './quick.js';
 import * as records from './records.js';
+import { said } from './milestones.js';
 import { TABLES, topBet, units } from './tables.js';
 import { sit } from './seat.js';
 import { drive } from './sync.js';
@@ -202,12 +203,14 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
 
   // What a round here adds to the end of its own line, the first one said after it's settled: the biggest win at this
   // table yet ("Your biggest win at Blackjack yet."), on a winning line, when it's more than ten times the table's
-  // smallest bet and not the first round here.
+  // smallest bet and not the first round here; then any milestone it earned ("That’s a milestone: first blackjack."),
+  // whatever the line (shared/milestones.js). Each is said once: Records keeps the milestones earned.
   let tail = null;
   addEventListener('house-money:round', e => {
     const r = e.detail || {};
     if (r.id !== id) return;
-    tail = { best: r.best && !r.first && r.won > 10 * min ? `Your biggest win at ${name} yet.` : '' };
+    tail = { best: r.best && !r.first && r.won > 10 * min ? `Your biggest win at ${name} yet.` : '',
+      ms: [...(tail?.ms || []), ...(r.milestones || []).map(said).filter(Boolean)] };
   });
   const ends = t => (/[.!?:]$/.test(t) ? t : `${t}.`);
 
@@ -215,7 +218,7 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
   function line(text, kind = '') {
     clearTimeout(lineTimer);
     if (text && tail) {
-      const more = [/\bwin\b/.test(kind) ? tail.best : ''].filter(Boolean);
+      const more = [/\bwin\b/.test(kind) ? tail.best : '', ...tail.ms].filter(Boolean);
       tail = null;
       if (more.length) text = [ends(text), ...more].join(' ');
     }

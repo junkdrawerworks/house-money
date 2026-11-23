@@ -19,9 +19,11 @@
 //          whichever tab or device gets there; it only goes up, so of two copies the larger is the newer
 //
 // Records, under house-money.records:
-//   { v: 1, dev: { <device>: { since, tables: { blackjack: { rounds, wagered, back, best, bestOn, add, top } } } } }
+//   { v: 1, dev: { <device>: { since, tables: { blackjack: { rounds, wagered, back, best, bestOn, add, top } } } },
+//     ms: { royal: '2026-11-30' } }
 //   back is every chip paid back to the rack (up or down = back − wagered); add holds a table's own counters, summed
-//   across devices ({ blackjacks: 3 }), and top the ones that keep the highest ({ longestHand: 9 }).
+//   across devices ({ blackjacks: 3 }), and top the ones that keep the highest ({ longestHand: 9 }). ms: the
+//   milestones earned (shared/milestones.js), each with the day it was first earned on any device.
 //
 // What it guarantees: Records and the chips bet on the player's card come out exact whatever order devices sync in
 // and however many syncs go missing. The stack comes out exact whenever each device syncs as it opens and as it's
@@ -218,6 +220,12 @@ function cleanTable(t) {
   for (const g of ['add', 'top']) for (const [k, v] of entries(t[g])) if (whole(v)) o[g][k] = whole(v);
   return o;
 }
+// The milestones earned ({ royal: '2026-11-30' }): the day each was first earned, on any device.
+function cleanMs(x) {
+  const o = {};
+  for (const [k, v] of entries(x)) if (day(v)) o[k] = v;
+  return o;
+}
 export function cleanRecords(x) {
   const dev = {};
   for (const [id, s] of entries(obj(x).dev)) {
@@ -225,10 +233,11 @@ export function cleanRecords(x) {
     for (const [tb, t] of entries(obj(s).tables)) tables[tb] = cleanTable(t);
     dev[id] = { since: day(obj(s).since), tables };
   }
-  return { v: V, dev };
+  return { v: V, dev, ms: cleanMs(obj(x).ms) };
 }
 // Two copies of Records, put together: each device's counters at their larger value, its biggest win from the copy
-// with the larger one (the earlier day on a tie), and the earlier day it started counting.
+// with the larger one (the earlier day on a tie), and the earlier day it started counting; the milestones of both,
+// each on the earlier day.
 export function mergeRecords(a, b) {
   a = cleanRecords(a); b = cleanRecords(b);
   const dev = {};
@@ -247,7 +256,9 @@ export function mergeRecords(a, b) {
     }
     dev[id] = { since: earlier(x.since, y.since), tables };
   }
-  return { v: V, dev };
+  const ms = {};
+  for (const k of keys(a.ms, b.ms)) ms[k] = earlier(a.ms[k], b.ms[k]);
+  return { v: V, dev, ms };
 }
 // What Records shows: { since, tables: { blackjack: { rounds, wagered, net, best, bestOn, ...add, ...top } } }, every
 // device's counters summed (top counters and the biggest win at their highest), counting since the earliest day.

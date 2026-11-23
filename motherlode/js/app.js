@@ -151,7 +151,8 @@ async function spin() {
     s.free = { left: r.free, total: r.free, sticky: [], won: 0, bet };
   }
   keep.begin({ stops: r.stops, sticky, win, wagered: free ? 0 : bet, free,
-    extra: started ? { features: 1 } : {}, max: { biggest: win, ...(ended ? { feature: ended.won } : {}) } });
+    extra: started ? { features: 1 } : {}, max: { biggest: win, ...(ended ? { feature: ended.won } : {}) },
+    marks: ended && ended.won > 100 * ended.bet ? ['lode'] : [] });
 
   // two lanterns already showing: the reels after them spin on a moment longer
   const tease = [2, 3, 4].filter(c => r.lit.filter(([lc]) => lc < c).length >= 2);

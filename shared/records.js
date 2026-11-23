@@ -6,6 +6,8 @@
 // sitting(id) is the same table since you sat down, kept on this device only (see the end).
 
 import * as L from './ledger.js';
+import * as cage from './cage.js';
+import * as M from './milestones.js';
 
 export const KEY = 'house-money.records';
 
@@ -42,17 +44,24 @@ export function read() {
   return { tables: r.tables, since: r.since || today() };
 }
 
+// The milestones earned: { royal: '2026-11-30' }.
+export const milestones = () => doc().ms;
+
 export function table(id) {
   return { rounds: 0, wagered: 0, net: 0, best: 0, bestOn: null, ...(read().tables[id] || {}) };
 }
 
 // One round settled at a table. wagered: everything bet on it; back: everything paid back to the rack (stakes
 // included). extra: counters of the table's own, added up ({ blackjacks: 1 }); max: ones kept highest
-// ({ longestHand: 9 }). Returns { won, best, first }: what the round came to, whether it's the table's biggest win yet,
-// and whether it's the first round there. The house-money:round event that follows carries the same, with the id.
-export function note(id, { wagered = 0, back = 0, extra = {}, max = {} } = {}) {
+// ({ longestHand: 9 }); marks: rare moments of the table's own, for the milestones (shared/milestones.js). Returns
+// { won, best, first, milestones }: what the round came to, whether it's the table's biggest win yet, whether it's the
+// first round there, and the milestones it earned. The house-money:round event that follows carries the same, with
+// the id. (A table pays the round into the rack before it calls this, so the stack it's earned on is the new one.)
+export function note(id, { wagered = 0, back = 0, extra = {}, max = {}, marks = [] } = {}) {
   const d = doc();
   const r = L.note(d, L.device(), id, { wagered, back, add: extra, top: max }, today());
+  r.milestones = M.earned({ id, won: r.won, add: extra, top: max, marks, tables: L.recordsTotals(d).tables, cage: cage.read() }, d.ms);
+  for (const k of r.milestones) d.ms[k] = today();
   try { localStorage.setItem(SITTING, JSON.stringify(sittingAdd(getSitting(), id, { wagered, back }, Date.now()))); } catch { /* full or off */ }
   save(d);
   // a round just settled at a table (the table's own line about it comes next)

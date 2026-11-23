@@ -367,7 +367,8 @@ function finish() {
   const o = s.outcome, c = s.coup;
   if (o.back > 0) cage.pay(o.back);
   s.paid = true; save();
-  records.note('baccarat', { wagered: o.wagered, back: o.back, extra: { [NAME[c.winner].toLowerCase()]: 1, naturals: c.natural ? 1 : 0 } });
+  records.note('baccarat', { wagered: o.wagered, back: o.back, extra: { [NAME[c.winner].toLowerCase()]: 1, naturals: c.natural ? 1 : 0 },
+    marks: c.winner === 'T' && s.bets.tie > 0 ? ['tie'] : [] });
   return true;
 }
 
