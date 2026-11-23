@@ -81,6 +81,23 @@ test('the cage offers a stake under 10 chips, only with nothing out on any table
   assert.equal(cage.canStake({ id: 'roulette', felt: 5 }), false);
 });
 
+// Motherlode takes 20 a spin, so there the cage offers under 20; on the floor and at every other table, under 10.
+test('at Motherlode the cage offers under 20 chips, its smallest bet', () => {
+  fresh();
+  set({ chips: 15 });
+  assert.equal(cage.canStake({ id: 'motherlode', min: 20, felt: 0, waiting: false }), true, '15 at Motherlode');
+  assert.equal(cage.canStake(), false, '15 on the floor');
+  assert.equal(cage.canStake({ id: 'blackjack', min: 10, felt: 0 }), false, '15 at Blackjack');
+  assert.equal(cage.canStake({ id: 'roulette', min: 1, felt: 0 }), false, '15 at Roulette');
+  set({ chips: 20 });
+  assert.equal(cage.canStake({ id: 'motherlode', min: 20, felt: 0 }), false, '20 covers a spin');
+  set({ chips: 15 });
+  felt('craps', 5);
+  assert.equal(cage.canStake({ id: 'motherlode', min: 20, felt: 0 }), false, 'not with chips out on another table');
+  felt('craps', 0);
+  assert.equal(cage.stake({ id: 'motherlode', min: 20, felt: 0 }).chips, 1015);
+});
+
 test('a stake adds another 1,000 to what you have, and counts it', () => {
   fresh();
   set({ chips: 6, wagered: 4000 });

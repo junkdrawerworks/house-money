@@ -70,7 +70,7 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
   // puts it on the machine's glass, over the pay table).
   // the chips out on this table now, and whether a round plays on here without them (free spins), which stand in for
   // what it last saved when the cage adds up every table's felt and the rounds waiting
-  const here = () => ({ id, felt: felt(), waiting: inPlay() });
+  const here = () => ({ id, min, felt: felt(), waiting: inPlay() });
   const stakeBox = document.createElement('div');
   stakeBox.className = 'stake-offer';
   stakeBox.hidden = true;
@@ -243,7 +243,7 @@ export function mountTable({ id, name, help = '', min = 1, max = 500, felt = () 
     const n = cage.read().chips;
     const away = cage.out(here()), there = cage.elsewhere(), free = cage.waiting(here());
     const short = n < min;
-    if (!short && !(n < cage.LOW && (away.length || there.length || free.length))) return '';
+    if (!short && !(n < cage.low(here()) && (away.length || there.length || free.length))) return '';
     const parts = [];
     if (short && !n) parts.push('Your rack is empty.');
     else if (short) parts.push(me?.slot ?`${name} takes ${cage.fmt(min)} a spin and you have ${cage.fmt(n)}.` : `The smallest bet at ${name} is ${cage.fmt(min)}, and you have ${cage.fmt(n)}.`);

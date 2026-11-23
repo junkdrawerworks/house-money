@@ -746,18 +746,26 @@ if (cageWants('blackjack', 'roulette', 'floor')) {
   await ctx.close();
 }
 
-// Motherlode takes 20 a spin. With 15 there's no spin and no stake (15 isn't under 10), so it says why, and where to
-// play instead; the bet can't go up. In the free spins, which need no chips, it says nothing.
+// Motherlode takes 20 a spin, so with 15 and nothing out the cage offers there (on the floor it waits for under 10).
+// With chips out on another table there's no spin and no stake, so it says why, and where they are; the bet can't go
+// up. In the free spins, which need no chips, it says nothing.
 if (cageWants('motherlode')) {
   const { p, ctx } = await sit('motherlode/?fast&seen', { cage: { chips: 15, wagered: 985, high: 1000, stakes: 1 } });
-  assert.equal(await offered(p), false, 'Motherlode: a stake offered at 15 chips');
-  assert.equal((await p.textContent('.cage-note')).trim(), 'Motherlode takes 20 a spin and you have 15. Cherry Bell and Odds & Ends take a chip at a time.', 'Motherlode: no word on why it won’t spin');
+  await until(() => offered(p), 2000, 'Motherlode: no stake offered at 15 chips, under its 20 a spin');
   assert.deepEqual(await p.evaluate(() => ['spin', 'betUp'].map(id => document.getElementById(id).disabled)), [true, true], 'Motherlode: spin or + still lit at 15 chips');
+  assert.deepEqual(await covered(p), [], 'Motherlode: the offer covers the controls');
+  await p.evaluate(() => localStorage.setItem('house-money.craps', JSON.stringify({ felt: 5 })));
+  await p.evaluate(() => dispatchEvent(new CustomEvent('house-money:cage')));
+  await until(async () => !(await offered(p)), 2000, 'Motherlode: a stake offered with 5 out on Craps');
+  assert.equal((await p.textContent('.cage-note')).trim(), 'Motherlode takes 20 a spin and you have 15. 5 still out on Craps. The cage stakes you when nothing’s left out.', 'Motherlode: no word on why it won’t spin');
   assert.deepEqual(await covered(p), [], 'Motherlode: the note covers the controls');
   await p.evaluate(c => { localStorage.setItem('house-money.cage', JSON.stringify(c)); dispatchEvent(new CustomEvent('house-money:cage')); }, seedCage({ chips: 40, wagered: 985, high: 1000, stakes: 1 }));
   await until(() => p.isHidden('.cage-note'), 2000, 'Motherlode: the note stayed with 40 chips');
   assert.equal(await p.evaluate(() => document.getElementById('betUp').disabled), false, 'Motherlode: + stayed off with 40 chips');
   await ctx.close();
+  const floor = await sit('?fast&seen', { cage: { chips: 15, wagered: 985, high: 1000, stakes: 1 } });
+  assert.equal(await floor.p.isVisible('#stake'), false, 'the floor offered a stake at 15 chips');
+  await floor.ctx.close();
   const free = await sit('motherlode/?seen', { cage: { chips: 15, wagered: 985, high: 1000, stakes: 1 }, motherlode: { bet: 20, free: { left: 8, total: 8, sticky: [], won: 0, bet: 20 } } });
   assert.equal(await free.p.isVisible('.cage-note'), false, 'Motherlode: the note showed in the free spins');
   assert.equal(await free.p.isDisabled('#auto'), false, 'Motherlode: Auto dimmed in the free spins at 15 chips');

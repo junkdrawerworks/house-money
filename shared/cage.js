@@ -102,10 +102,12 @@ export function elsewhere() {
   return Object.assign(list, { devices: e.devices });
 }
 
-// The cage stakes you another START when you're down to less than LOW with nothing out on any table and no free spins
-// waiting, so the stack plus the felt always comes to START for every stake plus what the tables have won or lost, and
-// the offer never comes mid-round. Returns the new cage, or null when you don't qualify. own: as for out() and waiting().
-export const canStake = (own = null) => read().chips < LOW && feltAll(own) === 0 && !waiting(own).length && !elsewhere().length;
+// The cage stakes you another START when you're down to less than LOW (or, at a table, less than its smallest bet,
+// own.min: Motherlode's 20) with nothing out on any table and no free spins waiting, so the stack plus the felt always
+// comes to START for every stake plus what the tables have won or lost, and the offer never comes mid-round. Returns
+// the new cage, or null when you don't qualify. own: as for out() and waiting(), with the table's min.
+export const low = (own = null) => Math.max(LOW, whole(own?.min) || 0);
+export const canStake = (own = null) => read().chips < low(own) && feltAll(own) === 0 && !waiting(own).length && !elsewhere().length;
 
 export function stake(own = null) {
   if (!canStake(own)) return null;
